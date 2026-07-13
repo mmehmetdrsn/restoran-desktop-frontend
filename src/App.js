@@ -6,6 +6,7 @@ function App() {
       <h1 className="text-3xl font-bold text-primary">
         Resto<span className="text-gold">Yönetim</span>
       </h1>
+      <p className="text-textLight mt-2">Hoş geldiniz!</p>
     </div>
   );
 }
