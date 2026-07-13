@@ -1,13 +1,15 @@
 import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
 function App() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <h1 className="text-3xl font-bold text-primary">
-        Resto<span className="text-gold">Yönetim</span>
-      </h1>
-      <p className="text-textLight mt-2">Hoş geldiniz!</p>
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/login" element={<div>Login Sayfası</div>} />
+        <Route path="/admin" element={<div>Admin Paneli</div>} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 
