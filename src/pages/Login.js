@@ -1,8 +1,11 @@
 // src/pages/Login.js
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaEnvelope, FaLock, FaEye, FaEyeSlash, FaSpinner } from 'react-icons/fa';
+import { FaEnvelope, FaLock, FaEye, FaEyeSlash, FaSpinner, FaArrowLeft } from 'react-icons/fa';
 import { toast } from 'react-toastify';
+
+// Arka plan resmi (restoran görseli)
+const backgroundImage = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -11,15 +14,18 @@ const Login = () => {
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [isResetMode, setIsResetMode] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
   
   const navigate = useNavigate();
 
   // Mock kullanıcı veritabanı
   const users = {
-    'admin@restoran.com': { password: 'admin123', role: 'admin', name: 'Admin Kullanıcı' },
-    'garson@restoran.com': { password: 'garson123', role: 'garson', name: 'Garson Kullanıcı' },
-    'asci@restoran.com': { password: 'asci123', role: 'asci', name: 'Aşçı Kullanıcı' },
-    'kurye@restoran.com': { password: 'kurye123', role: 'kurye', name: 'Kurye Kullanıcı' }
+    'admin@restoran.com': { password: 'admin123', role: 'admin', name: 'Yönetici' },
+    'garson@restoran.com': { password: 'garson123', role: 'garson', name: 'Garson' },
+    'asci@restoran.com': { password: 'asci123', role: 'asci', name: 'Aşçı' },
+    'kurye@restoran.com': { password: 'kurye123', role: 'kurye', name: 'Kurye' }
   };
 
   const redirectUser = (role) => {
@@ -37,7 +43,6 @@ const Login = () => {
     setError('');
     setLoading(true);
 
-    // Validasyon
     if (!email || !password) {
       setError('Lütfen tüm alanları doldurun');
       toast.warning('Lütfen tüm alanları doldurun!');
@@ -45,7 +50,6 @@ const Login = () => {
       return;
     }
 
-    // Email format kontrolü
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       setError('Geçerli bir e-posta adresi girin');
@@ -55,51 +59,27 @@ const Login = () => {
     }
 
     try {
-      // Mock API çağrısı
       await new Promise(resolve => setTimeout(resolve, 1500));
-
-      // Kullanıcı kontrolü
       const user = users[email];
       
       if (!user || user.password !== password) {
         throw new Error('E-posta veya şifre hatalı!');
       }
 
-      // src/pages/Login.js - handleSubmit içindeki userData kısmı
+      const userData = {
+        email: email,
+        role: user.role.toLowerCase(),
+        name: user.name,
+        loginTime: new Date().toISOString()
+      };
 
-// Kullanıcı bilgilerini hazırla
-const userData = {
-  email: email,
-  role: user.role.toLowerCase(), // ✅ KÜÇÜK HARFE ÇEVİR
-  name: user.name,
-  loginTime: new Date().toISOString()
-};
-
-console.log('📝 Kaydedilen kullanıcı:', userData);
-
-
-// Remember me kontrolü
-  if (rememberMe) {
-  localStorage.setItem('user', JSON.stringify(userData));
-  console.log('✅ localStorage\'a kaydedildi');
-} else {
-  sessionStorage.setItem('user', JSON.stringify(userData));
-  console.log('✅ sessionStorage\'a kaydedildi');
-}
-
-      // Remember me kontrolü
       if (rememberMe) {
         localStorage.setItem('user', JSON.stringify(userData));
-        console.log('localStorage kaydedildi');
       } else {
         sessionStorage.setItem('user', JSON.stringify(userData));
-        console.log('sessionStorage kaydedildi');
       }
 
-      // Başarılı giriş mesajı
       toast.success(`Hoş geldiniz, ${user.name}! 🎉`);
-
-      // Yönlendirme
       redirectUser(user.role);
 
     } catch (err) {
@@ -111,144 +91,313 @@ console.log('📝 Kaydedilen kullanıcı:', userData);
     }
   };
 
-  // Demo hesap doldurma
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    if (!resetEmail) {
+      toast.warning('Lütfen e-posta adresinizi girin!');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(resetEmail)) {
+      toast.error('Geçerli bir e-posta adresi girin!');
+      return;
+    }
+
+    setResetLoading(true);
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      const user = users[resetEmail];
+      if (!user) {
+        toast.error('Bu e-posta adresine kayıtlı kullanıcı bulunamadı!');
+      } else {
+        toast.success('Şifre sıfırlama bağlantısı e-posta adresinize gönderildi! 📧');
+        setIsResetMode(false);
+        setResetEmail('');
+      }
+    } catch (err) {
+      toast.error('Bir hata oluştu. Lütfen tekrar deneyin.');
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
   const fillDemoAccount = (demoEmail, demoPassword) => {
     setEmail(demoEmail);
     setPassword(demoPassword);
     toast.info(`${demoEmail} demo hesabı dolduruldu`);
   };
 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary via-primary/95 to-primary/90 p-4">
-      <div className="w-full max-w-md">
-        <div className="bg-white/10 backdrop-blur-xl rounded-2xl shadow-2xl p-8 border border-white/20 animate-fade-in">
-          
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-gold/20 rounded-full mb-4">
-              <span className="text-5xl">🍽️</span>
-            </div>
-            <h2 className="text-3xl font-bold text-white">Restoran Yönetim</h2>
-            <p className="mt-2 text-gold/80">Hesabınıza giriş yapın</p>
-          </div>
+  // Demo hesapları
+  const demoAccounts = [
+    { email: 'admin@restoran.com', password: 'admin123', label: 'Yönetici', desc: 'Tam yetki' },
+    { email: 'garson@restoran.com', password: 'garson123', label: 'Garson', desc: 'Sipariş & masa yönetimi' },
+    { email: 'asci@restoran.com', password: 'asci123', label: 'Aşçı', desc: 'Mutfak yönetimi' },
+    { email: 'kurye@restoran.com', password: 'kurye123', label: 'Kurye', desc: 'Teslimat yönetimi' }
+  ];
 
-          {error && (
-            <div className="bg-red-500/10 border border-red-500/30 text-red-200 p-3 rounded-lg text-sm mb-6 flex items-start gap-2 animate-fade-in">
-              <span className="text-lg">⚠️</span>
-              <span>{error}</span>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="relative">
-              <label className="block text-sm font-medium text-white/80 mb-1.5">
-                E-posta Adresi
-              </label>
-              <div className="relative">
-                <FaEnvelope className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/20 rounded-lg 
-                           text-white placeholder:text-white/30 focus:ring-2 focus:ring-gold 
-                           focus:border-transparent outline-none transition-all duration-300"
-                  placeholder="ornek@restoran.com"
-                  disabled={loading}
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="relative">
-              <label className="block text-sm font-medium text-white/80 mb-1.5">
-                Şifre
-              </label>
-              <div className="relative">
-                <FaLock className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-12 py-3 bg-white/5 border border-white/20 rounded-lg 
-                           text-white placeholder:text-white/30 focus:ring-2 focus:ring-gold 
-                           focus:border-transparent outline-none transition-all duration-300"
-                  placeholder="••••••••"
-                  disabled={loading}
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70 transition-colors"
-                >
-                  {showPassword ? <FaEyeSlash size={18} /> : <FaEye size={18} />}
-                </button>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2 text-sm text-white/70 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 rounded border-white/20 bg-white/5 
-                           text-gold focus:ring-gold focus:ring-offset-0 
-                           cursor-pointer"
-                />
-                Beni hatırla
-              </label>
-              <button
-                type="button"
-                className="text-sm text-gold/70 hover:text-gold transition-colors"
-                onClick={() => toast.info('Şifre sıfırlama bağlantısı gönderildi!')}
-              >
-                Şifremi unuttum?
-              </button>
-            </div>
-
+  // Şifre Sıfırlama Ekranı
+  if (isResetMode) {
+    return (
+      <div 
+        className="min-h-screen flex items-center justify-center p-4 relative"
+        style={{
+          backgroundImage: `url(${backgroundImage})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
+      >
+        {/* Arka plan blur - sadece arka plan blur */}
+        <div className="absolute inset-0 bg-black/70 backdrop-blur-xl"></div>
+        
+        <div className="w-full max-w-md relative z-10">
+          <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-8">
             <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3.5 bg-gold hover:bg-gold/80 text-primary font-semibold 
-                       rounded-lg transition-all duration-300 transform hover:scale-[1.02] 
-                       disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:scale-100
-                       flex items-center justify-center gap-2"
+              onClick={() => setIsResetMode(false)}
+              className="flex items-center gap-2 text-gray-500 hover:text-gray-700 transition-colors mb-6"
             >
-              {loading ? (
-                <>
-                  <FaSpinner className="animate-spin" />
-                  Giriş yapılıyor...
-                </>
-              ) : (
-                'Giriş Yap'
-              )}
+              <FaArrowLeft size={16} />
+              <span className="text-sm">Giriş ekranına dön</span>
             </button>
-          </form>
 
-          <div className="mt-8 pt-6 border-t border-white/10">
-            <p className="text-center text-sm text-white/50 mb-3">
-              🔑 Demo hesapları deneyin
-            </p>
-            <div className="grid grid-cols-2 gap-2">
-              {Object.entries(users).map(([email, user]) => (
-                <button
-                  key={email}
-                  onClick={() => fillDemoAccount(email, user.password)}
-                  className="text-xs bg-white/5 hover:bg-white/10 text-white/70 
-                           hover:text-white p-2 rounded-lg transition-all duration-300
-                           border border-white/10 hover:border-gold/30"
-                >
-                  <span className="block font-medium capitalize">{user.role}</span>
-                  <span className="text-[10px] text-white/40">{email}</span>
-                </button>
-              ))}
+            <div className="text-center mb-8">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
+                <span className="text-3xl">🔐</span>
+              </div>
+              <h2 className="text-2xl font-bold text-gray-800">Şifre Sıfırlama</h2>
+              <p className="mt-2 text-sm text-gray-500">
+                Kayıtlı e-posta adresinizi girin, sıfırlama bağlantısını göndereceğiz.
+              </p>
             </div>
+
+            <form onSubmit={handleResetPassword} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  E-posta
+                </label>
+                <div className="relative">
+                  <FaEnvelope className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="email"
+                    value={resetEmail}
+                    onChange={(e) => setResetEmail(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg 
+                             text-gray-800 placeholder:text-gray-400 focus:ring-2 
+                             focus:ring-gray-800 focus:border-transparent outline-none"
+                    placeholder="ad@restoran.com"
+                    disabled={resetLoading}
+                    required
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={resetLoading}
+                className="w-full py-3 bg-gray-900 hover:bg-black text-white font-semibold 
+                         rounded-lg transition-all duration-300 disabled:opacity-70 
+                         disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {resetLoading ? (
+                  <>
+                    <FaSpinner className="animate-spin" />
+                    Gönderiliyor...
+                  </>
+                ) : (
+                  'Bağlantı Gönder'
+                )}
+              </button>
+            </form>
+
+            <p className="mt-6 text-center text-[10px] text-gray-400">
+              Windows'u Etkinleştir<br/>
+              Windows'u etkinleştirmek için Ayarlar'a gidin.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Ana Giriş Ekranı
+  return (
+    <div 
+      className="min-h-screen flex items-center justify-center p-4 relative"
+      style={{
+        backgroundImage: `url(${backgroundImage})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }}
+    >
+      {/* SADECE ARKA PLAN BLUR - sol taraf etkilenmez */}
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-xl"></div>
+      
+      <div className="w-full max-w-6xl relative z-10">
+        <div className="grid grid-cols-1 lg:grid-cols-2 rounded-2xl shadow-2xl overflow-hidden">
+          
+          {/* Sol Taraf - Restoran resmi NET (blur yok) */}
+          <div 
+            className="p-8 lg:p-12 flex flex-col justify-between min-h-[400px] lg:min-h-[600px] relative"
+            style={{
+              backgroundImage: `url(${backgroundImage})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+            }}
+          >
+            {/* Sadece hafif karartma - BLUR YOK */}
+            <div className="absolute inset-0 bg-black/30"></div>
+            
+            <div className="relative z-10">
+              <div className="text-center">
+                <div className="text-6xl mb-4">🍽️</div>
+                <h1 className="text-white font-bold text-4xl tracking-wider">RESTORAN</h1>
+                <p className="text-white/80 text-sm tracking-wider mt-1">OTOMASYON SİSTEMİ</p>
+                
+                <div className="w-20 h-1 bg-white/30 mx-auto my-6"></div>
+                
+                <p className="text-white text-xl font-light leading-relaxed max-w-sm mx-auto">
+                  Restoranınızı tek ekrandan yönetin.
+                </p>
+                <p className="text-white/70 text-sm font-light max-w-sm mx-auto mt-2">
+                  Sipariş, masa, mutfak ve kasa operasyonlarınızı kesintisiz yürütün.
+                </p>
+              </div>
+            </div>
+
+            <div className="relative z-10"></div>
           </div>
 
-          <p className="mt-6 text-center text-xs text-white/30">
-            © 2024 Restoran Yönetim Sistemi v2.0
-          </p>
+          {/* Sağ Taraf - Giriş Formu */}
+          <div className="p-8 lg:p-12 flex flex-col justify-center bg-white">
+            <div className="max-w-sm mx-auto w-full">
+              <h2 className="text-2xl font-bold text-gray-800 tracking-wide">HOŞ GELDİNİZ</h2>
+              <p className="text-sm text-gray-500 mt-1">Giriş Yapın</p>
+              <p className="text-xs text-gray-400 mt-2 mb-6">Yönetim panelinize erişmek için bilgilerinizi girin.</p>
+
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-600 p-3 rounded-lg text-sm mb-4">
+                  {error}
+                </div>
+              )}
+
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    E-posta
+                  </label>
+                  <div className="relative">
+                    <FaEnvelope className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg 
+                               text-gray-800 placeholder:text-gray-400 focus:ring-2 
+                               focus:ring-gray-800 focus:border-transparent outline-none transition-all"
+                      placeholder="ad@restoran.com"
+                      disabled={loading}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Şifre
+                  </label>
+                  <div className="relative">
+                    <FaLock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full pl-10 pr-12 py-2.5 border border-gray-300 rounded-lg 
+                               text-gray-800 placeholder:text-gray-400 focus:ring-2 
+                               focus:ring-gray-800 focus:border-transparent outline-none transition-all"
+                      placeholder="********"
+                      disabled={loading}
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                      {showPassword ? <FaEyeSlash size={18} /> : <FaEye size={18} />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                      className="w-4 h-4 rounded border-gray-300 text-gray-900 
+                               focus:ring-gray-800 cursor-pointer"
+                    />
+                    Beni hatırla
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setIsResetMode(true)}
+                    className="text-sm text-gray-800 hover:text-black transition-colors font-medium"
+                  >
+                    Şifremi unuttum
+                  </button>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-3 bg-gray-900 hover:bg-black text-white font-semibold 
+                           rounded-lg transition-all duration-300 disabled:opacity-70 
+                           disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {loading ? (
+                    <>
+                      <FaSpinner className="animate-spin" />
+                      Giriş yapılıyor...
+                    </>
+                  ) : (
+                    'Giriş Yap ›'
+                  )}
+                </button>
+              </form>
+
+              {/* Hızlı Giriş */}
+              <div className="mt-8">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="flex-1 h-px bg-gray-200"></div>
+                  <span className="text-xs text-gray-400 font-medium uppercase tracking-wider">veya</span>
+                  <div className="flex-1 h-px bg-gray-200"></div>
+                </div>
+                <p className="text-xs text-gray-500 mb-3 font-medium tracking-wider">HIZLI GİRİŞ</p>
+                <div className="grid grid-cols-1 gap-2">
+                  {demoAccounts.map((account, index) => (
+                    <button
+                      key={index}
+                      onClick={() => fillDemoAccount(account.email, account.password)}
+                      className="flex items-center justify-between p-2.5 border border-gray-200 
+                               hover:border-gray-600 rounded-lg transition-all duration-300
+                               hover:bg-gray-50 group"
+                    >
+                      <div className="flex flex-col items-start">
+                        <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900">
+                          {account.label}
+                        </span>
+                        <span className="text-[10px] text-gray-400">{account.desc}</span>
+                      </div>
+                      <span className="text-xs text-gray-400 group-hover:text-gray-700">
+                        {account.email}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
