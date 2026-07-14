@@ -1,5 +1,5 @@
 // src/pages/Login.js
-import { useState } from 'react';
+import { useState, useEffect } from 'react'; // ✅ useEffect'i import et
 import { useNavigate } from 'react-router-dom';
 import { FaEnvelope, FaLock, FaEye, FaEyeSlash, FaSpinner } from 'react-icons/fa';
 import { toast } from 'react-toastify';
@@ -15,7 +15,7 @@ const Login = () => {
   
   const navigate = useNavigate();
 
-  // Mock kullanıcı veritabanı (API entegrasyonu için hazır)
+  // Mock kullanıcı veritabanı
   const users = {
     'admin@restoran.com': { password: 'admin123', role: 'admin', name: 'Admin Kullanıcı' },
     'garson@restoran.com': { password: 'garson123', role: 'garson', name: 'Garson Kullanıcı' },
@@ -23,19 +23,27 @@ const Login = () => {
     'kurye@restoran.com': { password: 'kurye123', role: 'kurye', name: 'Kurye Kullanıcı' }
   };
 
-  // Giriş yapmış kullanıcıyı kontrol et
-  useState(() => {
-    const user = localStorage.getItem('user');
-    if (user) {
+  // ✅ DOĞRU - useEffect ile kontrol
+  useEffect(() => {
+    // Önce sessionStorage'ı kontrol et, yoksa localStorage'ı kontrol et
+    let userData = sessionStorage.getItem('user');
+    if (!userData) {
+      userData = localStorage.getItem('user');
+    }
+    
+    if (userData) {
       try {
-        const parsedUser = JSON.parse(user);
+        const parsedUser = JSON.parse(userData);
+        console.log('Oturum bulundu:', parsedUser); // Debug
         // Kullanıcı zaten giriş yapmışsa doğru panele yönlendir
         redirectUser(parsedUser.role);
       } catch (error) {
+        console.error('Oturum okuma hatası:', error);
         localStorage.removeItem('user');
+        sessionStorage.removeItem('user');
       }
     }
-  }, []);
+  }, []); // ✅ Boş array = sadece ilk yüklemede çalışır
 
   const redirectUser = (role) => {
     const routes = {
@@ -44,7 +52,9 @@ const Login = () => {
       'asci': '/asci',
       'kurye': '/kurye'
     };
-    navigate(routes[role] || '/');
+    const targetRoute = routes[role] || '/';
+    console.log('Yönlendiriliyor:', targetRoute); // Debug
+    navigate(targetRoute);
   };
 
   const handleSubmit = async (e) => {
@@ -92,15 +102,18 @@ const Login = () => {
         email: email,
         role: user.role,
         name: user.name,
-        // token: token, // API'den gelen token
         loginTime: new Date().toISOString()
       };
+
+      console.log('Kullanıcı verisi kaydediliyor:', userData); // Debug
 
       // Remember me kontrolü
       if (rememberMe) {
         localStorage.setItem('user', JSON.stringify(userData));
+        console.log('localStorage\'a kaydedildi');
       } else {
         sessionStorage.setItem('user', JSON.stringify(userData));
+        console.log('sessionStorage\'a kaydedildi');
       }
 
       // Başarılı giriş mesajı

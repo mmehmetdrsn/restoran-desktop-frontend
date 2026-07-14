@@ -1,25 +1,36 @@
 // src/App.js
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { ToastContainer } from 'react-toastify'; // ✅ Tüm import'lar EN ÜSTTE
-import 'react-toastify/dist/ReactToastify.css';   // ✅ Tüm import'lar EN ÜSTTE
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import Login from './pages/Login';
 import AdminPanel from './pages/AdminPanel';
 import GarsonPanel from './pages/GarsonPanel';
 import AsciPanel from './pages/AsciPanel';
 import KuryePanel from './pages/KuryePanel';
 
-// Private Route component - giriş yapmamış kullanıcıları korur
+// Private Route component - GÜNCELLENDİ
 const PrivateRoute = ({ children, allowedRoles }) => {
-  const user = JSON.parse(localStorage.getItem('user'));
+  // Önce sessionStorage'ı kontrol et, yoksa localStorage'ı kontrol et
+  let user = sessionStorage.getItem('user');
+  if (!user) {
+    user = localStorage.getItem('user');
+  }
+  
+  if (user) {
+    try {
+      user = JSON.parse(user);
+    } catch (error) {
+      user = null;
+    }
+  }
   
   // Kullanıcı giriş yapmamışsa login'e yönlendir
   if (!user) {
     return <Navigate to="/" replace />;
   }
   
-  // Role kontrolü - eğer allowedRoles varsa ve kullanıcının rolü uygun değilse
+  // Role kontrolü
   if (allowedRoles && !allowedRoles.includes(user.role)) {
-    // Yetkisiz erişim - ana sayfaya yönlendir
     return <Navigate to="/" replace />;
   }
   
@@ -32,28 +43,24 @@ function App() {
       <Routes>
         <Route path="/" element={<Login />} />
         
-        {/* Admin Paneli - Sadece admin girebilir */}
         <Route path="/admin" element={
           <PrivateRoute allowedRoles={['admin']}>
             <AdminPanel />
           </PrivateRoute>
         } />
         
-        {/* Garson Paneli - Sadece garson girebilir */}
         <Route path="/garson" element={
           <PrivateRoute allowedRoles={['garson']}>
             <GarsonPanel />
           </PrivateRoute>
         } />
         
-        {/* Aşçı Paneli - Sadece aşçı girebilir */}
         <Route path="/asci" element={
           <PrivateRoute allowedRoles={['asci']}>
             <AsciPanel />
           </PrivateRoute>
         } />
         
-        {/* Kurye Paneli - Sadece kurye girebilir */}
         <Route path="/kurye" element={
           <PrivateRoute allowedRoles={['kurye']}>
             <KuryePanel />
@@ -61,7 +68,6 @@ function App() {
         } />
       </Routes>
       
-      {/* ✅ ToastContainer BURADA olmalı - import'lardan sonra, return içinde */}
       <ToastContainer 
         position="top-right"
         autoClose={3000}
@@ -78,4 +84,4 @@ function App() {
   );
 }
 
-export default App; // ✅ Burada bitmeli, import'lardan sonra
+export default App;
