@@ -74,52 +74,59 @@ const KuryePanel = () => {
     }
   ]);
 
-  // Çıkış yap
+  // ============ ÇIKIŞ YAP - DÜZELTİLDİ ============
   const handleLogout = () => {
+    // 1. Tüm storage'ları temizle
     localStorage.removeItem('user');
     sessionStorage.removeItem('user');
-    toast.success('Başarıyla çıkış yapıldı!');
-    navigate('/');
+    
+    // 2. Toast mesajı göster
+    toast.success('👋 Başarıyla çıkış yapıldı!');
+    
+    // 3. 1 saniye bekle ve yönlendir
+    setTimeout(() => {
+      navigate('/');
+      // Sayfayı tamamen yenile (state'leri sıfırlamak için)
+      window.location.reload();
+    }, 500);
   };
 
   // ============ SİPARİŞ İŞLEMLERİ ============
   const handleCallCustomer = (order) => {
     if (order.phone) {
-      toast.info(` ${order.phone} numarası aranıyor...`);
+      toast.info(`📞 ${order.phone} numarası aranıyor...`);
     } else {
-      toast.warning(' Bu sipariş için telefon numarası bulunamadı!');
-      const phone = prompt(' Müşteri telefon numarasını girin:');
+      toast.warning('⚠️ Bu sipariş için telefon numarası bulunamadı!');
+      const phone = prompt('📞 Müşteri telefon numarasını girin:');
       if (phone?.trim()) {
-        toast.success(` ${phone} aranıyor...`);
+        toast.success(`📞 ${phone} aranıyor...`);
       }
     }
   };
 
   const handleDeliveryConfirm = (order) => {
-    toast.info(` Sipariş #${order.id} teslimat onaylanıyor...`);
+    toast.info(`📦 Sipariş #${order.id} teslimat onaylanıyor...`);
     
     const confirm = window.confirm(
-      ` Sipariş #${order.id}\nMüşteri: ${order.customer}\nTutar: ₺${order.amount}\n\nTeslimatı onaylıyor musunuz?`
+      `📦 Sipariş #${order.id}\nMüşteri: ${order.customer}\nTutar: ₺${order.amount}\n\nTeslimatı onaylıyor musunuz?`
     );
     
     if (confirm) {
-      toast.success(` Sipariş #${order.id} teslim edildi!`);
-      
-      // Siparişi aktif listeden kaldır
+      toast.success(`✅ Sipariş #${order.id} teslim edildi!`);
       setActiveOrders(activeOrders.filter(o => o.id !== order.id));
       
       setTimeout(() => {
-        toast.info(` Müşteriye ${order.customer} teslimat bildirimi gönderildi!`);
+        toast.info(`📱 Müşteriye ${order.customer} teslimat bildirimi gönderildi!`);
       }, 1000);
       
       setTimeout(() => {
         const paymentMethod = window.confirm(
-          ` Ödeme yöntemi seçin:\n\nTamam - Kredi Kartı\nİptal - Nakit`
+          `💳 Ödeme yöntemi seçin:\n\nTamam - Kredi Kartı\nİptal - Nakit`
         );
         if (paymentMethod) {
-          toast.success(' Kredi kartı ile ödeme alındı!');
+          toast.success('💳 Kredi kartı ile ödeme alındı!');
         } else {
-          toast.success(' Nakit ödeme alındı!');
+          toast.success('💰 Nakit ödeme alındı!');
         }
       }, 1500);
       
@@ -151,30 +158,30 @@ const KuryePanel = () => {
       const currentStep = steps[currentStepIndex];
       
       if (currentStep.id === 'kurye_kontrol' && option === 'Hayır') {
-        toast.error(' Kurye bulunamadı! İptal ediliyor...');
+        toast.error('❌ Kurye bulunamadı! İptal ediliyor...');
         onClose();
         return;
       }
 
       if (currentStep.id === 'kurye_kabul' && option === 'Hayır') {
-        toast.error(' Kurye kabul etmedi! İptal ediliyor...');
+        toast.error('❌ Kurye kabul etmedi! İptal ediliyor...');
         onClose();
         return;
       }
 
       if (currentStep.id === 'teslim' && option === 'Hayır') {
-        const note = prompt(' Teslimat notu girin:');
-        toast.warning(` Teslimat sorunu: ${note || 'Belirtilmedi'}`);
+        const note = prompt('📝 Teslimat notu girin:');
+        toast.warning(`⚠️ Teslimat sorunu: ${note || 'Belirtilmedi'}`);
         onClose();
         return;
       }
 
-      toast.success(` ${currentStep.label} - ${option}`);
+      toast.success(`✅ ${currentStep.label} - ${option}`);
 
       if (currentStepIndex < steps.length - 1) {
         setCurrentStepIndex(currentStepIndex + 1);
       } else {
-        toast.success(' Sipariş akışı tamamlandı!');
+        toast.success('🎉 Sipariş akışı tamamlandı!');
         onClose();
       }
     };
@@ -183,7 +190,7 @@ const KuryePanel = () => {
       <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div className="bg-black/90 rounded-2xl border border-white/10 max-w-md w-full">
           <div className="p-6 border-b border-white/10 flex items-center justify-between">
-            <h3 className="text-white font-bold"> Sipariş Akışı</h3>
+            <h3 className="text-white font-bold">🔄 Sipariş Akışı</h3>
             <button onClick={onClose} className="text-gray-400 hover:text-white">
               <FaTimes />
             </button>
@@ -191,7 +198,7 @@ const KuryePanel = () => {
 
           <div className="p-6">
             <div className="flex items-center gap-3 mb-4">
-              <span className="text-3xl">{steps[currentStepIndex]?.icon || ''}</span>
+              <span className="text-3xl">{steps[currentStepIndex]?.icon || '📋'}</span>
               <div>
                 <p className="text-white font-semibold">{steps[currentStepIndex]?.label}</p>
                 <p className="text-gray-400 text-sm">Adım {currentStepIndex + 1}/{steps.length}</p>
@@ -240,7 +247,7 @@ const KuryePanel = () => {
         <div className="bg-black/90 rounded-2xl border border-white/10 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
           <div className="p-6 border-b border-white/10">
             <div className="flex items-center justify-between">
-              <h3 className="text-white text-xl font-bold"> Sipariş #{order.id}</h3>
+              <h3 className="text-white text-xl font-bold">📋 Sipariş #{order.id}</h3>
               <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
                 <FaTimes />
               </button>
@@ -269,10 +276,10 @@ const KuryePanel = () => {
                   order.status === 'yolda' ? 'bg-blue-500/20 text-blue-400' :
                   'bg-yellow-500/20 text-yellow-400'
                 }`}>
-                  {order.status === 'tamamlandi' ? ' Tamamlandı' :
-                   order.status === 'iptal' ? ' İptal Edildi' :
-                   order.status === 'yolda' ? ' Yolda' :
-                   ' Bekliyor'}
+                  {order.status === 'tamamlandi' ? '✅ Tamamlandı' :
+                   order.status === 'iptal' ? '❌ İptal Edildi' :
+                   order.status === 'yolda' ? '🚀 Yolda' :
+                   '📍 Bekliyor'}
                 </span>
               </div>
             </div>
@@ -386,7 +393,7 @@ const KuryePanel = () => {
 
         <div className="bg-black/90 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
           <div className="flex items-center gap-3 mb-4">
-            
+            <span className="text-2xl">⚡</span>
             <div>
               <h3 className="text-white font-bold">Hızlı Kurye İşlemleri</h3>
               <p className="text-gray-400 text-sm">Tek tıkla işlemler</p>
@@ -436,10 +443,10 @@ const KuryePanel = () => {
                       order.status === 'teslim' ? 'text-yellow-400' :
                       'text-orange-400'}
                   `}>
-                    {order.status === 'hazir' && ' '}
-                    {order.status === 'kurye_bekliyor' && ''}
-                    {order.status === 'yolda' && ''}
-                    {order.status === 'teslim' && ''}
+                    {order.status === 'hazir' && '🍳'}
+                    {order.status === 'kurye_bekliyor' && '⏳'}
+                    {order.status === 'yolda' && '🚀'}
+                    {order.status === 'teslim' && '📦'}
                   </span>
                 </div>
                 <div>
@@ -457,9 +464,9 @@ const KuryePanel = () => {
                       order.status === 'yolda' ? 'bg-blue-500/20 text-blue-400' :
                       'bg-yellow-500/20 text-yellow-400'
                     }`}>
-                      {order.status === 'hazir' ? ' Hazır' :
-                       order.status === 'kurye_bekliyor' ? ' Kurye Bekliyor' :
-                       order.status === 'yolda' ? ' Yolda' :
+                      {order.status === 'hazir' ? '✅ Hazır' :
+                       order.status === 'kurye_bekliyor' ? '⏳ Kurye Bekliyor' :
+                       order.status === 'yolda' ? '🚀 Yolda' :
                        '📦 Teslim Ediliyor'}
                     </span>
                   </div>
@@ -530,7 +537,7 @@ const KuryePanel = () => {
           <div className="max-w-7xl mx-auto px-4">
             <div className="flex items-center justify-between h-16">
               <div className="flex items-center gap-3 flex-shrink-0">
-                
+                <div className="text-2xl">🛵</div>
                 <div>
                   <h1 className="text-white font-bold text-base">SekerRestoran</h1>
                   <p className="text-gray-400 text-[10px]">{userData?.email || 'kurye@restoran.com'}</p>
@@ -612,7 +619,7 @@ const KuryePanel = () => {
           <Dashboard />
         </div>
 
-        {/* Alt Bilgi - Sadeleştirildi */}
+        {/* Alt Bilgi */}
         <div className="border-t border-white/10 bg-black/30 backdrop-blur-sm">
           <div className="max-w-7xl mx-auto px-4 py-3">
             <p className="text-center text-gray-400 text-[10px]">
