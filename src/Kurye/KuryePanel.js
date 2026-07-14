@@ -622,9 +622,6 @@ const KuryePanel = () => {
         {/* Alt Bilgi */}
         <div className="border-t border-white/10 bg-black/30 backdrop-blur-sm">
           <div className="max-w-7xl mx-auto px-4 py-3">
-            <p className="text-center text-gray-400 text-[10px]">
-              © 2024 SekerRestoran Yönetim Sistemi v2.0
-            </p>
           </div>
         </div>
       </div>
