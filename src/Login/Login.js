@@ -29,14 +29,21 @@ const Login = () => {
   };
 
   const redirectUser = (role) => {
-    const routes = {
-      'admin': '/admin',
-      'garson': '/garson',
-      'asci': '/asci',
-      'kurye': '/kurye'
-    };
-    navigate(routes[role] || '/');
+  // role'ü küçük harfe çevir (güvenlik için)
+  const normalizedRole = role.toLowerCase();
+  
+  const routes = {
+    'admin': '/admin',
+    'garson': '/garson',
+    'asci': '/asci',
+    'kurye': '/kurye'
   };
+  
+  const targetRoute = routes[normalizedRole] || '/';
+  console.log('🔄 Yönlendiriliyor:', targetRoute, 'Rol:', normalizedRole);
+  
+  navigate(targetRoute);
+};
 
   const handleSubmit = async (e) => {
     e.preventDefault();
