@@ -1,10 +1,9 @@
-// src/pages/Login.js
+// src/Login/Login.js
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaEnvelope, FaLock, FaEye, FaEyeSlash, FaSpinner, FaArrowLeft } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 
-// Arka plan resmi (restoran görseli)
 const backgroundImage = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80';
 
 const Login = () => {
@@ -28,76 +27,7 @@ const Login = () => {
     'kurye@restoran.com': { password: 'kurye123', role: 'kurye', name: 'Kurye' }
   };
 
-  const redirectUser = (role) => {
-  // role'ü küçük harfe çevir (güvenlik için)
-  const normalizedRole = role.toLowerCase();
-  
-  const routes = {
-    'admin': '/admin',
-    'garson': '/garson',
-    'asci': '/asci',
-    'kurye': '/kurye'
-  };
-  
-  const targetRoute = routes[normalizedRole] || '/';
-  console.log('🔄 Yönlendiriliyor:', targetRoute, 'Rol:', normalizedRole);
-  
-  navigate(targetRoute);
-};
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-
-    if (!email || !password) {
-      setError('Lütfen tüm alanları doldurun');
-      toast.warning('Lütfen tüm alanları doldurun!');
-      setLoading(false);
-      return;
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      setError('Geçerli bir e-posta adresi girin');
-      toast.error('Geçerli bir e-posta adresi girin!');
-      setLoading(false);
-      return;
-    }
-
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      const user = users[email];
-      
-      if (!user || user.password !== password) {
-        throw new Error('E-posta veya şifre hatalı!');
-      }
-
-      const userData = {
-        email: email,
-        role: user.role.toLowerCase(),
-        name: user.name,
-        loginTime: new Date().toISOString()
-      };
-
-      if (rememberMe) {
-        localStorage.setItem('user', JSON.stringify(userData));
-      } else {
-        sessionStorage.setItem('user', JSON.stringify(userData));
-      }
-
-      toast.success(`Hoş geldiniz, ${user.name}! 🎉`);
-      redirectUser(user.role);
-
-    } catch (err) {
-      const errorMessage = err.message || 'Giriş başarısız. Lütfen tekrar deneyin.';
-      setError(errorMessage);
-      toast.error(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // ✅ Şifre sıfırlama fonksiyonu
   const handleResetPassword = async (e) => {
     e.preventDefault();
     if (!resetEmail) {
@@ -129,19 +59,89 @@ const Login = () => {
     }
   };
 
-  const fillDemoAccount = (demoEmail, demoPassword) => {
-    setEmail(demoEmail);
-    setPassword(demoPassword);
-    toast.info(`${demoEmail} demo hesabı dolduruldu`);
-  };
+ const handleSubmit = async (e) => {
+  e.preventDefault();
+  setError('');
+  setLoading(true);
 
-  // Demo hesapları
-  const demoAccounts = [
-    { email: 'admin@restoran.com', password: 'admin123', label: 'Yönetici', desc: 'Tam yetki' },
-    { email: 'garson@restoran.com', password: 'garson123', label: 'Garson', desc: 'Sipariş & masa yönetimi' },
-    { email: 'asci@restoran.com', password: 'asci123', label: 'Aşçı', desc: 'Mutfak yönetimi' },
-    { email: 'kurye@restoran.com', password: 'kurye123', label: 'Kurye', desc: 'Teslimat yönetimi' }
-  ];
+  if (!email || !password) {
+    setError('Lütfen tüm alanları doldurun');
+    toast.warning('Lütfen tüm alanları doldurun!');
+    setLoading(false);
+    return;
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    setError('Geçerli bir e-posta adresi girin');
+    toast.error('Geçerli bir e-posta adresi girin!');
+    setLoading(false);
+    return;
+  }
+
+  try {
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    const user = users[email];
+    
+    if (!user || user.password !== password) {
+      throw new Error('E-posta veya şifre hatalı!');
+    }
+
+    // 🔴 EMAİL'E GÖRE ROL BELİRLE (DOĞRUDAN)
+    let role = '';
+    if (email === 'admin@restoran.com') {
+      role = 'admin';
+    } else if (email === 'garson@restoran.com') {
+      role = 'garson';
+    } else if (email === 'asci@restoran.com') {
+      role = 'asci';
+    } else if (email === 'kurye@restoran.com') {
+      role = 'kurye';
+    }
+
+    console.log('🔍 Email:', email);
+    console.log('🔍 Belirlenen rol:', role);
+
+    const userData = {
+      email: email,
+      role: role,
+      name: user.name,
+      loginTime: new Date().toISOString()
+    };
+
+    console.log('📝 Kaydedilen kullanıcı:', userData);
+
+    if (rememberMe) {
+      localStorage.setItem('user', JSON.stringify(userData));
+    } else {
+      sessionStorage.setItem('user', JSON.stringify(userData));
+    }
+
+    toast.success(`Hoş geldiniz, ${user.name}! 🎉`);
+
+    // 🔴 DOĞRUDAN YÖNLENDİR
+    console.log('🔄 Yönlendiriliyor - Rol:', role);
+    
+    if (role === 'admin') {
+      window.location.href = '/admin';
+    } else if (role === 'garson') {
+      window.location.href = '/garson';
+    } else if (role === 'asci') {
+      window.location.href = '/asci';
+    } else if (role === 'kurye') {
+      window.location.href = '/kurye';
+    } else {
+      window.location.href = '/';
+    }
+
+  } catch (err) {
+    const errorMessage = err.message || 'Giriş başarısız. Lütfen tekrar deneyin.';
+    setError(errorMessage);
+    toast.error(errorMessage);
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Şifre Sıfırlama Ekranı
   if (isResetMode) {
@@ -154,7 +154,6 @@ const Login = () => {
           backgroundPosition: 'center',
         }}
       >
-        {/* Arka plan blur - sadece arka plan blur */}
         <div className="absolute inset-0 bg-black/70 backdrop-blur-xl"></div>
         
         <div className="w-full max-w-md relative z-10">
@@ -236,13 +235,12 @@ const Login = () => {
         backgroundPosition: 'center',
       }}
     >
-      {/* SADECE ARKA PLAN BLUR - sol taraf etkilenmez */}
       <div className="absolute inset-0 bg-black/50 backdrop-blur-xl"></div>
       
       <div className="w-full max-w-6xl relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-2 rounded-2xl shadow-2xl overflow-hidden">
           
-          {/* Sol Taraf - Restoran resmi NET (blur yok) */}
+          {/* Sol Taraf */}
           <div 
             className="p-8 lg:p-12 flex flex-col justify-between min-h-[400px] lg:min-h-[600px] relative"
             style={{
@@ -251,7 +249,6 @@ const Login = () => {
               backgroundPosition: 'center',
             }}
           >
-            {/* Sadece hafif karartma - BLUR YOK */}
             <div className="absolute inset-0 bg-black/30"></div>
             
             <div className="relative z-10">
@@ -382,22 +379,26 @@ const Login = () => {
                 </div>
                 <p className="text-xs text-gray-500 mb-3 font-medium tracking-wider">HIZLI GİRİŞ</p>
                 <div className="grid grid-cols-1 gap-2">
-                  {demoAccounts.map((account, index) => (
+                  {Object.entries(users).map(([email, user]) => (
                     <button
-                      key={index}
-                      onClick={() => fillDemoAccount(account.email, account.password)}
+                      key={email}
+                      onClick={() => {
+                        setEmail(email);
+                        setPassword(user.password);
+                        toast.info(`${email} demo hesabı dolduruldu`);
+                      }}
                       className="flex items-center justify-between p-2.5 border border-gray-200 
                                hover:border-gray-600 rounded-lg transition-all duration-300
                                hover:bg-gray-50 group"
                     >
                       <div className="flex flex-col items-start">
                         <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900">
-                          {account.label}
+                          {user.name}
                         </span>
-                        <span className="text-[10px] text-gray-400">{account.desc}</span>
+                        <span className="text-[10px] text-gray-400">{user.role} yetkisi</span>
                       </div>
                       <span className="text-xs text-gray-400 group-hover:text-gray-700">
-                        {account.email}
+                        {email}
                       </span>
                     </button>
                   ))}
