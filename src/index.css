@@ -1,25 +1,94 @@
+/* src/index.css - DÜZELTİLMİŞ VERSİYON */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   body {
-    font-family: 'Segoe UI', sans-serif;
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
     background: #f0f4f9;
+    margin: 0;
+    padding: 0;
+  }
+  
+  /* Tüm scrollbar stilleri */
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #c9a86c;
+    border-radius: 10px;
   }
 }
 
 @layer components {
+  /* Buton stilleri */
   .btn-primary {
-    @apply px-6 py-3 bg-gold text-primary font-semibold rounded-xl hover:bg-gold/80 transition;
+    @apply bg-gold text-white px-6 py-2.5 rounded-lg font-semibold 
+           transition-all duration-300 hover:bg-gold/80 
+           focus:outline-none focus:ring-2 focus:ring-gold/50 
+           disabled:opacity-50 disabled:cursor-not-allowed;
   }
+  
+  .btn-secondary {
+    @apply bg-primary text-white px-6 py-2.5 rounded-lg font-semibold 
+           transition-all duration-300 hover:bg-primary/80 
+           focus:outline-none focus:ring-2 focus:ring-primary/50;
+  }
+  
+  .btn-danger {
+    @apply bg-error text-white px-6 py-2.5 rounded-lg font-semibold 
+           transition-all duration-300 hover:bg-error/80 
+           focus:outline-none focus:ring-2 focus:ring-error/50;
+  }
+
+  /* Input alanları */
   .input-field {
-    @apply w-full px-4 py-3 border-2 border-border rounded-xl focus:border-gold focus:outline-none transition;
+    @apply w-full px-4 py-2.5 border border-border rounded-lg 
+           focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 
+           transition-all duration-300 bg-white/80;
   }
+
+  /* Sidebar linkleri */
   .sidebar-link {
-    @apply flex items-center gap-3 px-4 py-3 text-gray-400 rounded-lg hover:bg-white/5 hover:text-white cursor-pointer;
+    @apply flex items-center gap-3 px-4 py-3 rounded-lg 
+           text-textLight transition-all duration-300 
+           hover:bg-gold/10 hover:text-gold cursor-pointer;
   }
+
   .sidebar-link.active {
-    @apply bg-gold/15 text-gold;
+    @apply bg-gold/15 text-gold font-semibold;
+  }
+
+  /* Kart stilleri */
+  .card {
+    @apply bg-white rounded-xl shadow-md p-6 border border-border 
+           transition-all duration-300 hover:shadow-lg;
+  }
+
+  /* Başlık stilleri */
+  .page-title {
+    @apply text-2xl font-bold text-primary;
+  }
+
+  .section-title {
+    @apply text-xl font-semibold text-primary;
+  }
+
+  /* Badge / Etiket stilleri */
+  .badge-success {
+    @apply bg-success/10 text-success px-3 py-1 rounded-full text-sm font-medium;
+  }
+  
+  .badge-error {
+    @apply bg-error/10 text-error px-3 py-1 rounded-full text-sm font-medium;
+  }
+  
+  .badge-warning {
+    @apply bg-warning/10 text-warning px-3 py-1 rounded-full text-sm font-medium;
   }
 }

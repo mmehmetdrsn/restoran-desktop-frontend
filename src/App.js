@@ -1,5 +1,7 @@
 // src/App.js
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { ToastContainer } from 'react-toastify'; // ✅ Tüm import'lar EN ÜSTTE
+import 'react-toastify/dist/ReactToastify.css';   // ✅ Tüm import'lar EN ÜSTTE
 import Login from './pages/Login';
 import AdminPanel from './pages/AdminPanel';
 import GarsonPanel from './pages/GarsonPanel';
@@ -58,8 +60,22 @@ function App() {
           </PrivateRoute>
         } />
       </Routes>
+      
+      {/* ✅ ToastContainer BURADA olmalı - import'lardan sonra, return içinde */}
+      <ToastContainer 
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="dark"
+      />
     </BrowserRouter>
   );
 }
 
-export default App;
+export default App; // ✅ Burada bitmeli, import'lardan sonra
