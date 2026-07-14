@@ -1,10 +1,20 @@
-// src/pages/GarsonPanel.js
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const GarsonPanel = () => {
   const navigate = useNavigate();
-  const user = JSON.parse(localStorage.getItem('user'));
+  
+  // 🔧 DÜZELTİLDİ - Önce sessionStorage, sonra localStorage
+  let user = null;
+  const sessionUser = sessionStorage.getItem('user');
+  const localUser = localStorage.getItem('user');
+  
+  if (sessionUser) {
+    user = JSON.parse(sessionUser);
+  } else if (localUser) {
+    user = JSON.parse(localUser);
+  }
+
   const [activeTab, setActiveTab] = useState('masalar');
   const [selectedMasa, setSelectedMasa] = useState(null);
   const [siparisler, setSiparisler] = useState([]);
@@ -15,9 +25,12 @@ const GarsonPanel = () => {
   const [iadeSebep, setIadeSebep] = useState('');
 
   useEffect(() => {
+    // 🔧 DÜZELTİLDİ - Kullanıcı kontrolü
     if (!user || user.role !== 'garson') {
       navigate('/');
+      return;
     }
+    
     // Örnek sipariş verileri
     setSiparisler([
       { id: 1, masaNo: 3, urunler: ['Pizza', 'Kola'], durum: 'Hazırlanıyor', tutar: 120 },
@@ -28,6 +41,7 @@ const GarsonPanel = () => {
 
   const handleLogout = () => {
     localStorage.removeItem('user');
+    sessionStorage.removeItem('user');
     navigate('/');
   };
 

@@ -1,9 +1,8 @@
 // src/pages/Login.js
-import { useState, useEffect } from 'react'; // ✅ useEffect'i import et
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaEnvelope, FaLock, FaEye, FaEyeSlash, FaSpinner } from 'react-icons/fa';
 import { toast } from 'react-toastify';
-import axios from 'axios';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -23,28 +22,6 @@ const Login = () => {
     'kurye@restoran.com': { password: 'kurye123', role: 'kurye', name: 'Kurye Kullanıcı' }
   };
 
-  // ✅ DOĞRU - useEffect ile kontrol
-  useEffect(() => {
-    // Önce sessionStorage'ı kontrol et, yoksa localStorage'ı kontrol et
-    let userData = sessionStorage.getItem('user');
-    if (!userData) {
-      userData = localStorage.getItem('user');
-    }
-    
-    if (userData) {
-      try {
-        const parsedUser = JSON.parse(userData);
-        console.log('Oturum bulundu:', parsedUser); // Debug
-        // Kullanıcı zaten giriş yapmışsa doğru panele yönlendir
-        redirectUser(parsedUser.role);
-      } catch (error) {
-        console.error('Oturum okuma hatası:', error);
-        localStorage.removeItem('user');
-        sessionStorage.removeItem('user');
-      }
-    }
-  }, []); // ✅ Boş array = sadece ilk yüklemede çalışır
-
   const redirectUser = (role) => {
     const routes = {
       'admin': '/admin',
@@ -52,9 +29,7 @@ const Login = () => {
       'asci': '/asci',
       'kurye': '/kurye'
     };
-    const targetRoute = routes[role] || '/';
-    console.log('Yönlendiriliyor:', targetRoute); // Debug
-    navigate(targetRoute);
+    navigate(routes[role] || '/');
   };
 
   const handleSubmit = async (e) => {
@@ -80,14 +55,7 @@ const Login = () => {
     }
 
     try {
-      // 🔄 API çağrısı - Backend bağlandığında aktif edin
-      // const response = await axios.post('http://localhost:5000/api/auth/login', {
-      //   email,
-      //   password
-      // });
-      // const { token, user } = response.data;
-
-      // 🧪 Mock API çağrısı (şimdilik)
+      // Mock API çağrısı
       await new Promise(resolve => setTimeout(resolve, 1500));
 
       // Kullanıcı kontrolü
@@ -97,23 +65,35 @@ const Login = () => {
         throw new Error('E-posta veya şifre hatalı!');
       }
 
-      // Kullanıcı bilgilerini hazırla
-      const userData = {
-        email: email,
-        role: user.role,
-        name: user.name,
-        loginTime: new Date().toISOString()
-      };
+      // src/pages/Login.js - handleSubmit içindeki userData kısmı
 
-      console.log('Kullanıcı verisi kaydediliyor:', userData); // Debug
+// Kullanıcı bilgilerini hazırla
+const userData = {
+  email: email,
+  role: user.role.toLowerCase(), // ✅ KÜÇÜK HARFE ÇEVİR
+  name: user.name,
+  loginTime: new Date().toISOString()
+};
+
+console.log('📝 Kaydedilen kullanıcı:', userData);
+
+
+// Remember me kontrolü
+  if (rememberMe) {
+  localStorage.setItem('user', JSON.stringify(userData));
+  console.log('✅ localStorage\'a kaydedildi');
+} else {
+  sessionStorage.setItem('user', JSON.stringify(userData));
+  console.log('✅ sessionStorage\'a kaydedildi');
+}
 
       // Remember me kontrolü
       if (rememberMe) {
         localStorage.setItem('user', JSON.stringify(userData));
-        console.log('localStorage\'a kaydedildi');
+        console.log('localStorage kaydedildi');
       } else {
         sessionStorage.setItem('user', JSON.stringify(userData));
-        console.log('sessionStorage\'a kaydedildi');
+        console.log('sessionStorage kaydedildi');
       }
 
       // Başarılı giriş mesajı
@@ -123,7 +103,7 @@ const Login = () => {
       redirectUser(user.role);
 
     } catch (err) {
-      const errorMessage = err.response?.data?.message || err.message || 'Giriş başarısız. Lütfen tekrar deneyin.';
+      const errorMessage = err.message || 'Giriş başarısız. Lütfen tekrar deneyin.';
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -141,10 +121,8 @@ const Login = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary via-primary/95 to-primary/90 p-4">
       <div className="w-full max-w-md">
-        {/* Ana Kart */}
         <div className="bg-white/10 backdrop-blur-xl rounded-2xl shadow-2xl p-8 border border-white/20 animate-fade-in">
           
-          {/* Logo ve Başlık */}
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-20 h-20 bg-gold/20 rounded-full mb-4">
               <span className="text-5xl">🍽️</span>
@@ -153,7 +131,6 @@ const Login = () => {
             <p className="mt-2 text-gold/80">Hesabınıza giriş yapın</p>
           </div>
 
-          {/* Hata mesajı */}
           {error && (
             <div className="bg-red-500/10 border border-red-500/30 text-red-200 p-3 rounded-lg text-sm mb-6 flex items-start gap-2 animate-fade-in">
               <span className="text-lg">⚠️</span>
@@ -161,9 +138,7 @@ const Login = () => {
             </div>
           )}
 
-          {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Email */}
             <div className="relative">
               <label className="block text-sm font-medium text-white/80 mb-1.5">
                 E-posta Adresi
@@ -184,7 +159,6 @@ const Login = () => {
               </div>
             </div>
 
-            {/* Şifre */}
             <div className="relative">
               <label className="block text-sm font-medium text-white/80 mb-1.5">
                 Şifre
@@ -212,7 +186,6 @@ const Login = () => {
               </div>
             </div>
 
-            {/* Remember Me & Forgot Password */}
             <div className="flex items-center justify-between">
               <label className="flex items-center gap-2 text-sm text-white/70 cursor-pointer">
                 <input
@@ -234,7 +207,6 @@ const Login = () => {
               </button>
             </div>
 
-            {/* Giriş Butonu */}
             <button
               type="submit"
               disabled={loading}
@@ -254,7 +226,6 @@ const Login = () => {
             </button>
           </form>
 
-          {/* Demo Hesaplar */}
           <div className="mt-8 pt-6 border-t border-white/10">
             <p className="text-center text-sm text-white/50 mb-3">
               🔑 Demo hesapları deneyin
@@ -275,7 +246,6 @@ const Login = () => {
             </div>
           </div>
 
-          {/* Alt Bilgi */}
           <p className="mt-6 text-center text-xs text-white/30">
             © 2024 Restoran Yönetim Sistemi v2.0
           </p>
