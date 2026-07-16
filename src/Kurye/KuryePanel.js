@@ -74,19 +74,13 @@ const KuryePanel = () => {
     }
   ]);
 
-  // ============ ÇIKIŞ YAP - DÜZELTİLDİ ============
+  // ============ ÇIKIŞ YAP ============
   const handleLogout = () => {
-    // 1. Tüm storage'ları temizle
     localStorage.removeItem('user');
     sessionStorage.removeItem('user');
-    
-    // 2. Toast mesajı göster
     toast.success('👋 Başarıyla çıkış yapıldı!');
-    
-    // 3. 1 saniye bekle ve yönlendir
     setTimeout(() => {
       navigate('/');
-      // Sayfayı tamamen yenile (state'leri sıfırlamak için)
       window.location.reload();
     }, 500);
   };
@@ -628,5 +622,5 @@ const KuryePanel = () => {
     </div>
   );
 };
-l
+
 export default KuryePanel;
