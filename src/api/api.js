@@ -1,6 +1,5 @@
 // src/api/api.js
-const API_URL = "https://localhost:7099/api";
-
+const API_URL = process.env.REACT_APP_API_URL || "https://localhost:7099/api";
 // Her istekte token'ı otomatik ekleyen merkezi yardımcı fonksiyon
 async function request(endpoint, options = {}) {
   const token = localStorage.getItem("token");
