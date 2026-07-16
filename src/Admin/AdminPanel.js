@@ -17,7 +17,7 @@ import {
   FaStar, FaPizzaSlice, FaWineBottle
 } from 'react-icons/fa';
 import { toast } from 'react-toastify';
-import { logout, sifreDegistir } from '../api/api';
+import { logout, sifreDegistir, getKategoriler, kategoriEkle, kategoriSil, urunEkle } from '../api/api';
 
 const backgroundImage = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80';
 
@@ -35,6 +35,87 @@ const AdminPanel = () => {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
+
+  // ===== KATEGORİ LİSTELEME (backend'e bağlı) =====
+  const [kategoriler, setKategoriler] = useState([]);
+  const [showKategoriListesi, setShowKategoriListesi] = useState(false);
+  const [showKategoriEkleModal, setShowKategoriEkleModal] = useState(false);
+  const [newKategoriAdi, setNewKategoriAdi] = useState('');
+  const [kategoriLoading, setKategoriLoading] = useState(false);
+
+  // Ürün ekle modal
+  const [showUrunEkleModal, setShowUrunEkleModal] = useState(false);
+  const [urunAdi, setUrunAdi] = useState('');
+  const [urunFiyat, setUrunFiyat] = useState('');
+  const [urunKategoriId, setUrunKategoriId] = useState('');
+  const [urunLoading, setUrunLoading] = useState(false);
+
+  const kategorileriYukle = async () => {
+    try {
+      const data = await getKategoriler(); // GET /api/Kategoriler
+      setKategoriler(data);
+      setShowKategoriListesi(true);
+    } catch (err) {
+      toast.error(err.message);
+    }
+  };
+
+  const handleKategoriEkle = async (e) => {
+    e && e.preventDefault && e.preventDefault();
+    if (!newKategoriAdi || newKategoriAdi.trim().length < 1) {
+      toast.warning('Lütfen kategori adı girin.');
+      return;
+    }
+    try {
+      setKategoriLoading(true);
+      await kategoriEkle({ kategoriAdi: newKategoriAdi.trim() });
+      toast.success('Kategori eklendi.');
+      setNewKategoriAdi('');
+      setShowKategoriEkleModal(false);
+      await kategorileriYukle();
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setKategoriLoading(false);
+    }
+  };
+
+  const handleKategoriSil = async (id) => {
+    if (!window.confirm('Bu kategoriyi silmek istediğinize emin misiniz?')) return;
+    try {
+      await kategoriSil(id);
+      toast.success('Kategori silindi.');
+      await kategorileriYukle();
+    } catch (err) {
+      toast.error(err.message);
+    }
+  };
+
+  const handleUrunEkle = async (e) => {
+    e && e.preventDefault && e.preventDefault();
+    if (!urunAdi || !urunFiyat || !urunKategoriId) {
+      toast.warning('Lütfen tüm alanları doldurun.');
+      return;
+    }
+    const fiyat = Number(urunFiyat);
+    if (isNaN(fiyat) || fiyat <= 0) {
+      toast.warning('Geçerli bir fiyat girin.');
+      return;
+    }
+    try {
+      setUrunLoading(true);
+      await urunEkle({ urunAdi: urunAdi.trim(), fiyat: fiyat, kategoriId: urunKategoriId });
+      toast.success('Ürün eklendi.');
+      setUrunAdi('');
+      setUrunFiyat('');
+      setUrunKategoriId('');
+      setShowUrunEkleModal(false);
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setUrunLoading(false);
+    }
+  };
 
   const [userData, setUserData] = useState({
     name: 'Admin',
@@ -310,7 +391,7 @@ const AdminPanel = () => {
       <p className="text-gray-400 text-sm mb-6">Ürün ve menü işlemlerinizi buradan yönetin.</p>
       
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        <ActionButton icon={<FaPlus />} label="Ürün Ekle" />
+      <ActionButton icon={<FaPlus />} label="Ürün Ekle" onClick={async () => { await kategorileriYukle(); setShowUrunEkleModal(true); }} />
         <ActionButton icon={<FaTrash />} label="Ürün Sil" />
         <ActionButton icon={<FaEdit />} label="Ürün Düzenle" />
         <ActionButton icon={<FaList />} label="Ürün Listele" />
@@ -320,13 +401,35 @@ const AdminPanel = () => {
       {/* Kategori Yönetimi Butonları */}
       <div className="mt-4 pt-4 border-t border-white/10">
         <p className="text-gray-400 text-xs mb-3">Kategori İşlemleri</p>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <ActionButton icon={<FaPlusCircle />} label="Kategori Ekle" />
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <ActionButton icon={<FaPlusCircle />} label="Kategori Ekle" onClick={() => setShowKategoriEkleModal(true)} />
           <ActionButton icon={<FaTrash />} label="Kategori Sil" />
           <ActionButton icon={<FaEdit />} label="Kategori Düzenle" />
-          <ActionButton icon={<FaList />} label="Kategori Listele" />
+          <ActionButton icon={<FaList />} label="Kategori Listele" onClick={kategorileriYukle} />
         </div>
       </div>
+
+      {/* Kategori Listesi (backend'den gelir) */}
+      {showKategoriListesi && (
+        <div className="mt-6 pt-4 border-t border-white/10">
+          <p className="text-gray-400 text-xs mb-3">Kategoriler ({kategoriler.length})</p>
+          <div className="space-y-2">
+            {kategoriler.map((k) => (
+              <div key={k.kategoriId} className="flex items-center justify-between p-3 bg-white/5 rounded-xl">
+                <div>
+                  <span className="text-white text-sm">{k.kategoriAdi}</span>
+                  <div className="text-gray-400 text-xs">#{k.kategoriId}</div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => handleKategoriSil(k.kategoriId)} className="text-red-400 hover:text-red-300">
+                    <FaTrash />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 
@@ -637,6 +740,91 @@ const renderReports = () => (
           </div>
         </div>
       </div>
+
+      {/* Kategori Ekle Modal */}
+      {showKategoriEkleModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="bg-black/95 backdrop-blur-sm rounded-2xl border border-white/10 shadow-2xl max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="text-2xl text-gray-400"><FaPlusCircle /></div>
+                <div>
+                  <h2 className="text-white font-bold text-lg">Kategori Ekle</h2>
+                  <p className="text-gray-400 text-xs">Yeni kategori oluşturun</p>
+                </div>
+              </div>
+              <button onClick={() => setShowKategoriEkleModal(false)} className="text-gray-400 hover:text-white">
+                <FaTimes size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleKategoriEkle} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1.5">Kategori Adı</label>
+                <input
+                  value={newKategoriAdi}
+                  onChange={(e) => setNewKategoriAdi(e.target.value)}
+                  className="w-full py-2.5 bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-gray-500 focus:ring-2 focus:ring-white/20 outline-none"
+                  placeholder="Örn: Çorbalar"
+                  required
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={() => setShowKategoriEkleModal(false)} className="flex-1 px-4 py-2.5 bg-white/5 hover:bg-white/10 text-gray-300 rounded-lg">İptal</button>
+                <button type="submit" disabled={kategoriLoading} className="flex-1 px-4 py-2.5 bg-white hover:bg-gray-200 text-black font-semibold rounded-lg">
+                  {kategoriLoading ? 'Kaydediliyor...' : 'Kaydet'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Ürün Ekle Modal */}
+      {showUrunEkleModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="bg-black/95 backdrop-blur-sm rounded-2xl border border-white/10 shadow-2xl max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="text-2xl text-gray-400"><FaPlus /></div>
+                <div>
+                  <h2 className="text-white font-bold text-lg">Ürün Ekle</h2>
+                  <p className="text-gray-400 text-xs">Yeni ürün bilgilerini girin</p>
+                </div>
+              </div>
+              <button onClick={() => setShowUrunEkleModal(false)} className="text-gray-400 hover:text-white">
+                <FaTimes size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleUrunEkle} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1.5">Ürün Adı</label>
+                <input value={urunAdi} onChange={(e) => setUrunAdi(e.target.value)} className="w-full py-2.5 bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-gray-500 focus:ring-2 focus:ring-white/20 outline-none" placeholder="Örn: Adana Kebap" required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1.5">Fiyat (TL)</label>
+                <input value={urunFiyat} onChange={(e) => setUrunFiyat(e.target.value)} className="w-full py-2.5 bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-gray-500 focus:ring-2 focus:ring-white/20 outline-none" placeholder="Örn: 85" required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1.5">Kategori</label>
+                <select value={urunKategoriId} onChange={(e) => setUrunKategoriId(e.target.value)} className="w-full py-2.5 bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-gray-500 focus:ring-2 focus:ring-white/20 outline-none" required>
+                  <option value="">-- Kategori Seç --</option>
+                  {kategoriler.map(k => (
+                    <option key={k.kategoriId} value={k.kategoriId}>{k.kategoriAdi}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={() => setShowUrunEkleModal(false)} className="flex-1 px-4 py-2.5 bg-white/5 hover:bg-white/10 text-gray-300 rounded-lg">İptal</button>
+                <button type="submit" disabled={urunLoading} className="flex-1 px-4 py-2.5 bg-white hover:bg-gray-200 text-black font-semibold rounded-lg">{urunLoading ? 'Kaydediliyor...' : 'Kaydet'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Şifre Değiştirme Modal */}
       {showPasswordModal && (
