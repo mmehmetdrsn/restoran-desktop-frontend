@@ -628,5 +628,5 @@ const KuryePanel = () => {
     </div>
   );
 };
-
+l
 export default KuryePanel;

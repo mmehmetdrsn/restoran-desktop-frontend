@@ -9,11 +9,15 @@ import {
   FaShoppingCart, FaDollarSign, FaAngleDown, FaBars,
   FaTimes, FaKey, FaLock, FaEyeSlash, FaSpinner,
   FaLayerGroup, FaReceipt, FaUndo, FaChartLine, FaFileAlt,
-  FaClock, FaFire, FaArrowRight
+  FaClock, FaFire, FaArrowRight, FaList, FaWarehouse,
+  FaChair, FaUserPlus, FaUserMinus, FaUserEdit, FaUserCheck,
+  FaCreditCard, FaHistory, FaExchangeAlt, FaPlusCircle,
+  FaMinusCircle, FaTruck, FaCheckDouble, FaCalendarCheck,
+  FaUserCog, FaUserTimes, FaShieldAlt, FaUmbrella,
+  FaStar, FaPizzaSlice, FaWineBottle
 } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 
-// Arka plan resmi
 const backgroundImage = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80';
 
 const AdminPanel = () => {
@@ -31,24 +35,29 @@ const AdminPanel = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
 
-  // Kullanıcı bilgileri
   const [userData, setUserData] = useState({
     name: 'Admin',
     email: 'admin@restoran.com',
     role: 'admin'
   });
 
-  // Dashboard verileri
+  // Önceki günün tarihi
+  const getPreviousDay = () => {
+    const date = new Date();
+    date.setDate(date.getDate() - 1);
+    return date.toLocaleDateString('tr-TR', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+  };
+
   const [dashboardData, setDashboardData] = useState({
     totalRevenue: 42850,
     totalOrders: 342,
-    activeTables: '18/24',
-    avgPrepTime: 14,
-    revenueChange: 12,
-    ordersChange: 8
+    date: getPreviousDay()
   });
 
-  // En çok satanlar
   const [topProducts, setTopProducts] = useState([
     { name: 'Adana Kebap', quantity: 145, revenue: 34800 },
     { name: 'Lahmacun', quantity: 280, revenue: 19600 },
@@ -56,7 +65,6 @@ const AdminPanel = () => {
     { name: 'Mercimek Çorbası', quantity: 112, revenue: 6720 }
   ]);
 
-  // Son siparişler
   const [recentOrders, setRecentOrders] = useState([
     { id: '#1482', table: 'Masa 12', content: '2x Adana, 1x Künefe...', time: '14:23', amount: 840, status: 'Tamamlandı' },
     { id: '#1481', table: 'Masa 5', content: '3x Lahmacun, 2x Ayran', time: '14:15', amount: 560, status: 'Hazırlanıyor' },
@@ -64,20 +72,17 @@ const AdminPanel = () => {
     { id: '#1479', table: 'Masa 3', content: '2x Künefe, 1x Çay', time: '13:48', amount: 210, status: 'Tamamlandı' }
   ]);
 
-  // Saatlik satış verileri
-  const hourlySales = [10, 15, 25, 35, 45, 55, 65, 70, 60, 50, 40, 30];
-  const hours = ['10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00'];
-
   // Sidebar menü öğeleri
   const menuItems = [
-    { id: 'dashboard', icon: <FaHome />, title: 'Genel Bakış', subtitle: 'Özet gösterge paneli' },
-    { id: 'products', icon: <FaUtensils />, title: 'Ürün Yönetimi', subtitle: 'Ekle, güncelle, sil, liste' },
-    { id: 'categories', icon: <FaLayerGroup />, title: 'Kategori Yönetimi', subtitle: 'Menü kategorilerini düzenle' },
-    { id: 'members', icon: <FaUsers />, title: 'Üye Yönetimi', subtitle: 'Personel ve müşteri kayıtları' },
-    { id: 'finance', icon: <FaMoneyBillWave />, title: 'Kasa Yönetimi', subtitle: 'Kasa hareketleri, kapatma...' },
-    { id: 'stock', icon: <FaBoxes />, title: 'Depo / Stok Yönetimi', subtitle: 'Stok seviyeleri ve girişler' },
-    { id: 'refunds', icon: <FaUndo />, title: 'İade Yönetimi', subtitle: 'İade / iptal talepleri ve geç...' },
-    { id: 'reports', icon: <FaChartBar />, title: 'Satış Raporları', subtitle: 'Günlük ve ürün bazlı raporlar' }
+    { id: 'dashboard', icon: <FaHome />, title: 'Genel Bakış' },
+    { id: 'product_menu', icon: <FaUtensils />, title: 'Ürün ve Menü Yönetimi' },
+    { id: 'members', icon: <FaUsers />, title: 'Üye Yönetimi' },
+    { id: 'finance', icon: <FaMoneyBillWave />, title: 'Finans ve Kasa Yönetimi' },
+    { id: 'stock', icon: <FaBoxes />, title: 'Depo / Stok Yönetimi' },
+    { id: 'orders', icon: <FaClipboardList />, title: 'Sipariş Yönetimi' },
+    { id: 'tables', icon: <FaTable />, title: 'Masa ve Rezervasyon Yönetimi' },
+    { id: 'personnel', icon: <FaUserCog />, title: 'Personel Yönetimi' },
+    { id: 'reports', icon: <FaChartBar />, title: 'Raporlar ve İstatistikler Yönetimi' }
   ];
 
   useEffect(() => {
@@ -89,7 +94,6 @@ const AdminPanel = () => {
     try {
       setLoading(true);
       await new Promise(resolve => setTimeout(resolve, 800));
-      // Mock veriler zaten set edildi
     } catch (error) {
       toast.error('Veriler yüklenirken bir hata oluştu!');
     } finally {
@@ -159,6 +163,25 @@ const AdminPanel = () => {
     }
   };
 
+  // ============ BUTON BİLEŞENİ ============
+  const ActionButton = ({ icon, label, onClick }) => (
+    <button 
+      onClick={onClick || (() => {})}
+      className="flex items-center gap-2 px-4 py-2.5 bg-white/5 hover:bg-white/10 rounded-xl text-white text-sm transition-all border border-white/5 hover:border-white/20 w-full"
+    >
+      {icon}
+      <span>{label}</span>
+    </button>
+  );
+
+  const SectionHeader = ({ icon, title }) => (
+    <div className="flex items-center gap-3 mb-4">
+      <div className="text-2xl text-yellow-500">{icon}</div>
+      <h3 className="text-white font-semibold text-lg">{title}</h3>
+    </div>
+  );
+
+  // ============ DASHBOARD ============
   const renderDashboard = () => {
     if (loading) {
       return (
@@ -173,54 +196,22 @@ const AdminPanel = () => {
 
     return (
       <div className="space-y-6">
-        {/* Yönetim Paneli Başlığı */}
-        <div className="bg-black/90 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
-          <h1 className="text-2xl font-bold text-white">Yönetim Paneli</h1>
-          <p className="text-gray-400 text-sm">Yönetimin yapabileceği tüm işlemler</p>
-        </div>
-
         {/* Restoran Özeti */}
         <div className="bg-black/90 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
-          <h2 className="text-lg font-semibold text-white mb-4">Restoran Özeti</h2>
-          <p className="text-gray-400 text-sm mb-4">İşletmenizin anlık durumu ve performans metrikleri.</p>
+          <h2 className="text-lg font-semibold text-white mb-2">{dashboardData.date} - Restoran Özeti</h2>
+          <p className="text-gray-400 text-sm mb-4">İşletmenizin geçmiş gün verileri</p>
           
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-white/5 rounded-xl p-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-white/5 rounded-xl p-5">
               <p className="text-gray-400 text-xs">Toplam Ciro</p>
-              <p className="text-white text-2xl font-bold">₺{dashboardData.totalRevenue.toLocaleString()}</p>
-              <p className="text-green-500 text-xs mt-1">↑ %{dashboardData.revenueChange}</p>
+              <p className="text-white text-3xl font-bold">₺{dashboardData.totalRevenue.toLocaleString()}</p>
+              <p className="text-green-500 text-xs mt-1">↑ %12</p>
             </div>
-            <div className="bg-white/5 rounded-xl p-4">
+            <div className="bg-white/5 rounded-xl p-5">
               <p className="text-gray-400 text-xs">Toplam Sipariş</p>
-              <p className="text-white text-2xl font-bold">{dashboardData.totalOrders}</p>
-              <p className="text-green-500 text-xs mt-1">↑ %{dashboardData.ordersChange}</p>
+              <p className="text-white text-3xl font-bold">{dashboardData.totalOrders}</p>
+              <p className="text-green-500 text-xs mt-1">↑ %8</p>
             </div>
-            <div className="bg-white/5 rounded-xl p-4">
-              <p className="text-gray-400 text-xs">Aktif Masalar</p>
-              <p className="text-white text-2xl font-bold">{dashboardData.activeTables}</p>
-              <p className="text-yellow-500 text-xs mt-1">%75 dolu</p>
-            </div>
-            <div className="bg-white/5 rounded-xl p-4">
-              <p className="text-gray-400 text-xs">Ort. Hazırlık Süresi</p>
-              <p className="text-white text-2xl font-bold">{dashboardData.avgPrepTime} dk</p>
-              <p className="text-green-500 text-xs mt-1">↓ %5</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Saatlik Satış Grafiği */}
-        <div className="bg-black/90 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
-          <h2 className="text-lg font-semibold text-white mb-4">Saatlik Satış Grafiği</h2>
-          <div className="h-48 flex items-end gap-2">
-            {hourlySales.map((value, index) => (
-              <div key={index} className="flex-1 flex flex-col items-center gap-1">
-                <div 
-                  className="w-full bg-gradient-to-t from-blue-500/50 to-blue-400/80 rounded-t transition-all duration-500 hover:from-blue-400 hover:to-blue-300"
-                  style={{ height: `${(value / 70) * 100}%` }}
-                />
-                <span className="text-gray-500 text-[10px]">{hours[index]}</span>
-              </div>
-            ))}
           </div>
         </div>
 
@@ -290,31 +281,186 @@ const AdminPanel = () => {
     );
   };
 
-  const renderContent = () => {
-    if (selectedMenu === 'dashboard') {
-      return renderDashboard();
-    }
+  // ============ ÜRÜN VE MENÜ YÖNETİMİ ============
+  const renderProductMenu = () => (
+    <div className="bg-black/90 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
+      <SectionHeader icon={<FaUtensils />} title="Ürün ve Menü Yönetimi" />
+      <p className="text-gray-400 text-sm mb-6">Ürün ve menü işlemlerinizi buradan yönetin.</p>
+      
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <ActionButton icon={<FaPlus />} label="Ürün Ekle" />
+        <ActionButton icon={<FaTrash />} label="Ürün Sil" />
+        <ActionButton icon={<FaEdit />} label="Ürün Düzenle" />
+        <ActionButton icon={<FaList />} label="Ürün Listele" />
+        <ActionButton icon={<FaPizzaSlice />} label="Menü Listele" />
+      </div>
 
-    const menuItem = menuItems.find(item => item.id === selectedMenu);
-    if (!menuItem) return renderDashboard();
-
-    return (
-      <div className="bg-black/90 backdrop-blur-sm rounded-2xl p-8 border border-white/10">
-        <div className="flex items-center gap-4 mb-6">
-          <div className="text-4xl text-gray-500">{menuItem.icon}</div>
-          <div>
-            <h2 className="text-white text-2xl font-bold">{menuItem.title}</h2>
-            <p className="text-gray-400">{menuItem.subtitle}</p>
-          </div>
-        </div>
-        <div className="text-center py-12">
-          <p className="text-gray-500 text-lg">📌 {menuItem.title} modülü</p>
-          <p className="text-gray-600 text-sm mt-2">Backend entegrasyonu için hazır</p>
+      {/* Kategori Yönetimi Butonları */}
+      <div className="mt-4 pt-4 border-t border-white/10">
+        <p className="text-gray-400 text-xs mb-3">Kategori İşlemleri</p>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <ActionButton icon={<FaPlusCircle />} label="Kategori Ekle" />
+          <ActionButton icon={<FaTrash />} label="Kategori Sil" />
+          <ActionButton icon={<FaEdit />} label="Kategori Düzenle" />
+          <ActionButton icon={<FaList />} label="Kategori Listele" />
         </div>
       </div>
-    );
+    </div>
+  );
+
+  // ============ ÜYE YÖNETİMİ ============
+  const renderMembers = () => (
+    <div className="bg-black/90 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
+      <SectionHeader icon={<FaUsers />} title="Üye Yönetimi" />
+      <p className="text-gray-400 text-sm mb-6">Personel ve müşteri üye işlemlerini yönetin.</p>
+      
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <ActionButton icon={<FaUserPlus />} label="Üye Ekle" />
+        <ActionButton icon={<FaUserMinus />} label="Üye Sil" />
+        <ActionButton icon={<FaUserEdit />} label="Üye Düzenle" />
+        <ActionButton icon={<FaList />} label="Üye Listele" />
+        <ActionButton icon={<FaEye />} label="Üye Detay" />
+      </div>
+    </div>
+  );
+
+  // ============ FİNANS VE KASA YÖNETİMİ ============
+  const renderFinance = () => (
+    <div className="bg-black/90 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
+      <SectionHeader icon={<FaMoneyBillWave />} title="Finans ve Kasa Yönetimi" />
+      <p className="text-gray-400 text-sm mb-6">Kasa hareketleri ve finansal işlemler.</p>
+      
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <ActionButton icon={<FaHistory />} label="Ödeme Geçmişi" />
+        <ActionButton icon={<FaCheckDouble />} label="Gün Sonu İşlemleri" />
+        <ActionButton icon={<FaUndo />} label="Ödeme İade İşlemleri" />
+        <ActionButton icon={<FaExchangeAlt />} label="Kasa Hareketleri" />
+      </div>
+    </div>
+  );
+
+  // ============ DEPO / STOK YÖNETİMİ ============
+  const renderStock = () => (
+    <div className="bg-black/90 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
+      <SectionHeader icon={<FaBoxes />} title="Depo / Stok Yönetimi" />
+      <p className="text-gray-400 text-sm mb-6">Stok seviyeleri ve malzeme işlemleri.</p>
+      
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <ActionButton icon={<FaWarehouse />} label="Güncel Stok Durumları" />
+        <ActionButton icon={<FaPlusCircle />} label="Malzeme Giriş" />
+        <ActionButton icon={<FaMinusCircle />} label="Malzeme Çıkış" />
+        <ActionButton icon={<FaTruck />} label="Malzeme Sipariş" />
+      </div>
+    </div>
+  );
+
+  // ============ SİPARİŞ YÖNETİMİ ============
+  const renderOrders = () => (
+    <div className="bg-black/90 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
+      <SectionHeader icon={<FaClipboardList />} title="Sipariş Yönetimi" />
+      <p className="text-gray-400 text-sm mb-6">Aktif siparişler ve sipariş işlemleri.</p>
+      
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <ActionButton icon={<FaShoppingCart />} label="Aktif Siparişleri Göster" />
+        <ActionButton icon={<FaEye />} label="Sipariş Detay İşlemleri" />
+        <ActionButton icon={<FaHistory />} label="Sipariş Geçmişi" />
+        <ActionButton icon={<FaUndo />} label="Sipariş İade ve İptal" />
+      </div>
+    </div>
+  );
+
+  // ============ MASA VE REZERVASYON YÖNETİMİ ============
+  const renderTables = () => (
+    <div className="bg-black/90 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
+      <SectionHeader icon={<FaTable />} title="Masa ve Rezervasyon Yönetimi" />
+      <p className="text-gray-400 text-sm mb-6">Masa ve rezervasyon işlemlerini yönetin.</p>
+      
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <ActionButton icon={<FaPlus />} label="Masa Ekle" />
+          <ActionButton icon={<FaTrash />} label="Masa Sil" />
+          <ActionButton icon={<FaEdit />} label="Masa Düzenle" />
+          <ActionButton icon={<FaChair />} label="Masa Planı" />
+        </div>
+
+        <div className="pt-4 border-t border-white/10">
+          <p className="text-gray-400 text-xs mb-3">Rezervasyon İşlemleri</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <ActionButton icon={<FaCalendarCheck />} label="Rezervasyon Ekle" />
+            <ActionButton icon={<FaTrash />} label="Rezervasyon Sil" />
+            <ActionButton icon={<FaEdit />} label="Rezervasyon Düzenle" />
+            <ActionButton icon={<FaList />} label="Rezervasyon Listele" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  // ============ PERSONEL YÖNETİMİ ============
+  const renderPersonnel = () => (
+    <div className="bg-black/90 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
+      <SectionHeader icon={<FaUserCog />} title="Personel Yönetimi" />
+      <p className="text-gray-400 text-sm mb-6">Personel işlemleri ve yetki yönetimi.</p>
+      
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <ActionButton icon={<FaUserPlus />} label="Personel Ekle" />
+        <ActionButton icon={<FaUserEdit />} label="Personel Düzenle" />
+        <ActionButton icon={<FaUserMinus />} label="Personel Sil" />
+        <ActionButton icon={<FaShieldAlt />} label="Rol / Yetki Yönetimi" />
+        <ActionButton icon={<FaUmbrella />} label="İzin Yönetimi" />
+      </div>
+    </div>
+  );
+
+// ============ RAPORLAR VE İSTATİSTİKLER ============
+const renderReports = () => (
+  <div className="bg-black/90 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
+    <SectionHeader icon={<FaChartBar />} title="Raporlar ve İstatistikler" />
+    <p className="text-gray-400 text-sm mb-6">İşletmenizin tüm rapor ve istatistiklerine buradan ulaşın.</p>
+    
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <ActionButton 
+        icon={<FaChartLine />} 
+        label="Günlük Satış Raporları" 
+      />
+      <ActionButton 
+        icon={<FaPizzaSlice />} 
+        label="Ürün Satış Raporu" 
+      />
+      <ActionButton 
+        icon={<FaCalendarCheck />} 
+        label="Rezervasyon Raporu" 
+      />
+      <ActionButton 
+        icon={<FaMoneyBillWave />} 
+        label="Gelir İstatistikleri" 
+      />
+    </div>
+
+    {/* Rapor önizleme alanı - backend entegrasyonu için hazır */}
+    <div className="mt-6 p-8 bg-white/5 rounded-xl border border-white/5 text-center">
+      <p className="text-gray-500 text-sm">📊 Raporlar burada görüntülenecek</p>
+      <p className="text-gray-600 text-xs mt-1">Backend entegrasyonu için hazır</p>
+    </div>
+  </div>
+);
+
+  // ============ RENDER CONTENT ============
+  const renderContent = () => {
+    if (selectedMenu === 'dashboard') return renderDashboard();
+    if (selectedMenu === 'product_menu') return renderProductMenu();
+    if (selectedMenu === 'members') return renderMembers();
+    if (selectedMenu === 'finance') return renderFinance();
+    if (selectedMenu === 'stock') return renderStock();
+    if (selectedMenu === 'orders') return renderOrders();
+    if (selectedMenu === 'tables') return renderTables();
+    if (selectedMenu === 'personnel') return renderPersonnel();
+    if (selectedMenu === 'reports') return renderReports();
+    
+    return renderDashboard();
   };
 
+  // ============ ANA RENDER ============
   return (
     <div 
       className="min-h-screen relative"
@@ -381,7 +527,6 @@ const AdminPanel = () => {
                 {sidebarOpen && (
                   <div className="flex-1 text-left">
                     <p className="text-sm font-medium">{item.title}</p>
-                    <p className="text-[10px] text-gray-500">{item.subtitle}</p>
                   </div>
                 )}
               </button>
