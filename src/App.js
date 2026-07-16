@@ -10,6 +10,15 @@ import GarsonPanel from './Garson/GarsonPanel';
 import AsciPanel from './Asci/AsciPanel';
 import KuryePanel from './Kurye/KuryePanel';
 
+// Backend'den gelen RolAdi -> panel anahtarı eşlemesi
+// (DB'deki Roller tablosuyla birebir uyumlu olmalı)
+const rolEsleme = {
+  'yönetici': 'admin',
+  'garson': 'garson',
+  'aşçı': 'asci',
+  'kurye': 'kurye',
+};
+
 function App() {
   // Kullanıcı kontrolü
   const getUser = () => {
@@ -28,7 +37,8 @@ function App() {
   };
 
   const user = getUser();
-  const userRole = user?.role?.toLowerCase();
+  // Backend rolünü ('Yönetici' vb.) panel anahtarına ('admin' vb.) çevir
+  const userRole = rolEsleme[user?.role?.toLowerCase()] ?? null;
 
   console.log('👤 Kullanıcı:', user);
   console.log('🎯 Rol:', userRole);
@@ -36,7 +46,7 @@ function App() {
   // Role göre ana sayfa
   const getHomeRoute = () => {
     if (!user) return '/login';
-    switch(userRole) {
+    switch (userRole) {
       case 'admin': return '/admin';
       case 'garson': return '/garson';
       case 'asci': return '/asci';
@@ -47,7 +57,7 @@ function App() {
 
   return (
     <BrowserRouter>
-      <ToastContainer 
+      <ToastContainer
         position="top-right"
         autoClose={3000}
         hideProgressBar={false}

@@ -17,6 +17,7 @@ import {
   FaStar, FaPizzaSlice, FaWineBottle
 } from 'react-icons/fa';
 import { toast } from 'react-toastify';
+import { logout, sifreDegistir } from '../api/api';
 
 const backgroundImage = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80';
 
@@ -86,8 +87,15 @@ const AdminPanel = () => {
   ];
 
   useEffect(() => {
+    // GİRİŞ KONTROLÜ: Login olmadan panele erişilemez
+    const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
+    if (!storedUser) {
+      navigate('/login');
+      return;
+    }
     fetchDashboardData();
     fetchUserData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchDashboardData = async () => {
@@ -117,7 +125,14 @@ const AdminPanel = () => {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await logout(); // backend'de refresh token iptal edilir (güvenli çıkış)
+    } catch (err) {
+      // backend'e ulaşılamasa bile local çıkışı tamamla
+    }
+    localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
     sessionStorage.removeItem('user');
     toast.success('Başarıyla çıkış yapıldı!');
@@ -141,14 +156,21 @@ const AdminPanel = () => {
 
     setPasswordLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      toast.success('Şifreniz başarıyla değiştirildi! 🎉');
+      // GERÇEK API ÇAĞRISI: POST /api/Auth/sifre-degistir
+      const sonuc = await sifreDegistir(currentPassword, newPassword);
+      toast.success(sonuc.mesaj); // "Şifre başarıyla değiştirildi. Lütfen tekrar giriş yapın."
       setShowPasswordModal(false);
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
+      // Backend şifre değişince tüm oturumları düşürüyor -> yeniden giriş gerekli
+      localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('user');
+      sessionStorage.removeItem('user');
+      navigate('/login');
     } catch (error) {
-      toast.error('Şifre değiştirilemedi!');
+      toast.error(error.message); // backend mesajı: "Mevcut şifre hatalı." vb.
     } finally {
       setPasswordLoading(false);
     }

@@ -3,9 +3,18 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaEnvelope, FaLock, FaEye, FaEyeSlash, FaSpinner, FaArrowLeft } from 'react-icons/fa';
 import { toast } from 'react-toastify';
-import { authAPI } from '../../api/endpoints'; // ✅ API import
+import { login } from '../api/api'; // Dosya src/pages/Login/ içindeyse: '../../api/api'
 
 const backgroundImage = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80';
+
+// DB'deki RolAdi -> frontend route eşlemesi
+// SOL taraf Roller tablosundaki RolAdi ile, SAĞ taraf App.js'teki route ile BİREBİR aynı olmalı!
+const rolYonlendirme = {
+  'Yönetici': '/admin',
+  'Garson': '/garson',
+  'Aşçı': '/asci',
+  'Kurye': '/kurye',
+};
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -34,54 +43,35 @@ const Login = () => {
       return;
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      setError('Geçerli bir e-posta adresi girin');
-      toast.error('Geçerli bir e-posta adresi girin!');
-      setLoading(false);
-      return;
-    }
-
     try {
-      // ✅ Backend'e istek gönder
-      const response = await authAPI.login(email, password);
-      
-      console.log('✅ Backend yanıtı:', response.data);
-      
-      const { token, user } = response.data;
+      // GERÇEK API ÇAĞRISI: POST /api/Auth/login
+      // Backend yanıtı: { token, refreshToken, personelId, adSoyad, rol }
+      const data = await login(email, password);
 
-      // Token ve kullanıcı bilgilerini kaydet
-      if (rememberMe) {
-        localStorage.setItem('token', token);
-        localStorage.setItem('user', JSON.stringify(user));
-      } else {
-        sessionStorage.setItem('token', token);
-        sessionStorage.setItem('user', JSON.stringify(user));
-      }
+      // Token'lar HER ZAMAN localStorage'a (api.js request() oradan okuyor)
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('refreshToken', data.refreshToken);
 
-      toast.success(`Hoş geldiniz, ${user.name}! 🎉`);
-
-      // Role göre yönlendir
-      const routes = {
-        admin: '/admin',
-        garson: '/garson',
-        asci: '/asci',
-        kurye: '/kurye'
+      const userData = {
+        personelId: data.personelId,
+        name: data.adSoyad,
+        role: data.rol,
+        loginTime: new Date().toISOString(),
       };
 
-      const targetRoute = routes[user.role];
-      if (targetRoute) {
-        navigate(targetRoute);
+      if (rememberMe) {
+        localStorage.setItem('user', JSON.stringify(userData));
       } else {
-        navigate('/');
+        sessionStorage.setItem('user', JSON.stringify(userData));
       }
 
+      toast.success(`Hoş geldiniz, ${data.adSoyad}! 🎉`);
+
+      // Role göre yönlendir (rol adı DB'deki RolAdi ile birebir eşleşmeli)
+      navigate(rolYonlendirme[data.rol] ?? '/');
+
     } catch (err) {
-      console.error('❌ Giriş hatası:', err);
-      
-      const errorMessage = err.response?.data?.message || 
-                          err.message || 
-                          'Giriş başarısız. Lütfen tekrar deneyin.';
+      const errorMessage = err.message || 'Giriş başarısız. Lütfen tekrar deneyin.';
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -90,34 +80,12 @@ const Login = () => {
   };
 
   // ============ ŞİFRE SIFIRLAMA ============
-  const handleResetPassword = async (e) => {
+  // NOT: Backend'de şifre sıfırlama endpoint'i henüz yok
+  const handleResetPassword = (e) => {
     e.preventDefault();
-    if (!resetEmail) {
-      toast.warning('Lütfen e-posta adresinizi girin!');
-      return;
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(resetEmail)) {
-      toast.error('Geçerli bir e-posta adresi girin!');
-      return;
-    }
-
-    setResetLoading(true);
-    try {
-      // ✅ Backend'e şifre sıfırlama isteği gönder
-      await authAPI.forgotPassword(resetEmail);
-      
-      toast.success('Şifre sıfırlama bağlantısı e-posta adresinize gönderildi! 📧');
-      setIsResetMode(false);
-      setResetEmail('');
-    } catch (err) {
-      console.error('❌ Şifre sıfırlama hatası:', err);
-      const errorMessage = err.response?.data?.message || 'Bir hata oluştu. Lütfen tekrar deneyin.';
-      toast.error(errorMessage);
-    } finally {
-      setResetLoading(false);
-    }
+    toast.info('Şifre sıfırlama özelliği yakında eklenecek. Lütfen yöneticinizle iletişime geçin.');
+    setIsResetMode(false);
+    setResetEmail('');
   };
 
   // Şifre Sıfırlama Ekranı
@@ -191,11 +159,6 @@ const Login = () => {
                 )}
               </button>
             </form>
-
-            <p className="mt-6 text-center text-[10px] text-gray-400">
-              Windows'u Etkinleştir<br/>
-              Windows'u etkinleştirmek için Ayarlar'a gidin.
-            </p>
           </div>
         </div>
       </div>
