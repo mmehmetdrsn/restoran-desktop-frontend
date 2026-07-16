@@ -92,3 +92,38 @@
     @apply bg-warning/10 text-warning px-3 py-1 rounded-full text-sm font-medium;
   }
 }
+
+/* Tüm select elementleri */
+select {
+  background-color: #1a1a2e !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  padding-right: 36px !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23666666' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 12px center !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+}
+
+/* Tüm select option'lar */
+select option {
+  background-color: #1a1a2e !important;
+  color: #ffffff !important;
+  padding: 8px 12px !important;
+}
+
+select option:hover {
+  background-color: #2d2d44 !important;
+  cursor: pointer;
+}
+
+select option:checked {
+  background-color: #4a4a6a !important;
+}
+
+/* Placeholder option */
+select option[value=""] {
+  color: #888888 !important;
+}
