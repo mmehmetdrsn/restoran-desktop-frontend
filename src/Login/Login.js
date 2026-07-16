@@ -1,8 +1,9 @@
-// src/Login/Login.js
+// src/pages/Login/Login.js
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaEnvelope, FaLock, FaEye, FaEyeSlash, FaSpinner, FaArrowLeft } from 'react-icons/fa';
 import { toast } from 'react-toastify';
+import { authAPI } from '../../api/endpoints'; // ✅ API import
 
 const backgroundImage = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80';
 
@@ -19,15 +20,76 @@ const Login = () => {
   
   const navigate = useNavigate();
 
-  // Mock kullanıcı veritabanı
-  const users = {
-    'admin@restoran.com': { password: 'admin123', role: 'admin', name: 'Yönetici' },
-    'garson@restoran.com': { password: 'garson123', role: 'garson', name: 'Garson' },
-    'asci@restoran.com': { password: 'asci123', role: 'asci', name: 'Aşçı' },
-    'kurye@restoran.com': { password: 'kurye123', role: 'kurye', name: 'Kurye' }
+  // ============ GİRİŞ YAP ============
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    // Validasyon
+    if (!email || !password) {
+      setError('Lütfen tüm alanları doldurun');
+      toast.warning('Lütfen tüm alanları doldurun!');
+      setLoading(false);
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError('Geçerli bir e-posta adresi girin');
+      toast.error('Geçerli bir e-posta adresi girin!');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      // ✅ Backend'e istek gönder
+      const response = await authAPI.login(email, password);
+      
+      console.log('✅ Backend yanıtı:', response.data);
+      
+      const { token, user } = response.data;
+
+      // Token ve kullanıcı bilgilerini kaydet
+      if (rememberMe) {
+        localStorage.setItem('token', token);
+        localStorage.setItem('user', JSON.stringify(user));
+      } else {
+        sessionStorage.setItem('token', token);
+        sessionStorage.setItem('user', JSON.stringify(user));
+      }
+
+      toast.success(`Hoş geldiniz, ${user.name}! 🎉`);
+
+      // Role göre yönlendir
+      const routes = {
+        admin: '/admin',
+        garson: '/garson',
+        asci: '/asci',
+        kurye: '/kurye'
+      };
+
+      const targetRoute = routes[user.role];
+      if (targetRoute) {
+        navigate(targetRoute);
+      } else {
+        navigate('/');
+      }
+
+    } catch (err) {
+      console.error('❌ Giriş hatası:', err);
+      
+      const errorMessage = err.response?.data?.message || 
+                          err.message || 
+                          'Giriş başarısız. Lütfen tekrar deneyin.';
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // ✅ Şifre sıfırlama fonksiyonu
+  // ============ ŞİFRE SIFIRLAMA ============
   const handleResetPassword = async (e) => {
     e.preventDefault();
     if (!resetEmail) {
@@ -43,105 +105,20 @@ const Login = () => {
 
     setResetLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      const user = users[resetEmail];
-      if (!user) {
-        toast.error('Bu e-posta adresine kayıtlı kullanıcı bulunamadı!');
-      } else {
-        toast.success('Şifre sıfırlama bağlantısı e-posta adresinize gönderildi! 📧');
-        setIsResetMode(false);
-        setResetEmail('');
-      }
+      // ✅ Backend'e şifre sıfırlama isteği gönder
+      await authAPI.forgotPassword(resetEmail);
+      
+      toast.success('Şifre sıfırlama bağlantısı e-posta adresinize gönderildi! 📧');
+      setIsResetMode(false);
+      setResetEmail('');
     } catch (err) {
-      toast.error('Bir hata oluştu. Lütfen tekrar deneyin.');
+      console.error('❌ Şifre sıfırlama hatası:', err);
+      const errorMessage = err.response?.data?.message || 'Bir hata oluştu. Lütfen tekrar deneyin.';
+      toast.error(errorMessage);
     } finally {
       setResetLoading(false);
     }
   };
-
- const handleSubmit = async (e) => {
-  e.preventDefault();
-  setError('');
-  setLoading(true);
-
-  if (!email || !password) {
-    setError('Lütfen tüm alanları doldurun');
-    toast.warning('Lütfen tüm alanları doldurun!');
-    setLoading(false);
-    return;
-  }
-
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
-    setError('Geçerli bir e-posta adresi girin');
-    toast.error('Geçerli bir e-posta adresi girin!');
-    setLoading(false);
-    return;
-  }
-
-  try {
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    const user = users[email];
-    
-    if (!user || user.password !== password) {
-      throw new Error('E-posta veya şifre hatalı!');
-    }
-
-    // 🔴 EMAİL'E GÖRE ROL BELİRLE (DOĞRUDAN)
-    let role = '';
-    if (email === 'admin@restoran.com') {
-      role = 'admin';
-    } else if (email === 'garson@restoran.com') {
-      role = 'garson';
-    } else if (email === 'asci@restoran.com') {
-      role = 'asci';
-    } else if (email === 'kurye@restoran.com') {
-      role = 'kurye';
-    }
-
-    console.log('🔍 Email:', email);
-    console.log('🔍 Belirlenen rol:', role);
-
-    const userData = {
-      email: email,
-      role: role,
-      name: user.name,
-      loginTime: new Date().toISOString()
-    };
-
-    console.log('📝 Kaydedilen kullanıcı:', userData);
-
-    if (rememberMe) {
-      localStorage.setItem('user', JSON.stringify(userData));
-    } else {
-      sessionStorage.setItem('user', JSON.stringify(userData));
-    }
-
-    toast.success(`Hoş geldiniz, ${user.name}! 🎉`);
-
-    // 🔴 DOĞRUDAN YÖNLENDİR
-    console.log('🔄 Yönlendiriliyor - Rol:', role);
-    
-    if (role === 'admin') {
-      window.location.href = '/admin';
-    } else if (role === 'garson') {
-      window.location.href = '/garson';
-    } else if (role === 'asci') {
-      window.location.href = '/asci';
-    } else if (role === 'kurye') {
-      window.location.href = '/kurye';
-    } else {
-      window.location.href = '/';
-    }
-
-  } catch (err) {
-    const errorMessage = err.message || 'Giriş başarısız. Lütfen tekrar deneyin.';
-    setError(errorMessage);
-    toast.error(errorMessage);
-  } finally {
-    setLoading(false);
-  }
-};
 
   // Şifre Sıfırlama Ekranı
   if (isResetMode) {
@@ -370,38 +347,98 @@ const Login = () => {
                 </button>
               </form>
 
-              {/* Hızlı Giriş */}
+              {/* Demo Hesaplar - Backend ile de çalışır */}
               <div className="mt-8">
                 <div className="flex items-center gap-4 mb-4">
                   <div className="flex-1 h-px bg-gray-200"></div>
                   <span className="text-xs text-gray-400 font-medium uppercase tracking-wider">veya</span>
                   <div className="flex-1 h-px bg-gray-200"></div>
                 </div>
-                <p className="text-xs text-gray-500 mb-3 font-medium tracking-wider">HIZLI GİRİŞ</p>
+                <p className="text-xs text-gray-500 mb-3 font-medium tracking-wider">DEMO HESAPLAR</p>
                 <div className="grid grid-cols-1 gap-2">
-                  {Object.entries(users).map(([email, user]) => (
-                    <button
-                      key={email}
-                      onClick={() => {
-                        setEmail(email);
-                        setPassword(user.password);
-                        toast.info(`${email} demo hesabı dolduruldu`);
-                      }}
-                      className="flex items-center justify-between p-2.5 border border-gray-200 
-                               hover:border-gray-600 rounded-lg transition-all duration-300
-                               hover:bg-gray-50 group"
-                    >
-                      <div className="flex flex-col items-start">
-                        <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900">
-                          {user.name}
-                        </span>
-                        <span className="text-[10px] text-gray-400">{user.role} yetkisi</span>
-                      </div>
-                      <span className="text-xs text-gray-400 group-hover:text-gray-700">
-                        {email}
+                  <button
+                    onClick={() => {
+                      setEmail('admin@restoran.com');
+                      setPassword('admin123');
+                      toast.info('Admin demo hesabı dolduruldu');
+                    }}
+                    className="flex items-center justify-between p-2.5 border border-gray-200 
+                             hover:border-gray-600 rounded-lg transition-all duration-300
+                             hover:bg-gray-50 group"
+                  >
+                    <div className="flex flex-col items-start">
+                      <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900">
+                        Yönetici
                       </span>
-                    </button>
-                  ))}
+                      <span className="text-[10px] text-gray-400">admin yetkisi</span>
+                    </div>
+                    <span className="text-xs text-gray-400 group-hover:text-gray-700">
+                      admin@restoran.com
+                    </span>
+                  </button>
+                  
+                  <button
+                    onClick={() => {
+                      setEmail('garson@restoran.com');
+                      setPassword('garson123');
+                      toast.info('Garson demo hesabı dolduruldu');
+                    }}
+                    className="flex items-center justify-between p-2.5 border border-gray-200 
+                             hover:border-gray-600 rounded-lg transition-all duration-300
+                             hover:bg-gray-50 group"
+                  >
+                    <div className="flex flex-col items-start">
+                      <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900">
+                        Garson
+                      </span>
+                      <span className="text-[10px] text-gray-400">garson yetkisi</span>
+                    </div>
+                    <span className="text-xs text-gray-400 group-hover:text-gray-700">
+                      garson@restoran.com
+                    </span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setEmail('asci@restoran.com');
+                      setPassword('asci123');
+                      toast.info('Aşçı demo hesabı dolduruldu');
+                    }}
+                    className="flex items-center justify-between p-2.5 border border-gray-200 
+                             hover:border-gray-600 rounded-lg transition-all duration-300
+                             hover:bg-gray-50 group"
+                  >
+                    <div className="flex flex-col items-start">
+                      <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900">
+                        Aşçı
+                      </span>
+                      <span className="text-[10px] text-gray-400">aşçı yetkisi</span>
+                    </div>
+                    <span className="text-xs text-gray-400 group-hover:text-gray-700">
+                      asci@restoran.com
+                    </span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setEmail('kurye@restoran.com');
+                      setPassword('kurye123');
+                      toast.info('Kurye demo hesabı dolduruldu');
+                    }}
+                    className="flex items-center justify-between p-2.5 border border-gray-200 
+                             hover:border-gray-600 rounded-lg transition-all duration-300
+                             hover:bg-gray-50 group"
+                  >
+                    <div className="flex flex-col items-start">
+                      <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900">
+                        Kurye
+                      </span>
+                      <span className="text-[10px] text-gray-400">kurye yetkisi</span>
+                    </div>
+                    <span className="text-xs text-gray-400 group-hover:text-gray-700">
+                      kurye@restoran.com
+                    </span>
+                  </button>
                 </div>
               </div>
             </div>
