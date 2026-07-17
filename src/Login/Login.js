@@ -38,13 +38,65 @@ const Login = () => {
         let userRole = data.rol || data.Rol || data.role || '';
         userRole = userRole.toLowerCase().trim();
 
-        // 🔥 ROL EŞLEME (Türkçe -> İngilizce)
+        console.log('🔍 Backend\'den gelen ham rol:', userRole);
+
+        // 🔥 ROL EŞLEME (Tüm roller için kapsamlı)
         const roleMapping = {
+          // Admin ve yönetici varyasyonları
           'admin': 'admin',
+          'administrator': 'admin',
+          'administratör': 'admin',
+          'yönetici': 'admin',
+          'yonetici': 'admin',
+          'superadmin': 'admin',
+          'super admin': 'admin',
+          'root': 'admin',
+          'manager': 'admin',
+          'sahibi': 'admin',
+          'sahip': 'admin',
+          'işletme sahibi': 'admin',
+          'isletme sahibi': 'admin',
+
+          // Garson varyasyonları
           'garson': 'garson',
+          'garsons': 'garson',
+          'waiter': 'garson',
+          'waiters': 'garson',
+          'servis': 'garson',
+          'servis elemanı': 'garson',
+          'servis elemani': 'garson',
+          'komi': 'garson',
+
+          // Aşçı varyasyonları
+          'aşçı': 'asci',
           'asci': 'asci',
-          'aşçı': 'asci',     // ← Aşçı -> asci olarak eşle
-          'kurye': 'kurye'
+          'asçı': 'asci',
+          'ascı': 'asci',
+          'cook': 'asci',
+          'chef': 'asci',
+          'mutfak': 'asci',
+          'şef': 'asci',
+          'sef': 'asci',
+          'mutfak şefi': 'asci',
+          'mutfak sefi': 'asci',
+
+          // Kurye varyasyonları
+          'kurye': 'kurye',
+          'kuryes': 'kurye',
+          'courier': 'kurye',
+          'delivery': 'kurye',
+          'motokurye': 'kurye',
+          'moto kurye': 'kurye',
+          'kargo': 'kurye',
+          'teslimat': 'kurye',
+
+          // Diğer roller (isteğe bağlı)
+          'müşteri': 'user',
+          'musteri': 'user',
+          'customer': 'user',
+          'user': 'user',
+          'kullanıcı': 'user',
+          'kullanici': 'user'
         };
 
         const validRoles = ['admin', 'garson', 'asci', 'kurye'];
@@ -52,23 +104,47 @@ const Login = () => {
         // Eğer rol mapping'de varsa onu kullan
         if (roleMapping[userRole] && validRoles.includes(roleMapping[userRole])) {
           userRole = roleMapping[userRole];
+          console.log('✅ Mapping ile rol bulundu:', userRole);
         } else {
-          // Fallback: kullanıcı adına göre ata
-          if (kullaniciAdi === 'admin' || kullaniciAdi === 'nafiye2' || kullaniciAdi === 'nafiye') {
+          // ============ FALLBACK: Kullanıcı adına göre rol ata ============
+          console.log('⚠️ Rol mapping bulunamadı, kullanıcı adına göre atanacak.');
+          
+          // Kullanıcı adını küçük harfe çevir
+          const kullaniciAdiLower = kullaniciAdi.toLowerCase().trim();
+          
+          // Kullanıcı adında hangi rol geçiyorsa ona göre ata (öncelik sırasına göre)
+          if (kullaniciAdiLower.includes('admin') || 
+              kullaniciAdiLower.includes('yonetici') || 
+              kullaniciAdiLower.includes('yönetici') ||
+              kullaniciAdiLower.includes('manager')) {
             userRole = 'admin';
-          } else if (kullaniciAdi === 'garson') {
+          } else if (kullaniciAdiLower.includes('garson') || 
+                     kullaniciAdiLower.includes('waiter') ||
+                     kullaniciAdiLower.includes('servis') ||
+                     kullaniciAdiLower.includes('komi')) {
             userRole = 'garson';
-          } else if (kullaniciAdi === 'asci' || kullaniciAdi.includes('asci')) {
+          } else if (kullaniciAdiLower.includes('asci') || 
+                     kullaniciAdiLower.includes('aşçı') ||
+                     kullaniciAdiLower.includes('asçı') ||
+                     kullaniciAdiLower.includes('cook') ||
+                     kullaniciAdiLower.includes('chef') ||
+                     kullaniciAdiLower.includes('mutfak') ||
+                     kullaniciAdiLower.includes('şef')) {
             userRole = 'asci';
-          } else if (kullaniciAdi === 'kurye') {
+          } else if (kullaniciAdiLower.includes('kurye') || 
+                     kullaniciAdiLower.includes('courier') ||
+                     kullaniciAdiLower.includes('delivery') ||
+                     kullaniciAdiLower.includes('motokurye') ||
+                     kullaniciAdiLower.includes('kargo') ||
+                     kullaniciAdiLower.includes('teslimat')) {
             userRole = 'kurye';
           } else {
             userRole = 'user';
           }
-          console.log('⚠️ Rol mapping bulunamadı, kullanıcı adına göre atandı:', userRole);
+          console.log('✅ Fallback ile rol atandı:', userRole);
         }
 
-        console.log('✅ Kullanıcı rolü:', userRole);
+        console.log('✅ Sonuç - Kullanıcı rolü:', userRole);
 
         // Kullanıcı bilgilerini kaydet
         const user = {
@@ -218,7 +294,7 @@ const Login = () => {
                 <input
                   type="checkbox"
                   checked={beniHatirla}
-                  onChange={(e) => setBeniHatirla(e.target.value)}
+                  onChange={(e) => setBeniHatirla(e.target.checked)}
                   className="rounded border-gray-300 text-gray-800 focus:ring-gray-800/30"
                 />
                 Beni hatırla
