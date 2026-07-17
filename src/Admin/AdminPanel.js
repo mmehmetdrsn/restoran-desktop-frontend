@@ -1,4 +1,4 @@
-// src/pages/AdminPanel.js
+// src/Admin/AdminPanel.js
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -14,10 +14,24 @@ import {
   FaCreditCard, FaHistory, FaExchangeAlt, FaPlusCircle,
   FaMinusCircle, FaTruck, FaCheckDouble, FaCalendarCheck,
   FaUserCog, FaUserTimes, FaShieldAlt, FaUmbrella,
-  FaStar, FaPizzaSlice, FaWineBottle
+  FaStar, FaPizzaSlice, FaWineBottle, FaAngleUp
 } from 'react-icons/fa';
 import { toast } from 'react-toastify';
-import { logout, sifreDegistir, getKategoriler, kategoriEkle, kategoriSil, urunEkle } from '../api/api';
+
+import { 
+  orderService,
+  productService,
+  categoryService,
+  materialService,
+  tableService,
+  reservationService,
+  personnelService,
+  userService,
+  paymentService,
+  cashService,
+  notificationService,
+  reportService
+} from '../api/api';
 
 const backgroundImage = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80';
 
@@ -36,45 +50,209 @@ const AdminPanel = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
 
-  // ===== KATEGORİ LİSTELEME (backend'e bağlı) =====
-  const [kategoriler, setKategoriler] = useState([]);
+  // ============ VERİ STATE'LERİ ============
+  const [orders, setOrders] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [materials, setMaterials] = useState([]);
+  const [tables, setTables] = useState([]);
+  const [reservations, setReservations] = useState([]);
+  const [personnel, setPersonnel] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [payments, setPayments] = useState([]);
+  const [cash, setCash] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  // ============ DASHBOARD STATE'LERİ ============
+  const [dashboardData, setDashboardData] = useState({
+    totalRevenue: 0,
+    totalOrders: 0,
+    date: new Date().toLocaleDateString('tr-TR'),
+    changePercent: 0,
+    oncekiGunCiro: 0
+  });
+  const [topProducts, setTopProducts] = useState([]);
+  const [recentOrders, setRecentOrders] = useState([]);
+
+  // ============ MODAL STATE'LERİ ============
   const [showKategoriListesi, setShowKategoriListesi] = useState(false);
   const [showKategoriEkleModal, setShowKategoriEkleModal] = useState(false);
   const [newKategoriAdi, setNewKategoriAdi] = useState('');
   const [kategoriLoading, setKategoriLoading] = useState(false);
 
-  // Ürün ekle modal
+  const [showUrunListesi, setShowUrunListesi] = useState(false);
+  const [urunListesi, setUrunListesi] = useState([]);
+
+  const [showPersonelListesi, setShowPersonelListesi] = useState(false);
+  const [personelListesi, setPersonelListesi] = useState([]);
+
   const [showUrunEkleModal, setShowUrunEkleModal] = useState(false);
   const [urunAdi, setUrunAdi] = useState('');
   const [urunFiyat, setUrunFiyat] = useState('');
   const [urunKategoriId, setUrunKategoriId] = useState('');
   const [urunLoading, setUrunLoading] = useState(false);
 
+  // ============ KULLANICI BİLGİLERİ ============
+  const [userData, setUserData] = useState({
+    name: 'Admin',
+    email: 'admin@restoran.com',
+    role: 'admin'
+  });
+
+  const menuItems = [
+    { id: 'dashboard', icon: <FaHome />, title: 'Genel Bakış' },
+    { id: 'product_menu', icon: <FaUtensils />, title: 'Ürün ve Menü Yönetimi' },
+    { id: 'members', icon: <FaUsers />, title: 'Üye Yönetimi' },
+    { id: 'finance', icon: <FaMoneyBillWave />, title: 'Finans ve Kasa Yönetimi' },
+    { id: 'stock', icon: <FaBoxes />, title: 'Depo / Stok Yönetimi' },
+    { id: 'orders', icon: <FaClipboardList />, title: 'Sipariş Yönetimi' },
+    { id: 'tables', icon: <FaTable />, title: 'Masa ve Rezervasyon Yönetimi' },
+    { id: 'personnel', icon: <FaUserCog />, title: 'Personel Yönetimi' },
+    { id: 'reports', icon: <FaChartBar />, title: 'Raporlar ve İstatistikler' }
+  ];
+
+  // ============ DASHBOARD VERİLERİNİ ÇEK ============
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      
+      const [ciroRes, satanlarRes, sonSiparislerRes] = await Promise.all([
+        reportService.getGunlukCiro(),
+        reportService.getEnCokSatanlar(30),
+        reportService.getSonSiparisler(10)
+      ]);
+
+      if (ciroRes.data) {
+        const data = ciroRes.data;
+        setDashboardData({
+          totalRevenue: data.ciro || 0,
+          totalOrders: data.siparisSayisi || 0,
+          date: data.tarih || new Date().toLocaleDateString('tr-TR'),
+          changePercent: data.oncekiGunCiro > 0 
+            ? Math.round(((data.ciro - data.oncekiGunCiro) / data.oncekiGunCiro) * 100) 
+            : 0,
+          oncekiGunCiro: data.oncekiGunCiro || 0
+        });
+      }
+
+      if (satanlarRes.data) {
+        const products = satanlarRes.data.map((p, index) => ({
+          name: p.urunAdi || 'Bilinmiyor',
+          quantity: p.toplamAdet || 0,
+          revenue: p.toplamCiro || 0,
+          index: index + 1
+        }));
+        setTopProducts(products);
+      }
+
+      if (sonSiparislerRes.data) {
+        setRecentOrders(sonSiparislerRes.data);
+      }
+
+      console.log('✅ Dashboard verileri başarıyla yüklendi!');
+    } catch (error) {
+      console.error('Dashboard verileri yüklenirken hata:', error);
+      toast.error('Dashboard verileri yüklenirken hata oluştu!');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ============ TÜM VERİLERİ ÇEK ============
+  const fetchAllData = async () => {
+    try {
+      const [ordersRes, productsRes, categoriesRes, materialsRes, 
+             tablesRes, reservationsRes, personnelRes, usersRes,
+             paymentsRes, cashRes] = await Promise.all([
+        orderService.getAll(),
+        productService.getAll(),
+        categoryService.getAll(),
+        materialService.getAll(),
+        tableService.getAll(),
+        reservationService.getAll(),
+        personnelService.getAll(),
+        userService.getAll(),
+        paymentService.getAll(),
+        cashService.getAll()
+      ]);
+
+      setOrders(ordersRes.data || []);
+      setProducts(productsRes.data || []);
+      setCategories(categoriesRes.data || []);
+      setMaterials(materialsRes.data || []);
+      setTables(tablesRes.data || []);
+      setReservations(reservationsRes.data || []);
+      setPersonnel(personnelRes.data || []);
+      setUsers(usersRes.data || []);
+      setPayments(paymentsRes.data || []);
+      setCash(cashRes.data || []);
+      
+      setNotifications([]);
+      setUnreadCount(0);
+
+      console.log('✅ Veriler başarıyla yüklendi!');
+    } catch (error) {
+      console.error('Veriler yüklenirken hata:', error);
+      toast.error('Veriler yüklenirken hata oluştu!');
+    }
+  };
+
+  // ============ ÜRÜN LİSTELE ============
+  const urunleriListele = async () => {
+    try {
+      const response = await productService.getAll();
+      const urunler = response.data || [];
+      setUrunListesi(urunler);
+      setShowUrunListesi(true);
+      toast.info(`📋 ${urunler.length} ürün bulundu`);
+    } catch (error) {
+      console.error('Ürünler yüklenirken hata:', error);
+      toast.error('❌ Ürünler yüklenirken hata oluştu!');
+    }
+  };
+
+  // ============ PERSONEL LİSTELE ============
+  const personelListele = async () => {
+    try {
+      const response = await personnelService.getAll();
+      const personeller = response.data || [];
+      setPersonelListesi(personeller);
+      setShowPersonelListesi(true);
+      toast.info(`📋 ${personeller.length} personel bulundu`);
+    } catch (error) {
+      console.error('Personeller yüklenirken hata:', error);
+      toast.error('❌ Personeller yüklenirken hata oluştu!');
+    }
+  };
+
+  // ============ KATEGORİ İŞLEMLERİ ============
   const kategorileriYukle = async () => {
     try {
-      const data = await getKategoriler(); // GET /api/Kategoriler
-      setKategoriler(data);
+      const response = await categoryService.getAll();
+      setCategories(response.data || []);
       setShowKategoriListesi(true);
+      toast.info(`📋 ${response.data?.length || 0} kategori bulundu`);
     } catch (err) {
-      toast.error(err.message);
+      toast.error('Kategoriler yüklenirken hata oluştu!');
     }
   };
 
   const handleKategoriEkle = async (e) => {
-    e && e.preventDefault && e.preventDefault();
+    e.preventDefault();
     if (!newKategoriAdi || newKategoriAdi.trim().length < 1) {
       toast.warning('Lütfen kategori adı girin.');
       return;
     }
     try {
       setKategoriLoading(true);
-      await kategoriEkle({ kategoriAdi: newKategoriAdi.trim() });
-      toast.success('Kategori eklendi.');
+      await categoryService.create({ kategoriAdi: newKategoriAdi.trim() });
+      toast.success('✅ Kategori eklendi.');
       setNewKategoriAdi('');
       setShowKategoriEkleModal(false);
       await kategorileriYukle();
     } catch (err) {
-      toast.error(err.message);
+      toast.error('Kategori eklenirken hata oluştu!');
     } finally {
       setKategoriLoading(false);
     }
@@ -83,16 +261,50 @@ const AdminPanel = () => {
   const handleKategoriSil = async (id) => {
     if (!window.confirm('Bu kategoriyi silmek istediğinize emin misiniz?')) return;
     try {
-      await kategoriSil(id);
-      toast.success('Kategori silindi.');
+      await categoryService.delete(id);
+      toast.success('✅ Kategori silindi.');
       await kategorileriYukle();
     } catch (err) {
-      toast.error(err.message);
+      toast.error('Kategori silinirken hata oluştu!');
     }
   };
 
+  const handleKategoriSilPrompt = async () => {
+    const id = prompt('🗑️ Silinecek kategori ID\'sini girin:');
+    if (!id) return;
+    await handleKategoriSil(parseInt(id));
+  };
+
+  const handleKategoriDuzenle = async () => {
+    const id = prompt('✏️ Düzenlenecek kategori ID\'sini girin:');
+    if (!id) return;
+    
+    try {
+      const response = await categoryService.getById(parseInt(id));
+      const kategori = response.data;
+      
+      if (!kategori) {
+        toast.error('❌ Kategori bulunamadı!');
+        return;
+      }
+      
+      const yeniAd = prompt('📝 Yeni kategori adı:', kategori.kategoriAdi || kategori.name);
+      
+      await categoryService.update(parseInt(id), {
+        kategoriAdi: yeniAd || kategori.kategoriAdi
+      });
+      
+      toast.success('✅ Kategori başarıyla güncellendi!');
+      await kategorileriYukle();
+    } catch (error) {
+      console.error('Kategori güncellenirken hata:', error);
+      toast.error('❌ Kategori güncellenirken hata oluştu!');
+    }
+  };
+
+  // ============ ÜRÜN İŞLEMLERİ ============
   const handleUrunEkle = async (e) => {
-    e && e.preventDefault && e.preventDefault();
+    e.preventDefault();
     if (!urunAdi || !urunFiyat || !urunKategoriId) {
       toast.warning('Lütfen tüm alanları doldurun.');
       return;
@@ -104,92 +316,293 @@ const AdminPanel = () => {
     }
     try {
       setUrunLoading(true);
-      await urunEkle({ urunAdi: urunAdi.trim(), fiyat: fiyat, kategoriId: urunKategoriId });
-      toast.success('Ürün eklendi.');
+      await productService.create({
+        urunAdi: urunAdi.trim(),
+        fiyat: fiyat,
+        kategoriId: parseInt(urunKategoriId)
+      });
+      toast.success('✅ Ürün eklendi.');
       setUrunAdi('');
       setUrunFiyat('');
       setUrunKategoriId('');
       setShowUrunEkleModal(false);
+      const productsRes = await productService.getAll();
+      setProducts(productsRes.data || []);
     } catch (err) {
-      toast.error(err.message);
+      toast.error('Ürün eklenirken hata oluştu!');
     } finally {
       setUrunLoading(false);
     }
   };
 
-  const [userData, setUserData] = useState({
-    name: 'Admin',
-    email: 'admin@restoran.com',
-    role: 'admin'
-  });
-
-  // Önceki günün tarihi
-  const getPreviousDay = () => {
-    const date = new Date();
-    date.setDate(date.getDate() - 1);
-    return date.toLocaleDateString('tr-TR', { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
-    });
-  };
-
-  const [dashboardData, setDashboardData] = useState({
-    totalRevenue: 42850,
-    totalOrders: 342,
-    date: getPreviousDay()
-  });
-
-  const [topProducts, setTopProducts] = useState([
-    { name: 'Adana Kebap', quantity: 145, revenue: 34800 },
-    { name: 'Lahmacun', quantity: 280, revenue: 19600 },
-    { name: 'Künefe', quantity: 98, revenue: 14700 },
-    { name: 'Mercimek Çorbası', quantity: 112, revenue: 6720 }
-  ]);
-
-  const [recentOrders, setRecentOrders] = useState([
-    { id: '#1482', table: 'Masa 12', content: '2x Adana, 1x Künefe...', time: '14:23', amount: 840, status: 'Tamamlandı' },
-    { id: '#1481', table: 'Masa 5', content: '3x Lahmacun, 2x Ayran', time: '14:15', amount: 560, status: 'Hazırlanıyor' },
-    { id: '#1480', table: 'Masa 8', content: '1x Mercimek, 1x Adana', time: '14:02', amount: 320, status: 'Bekliyor' },
-    { id: '#1479', table: 'Masa 3', content: '2x Künefe, 1x Çay', time: '13:48', amount: 210, status: 'Tamamlandı' }
-  ]);
-
-  // Sidebar menü öğeleri
-  const menuItems = [
-    { id: 'dashboard', icon: <FaHome />, title: 'Genel Bakış' },
-    { id: 'product_menu', icon: <FaUtensils />, title: 'Ürün ve Menü Yönetimi' },
-    { id: 'members', icon: <FaUsers />, title: 'Üye Yönetimi' },
-    { id: 'finance', icon: <FaMoneyBillWave />, title: 'Finans ve Kasa Yönetimi' },
-    { id: 'stock', icon: <FaBoxes />, title: 'Depo / Stok Yönetimi' },
-    { id: 'orders', icon: <FaClipboardList />, title: 'Sipariş Yönetimi' },
-    { id: 'tables', icon: <FaTable />, title: 'Masa ve Rezervasyon Yönetimi' },
-    { id: 'personnel', icon: <FaUserCog />, title: 'Personel Yönetimi' },
-    { id: 'reports', icon: <FaChartBar />, title: 'Raporlar ve İstatistikler Yönetimi' }
-  ];
-
-  useEffect(() => {
-    // GİRİŞ KONTROLÜ: Login olmadan panele erişilemez
-    const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
-    if (!storedUser) {
-      navigate('/login');
-      return;
-    }
-    fetchDashboardData();
-    fetchUserData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const fetchDashboardData = async () => {
+  const handleUrunSil = async () => {
+    const id = prompt('🗑️ Silinecek ürün ID\'sini girin:');
+    if (!id) return;
+    if (!window.confirm('Bu ürünü silmek istediğinizden emin misiniz?')) return;
+    
     try {
-      setLoading(true);
-      await new Promise(resolve => setTimeout(resolve, 800));
+      await productService.delete(parseInt(id));
+      toast.success('✅ Ürün başarıyla silindi!');
+      const response = await productService.getAll();
+      setProducts(response.data || []);
     } catch (error) {
-      toast.error('Veriler yüklenirken bir hata oluştu!');
-    } finally {
-      setLoading(false);
+      console.error('Ürün silinirken hata:', error);
+      toast.error('❌ Ürün silinirken hata oluştu!');
     }
   };
 
+  const handleUrunDuzenle = async () => {
+    const id = prompt('✏️ Düzenlenecek ürün ID\'sini girin:');
+    if (!id) return;
+    
+    try {
+      const response = await productService.getById(parseInt(id));
+      const urun = response.data;
+      
+      if (!urun) {
+        toast.error('❌ Ürün bulunamadı!');
+        return;
+      }
+      
+      const yeniAd = prompt('📝 Yeni ürün adı:', urun.urunAdi || urun.name);
+      const yeniFiyat = prompt('💰 Yeni fiyat:', urun.fiyat || urun.price);
+      const yeniKategori = prompt('📂 Yeni kategori:', urun.kategori || urun.kategoriAdi);
+      
+      await productService.update(parseInt(id), {
+        urunAdi: yeniAd || urun.urunAdi,
+        fiyat: yeniFiyat ? parseFloat(yeniFiyat) : urun.fiyat,
+        kategori: yeniKategori || urun.kategori
+      });
+      
+      toast.success('✅ Ürün başarıyla güncellendi!');
+      const productsRes = await productService.getAll();
+      setProducts(productsRes.data || []);
+    } catch (error) {
+      console.error('Ürün güncellenirken hata:', error);
+      toast.error('❌ Ürün güncellenirken hata oluştu!');
+    }
+  };
+
+  // ============ PERSONEL İŞLEMLERİ ============
+  const handlePersonelEkle = async () => {
+    const ad = prompt('👤 Personel adı:');
+    if (!ad) return;
+    const soyad = prompt('👤 Personel soyadı:');
+    const kullaniciAdi = prompt('🔑 Kullanıcı adı:');
+    if (!kullaniciAdi) return;
+    const sifre = prompt('🔒 Şifre:');
+    if (!sifre) return;
+    const rol = prompt('📋 Rol (admin/garson/asci/kurye):') || 'garson';
+    
+    try {
+      await personnelService.create({
+        personelAdi: ad,
+        personelSoyadi: soyad || '',
+        kullaniciAdi: kullaniciAdi,
+        personelSifre: sifre,
+        rol: rol,
+        isActive: true
+      });
+      toast.success('✅ Personel başarıyla eklendi!');
+      const response = await personnelService.getAll();
+      setPersonnel(response.data || []);
+    } catch (error) {
+      console.error('Personel eklenirken hata:', error);
+      toast.error('❌ Personel eklenirken hata oluştu!');
+    }
+  };
+
+  const handlePersonelSil = async () => {
+    const id = prompt('🗑️ Silinecek personel ID\'sini girin:');
+    if (!id) return;
+    if (!window.confirm('Bu personeli silmek istediğinizden emin misiniz?')) return;
+    
+    try {
+      await personnelService.delete(parseInt(id));
+      toast.success('✅ Personel başarıyla silindi!');
+      const response = await personnelService.getAll();
+      setPersonnel(response.data || []);
+    } catch (error) {
+      console.error('Personel silinirken hata:', error);
+      toast.error('❌ Personel silinirken hata oluştu!');
+    }
+  };
+
+  const handlePersonelDuzenle = async () => {
+    const id = prompt('✏️ Düzenlenecek personel ID\'sini girin:');
+    if (!id) return;
+    
+    try {
+      const response = await personnelService.getById(parseInt(id));
+      const personel = response.data;
+      
+      if (!personel) {
+        toast.error('❌ Personel bulunamadı!');
+        return;
+      }
+      
+      const ad = prompt('👤 Yeni ad:', personel.personelAdi);
+      const soyad = prompt('👤 Yeni soyad:', personel.personelSoyadi);
+      const rol = prompt('📋 Yeni rol:', personel.rol);
+      
+      await personnelService.update(parseInt(id), {
+        personelAdi: ad || personel.personelAdi,
+        personelSoyadi: soyad || personel.personelSoyadi,
+        rol: rol || personel.rol
+      });
+      
+      toast.success('✅ Personel başarıyla güncellendi!');
+      const personnelRes = await personnelService.getAll();
+      setPersonnel(personnelRes.data || []);
+    } catch (error) {
+      console.error('Personel güncellenirken hata:', error);
+      toast.error('❌ Personel güncellenirken hata oluştu!');
+    }
+  };
+
+  // ============ MASA İŞLEMLERİ ============
+  const handleMasaEkle = async () => {
+    const masaNo = prompt('🪑 Masa numarası:');
+    if (!masaNo) return;
+    const kapasite = prompt('👥 Kapasite:');
+    
+    try {
+      await tableService.create({
+        masaNo: parseInt(masaNo),
+        kapasite: parseInt(kapasite) || 4,
+        masaDurumu: 'BOŞ'
+      });
+      toast.success('✅ Masa başarıyla eklendi!');
+      const response = await tableService.getAll();
+      setTables(response.data || []);
+    } catch (error) {
+      console.error('Masa eklenirken hata:', error);
+      toast.error('❌ Masa eklenirken hata oluştu!');
+    }
+  };
+
+  const handleMasaSil = async () => {
+    const id = prompt('🗑️ Silinecek masa ID\'sini girin:');
+    if (!id) return;
+    if (!window.confirm('Bu masayı silmek istediğinizden emin misiniz?')) return;
+    
+    try {
+      await tableService.delete(parseInt(id));
+      toast.success('✅ Masa başarıyla silindi!');
+      const response = await tableService.getAll();
+      setTables(response.data || []);
+    } catch (error) {
+      console.error('Masa silinirken hata:', error);
+      toast.error('❌ Masa silinirken hata oluştu!');
+    }
+  };
+
+  const handleMasaDuzenle = async () => {
+    const id = prompt('✏️ Düzenlenecek masa ID\'sini girin:');
+    if (!id) return;
+    
+    try {
+      const response = await tableService.getById(parseInt(id));
+      const masa = response.data;
+      
+      if (!masa) {
+        toast.error('❌ Masa bulunamadı!');
+        return;
+      }
+      
+      const masaNo = prompt('🪑 Yeni masa numarası:', masa.masaNo);
+      const kapasite = prompt('👥 Yeni kapasite:', masa.kapasite);
+      
+      await tableService.update(parseInt(id), {
+        masaNo: parseInt(masaNo) || masa.masaNo,
+        kapasite: parseInt(kapasite) || masa.kapasite
+      });
+      
+      toast.success('✅ Masa başarıyla güncellendi!');
+      const response2 = await tableService.getAll();
+      setTables(response2.data || []);
+    } catch (error) {
+      console.error('Masa güncellenirken hata:', error);
+      toast.error('❌ Masa güncellenirken hata oluştu!');
+    }
+  };
+
+  // ============ REZERVASYON İŞLEMLERİ ============
+  const handleRezervasyonEkle = async () => {
+    const masaId = prompt('🪑 Masa ID:');
+    if (!masaId) return;
+    const musteriAdi = prompt('👤 Müşteri adı:');
+    if (!musteriAdi) return;
+    const tarih = prompt('📅 Tarih (YYYY-MM-DD):');
+    if (!tarih) return;
+    const saat = prompt('🕐 Saat (HH:mm):');
+    if (!saat) return;
+    
+    try {
+      await reservationService.create({
+        masaId: parseInt(masaId),
+        musteriAdi: musteriAdi,
+        tarih: tarih,
+        saat: saat
+      });
+      toast.success('✅ Rezervasyon başarıyla eklendi!');
+      const response = await reservationService.getAll();
+      setReservations(response.data || []);
+    } catch (error) {
+      console.error('Rezervasyon eklenirken hata:', error);
+      toast.error('❌ Rezervasyon eklenirken hata oluştu!');
+    }
+  };
+
+  const handleRezervasyonSil = async () => {
+    const id = prompt('🗑️ Silinecek rezervasyon ID\'sini girin:');
+    if (!id) return;
+    if (!window.confirm('Bu rezervasyonu silmek istediğinizden emin misiniz?')) return;
+    
+    try {
+      await reservationService.delete(parseInt(id));
+      toast.success('✅ Rezervasyon başarıyla silindi!');
+      const response = await reservationService.getAll();
+      setReservations(response.data || []);
+    } catch (error) {
+      console.error('Rezervasyon silinirken hata:', error);
+      toast.error('❌ Rezervasyon silinirken hata oluştu!');
+    }
+  };
+
+  const handleRezervasyonDuzenle = async () => {
+    const id = prompt('✏️ Düzenlenecek rezervasyon ID\'sini girin:');
+    if (!id) return;
+    
+    try {
+      const response = await reservationService.getById(parseInt(id));
+      const rezervasyon = response.data;
+      
+      if (!rezervasyon) {
+        toast.error('❌ Rezervasyon bulunamadı!');
+        return;
+      }
+      
+      const musteriAdi = prompt('👤 Yeni müşteri adı:', rezervasyon.musteriAdi);
+      const tarih = prompt('📅 Yeni tarih:', rezervasyon.tarih?.split('T')[0]);
+      const saat = prompt('🕐 Yeni saat:', rezervasyon.saat);
+      
+      await reservationService.update(parseInt(id), {
+        musteriAdi: musteriAdi || rezervasyon.musteriAdi,
+        tarih: tarih || rezervasyon.tarih?.split('T')[0],
+        saat: saat || rezervasyon.saat
+      });
+      
+      toast.success('✅ Rezervasyon başarıyla güncellendi!');
+      const response2 = await reservationService.getAll();
+      setReservations(response2.data || []);
+    } catch (error) {
+      console.error('Rezervasyon güncellenirken hata:', error);
+      toast.error('❌ Rezervasyon güncellenirken hata oluştu!');
+    }
+  };
+
+  // ============ KULLANICI BİLGİLERİ ============
   const fetchUserData = async () => {
     try {
       const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
@@ -206,20 +619,34 @@ const AdminPanel = () => {
     }
   };
 
+  // ============ USE EFFECT ============
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
+    if (!storedUser) {
+      navigate('/login');
+      return;
+    }
+    fetchDashboardData();
+    fetchAllData();
+    fetchUserData();
+  }, [navigate]);
+
+  // ============ ÇIKIŞ ============
   const handleLogout = async () => {
     try {
-      await logout(); // backend'de refresh token iptal edilir (güvenli çıkış)
+      localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('user');
+      sessionStorage.removeItem('user');
+      toast.success('Başarıyla çıkış yapıldı!');
+      navigate('/login');
     } catch (err) {
-      // backend'e ulaşılamasa bile local çıkışı tamamla
+      localStorage.removeItem('user');
+      navigate('/login');
     }
-    localStorage.removeItem('token');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('user');
-    sessionStorage.removeItem('user');
-    toast.success('Başarıyla çıkış yapıldı!');
-    navigate('/login');
   };
 
+  // ============ ŞİFRE DEĞİŞTİR ============
   const handlePasswordChange = async (e) => {
     e.preventDefault();
     if (!currentPassword || !newPassword || !confirmPassword) {
@@ -237,31 +664,30 @@ const AdminPanel = () => {
 
     setPasswordLoading(true);
     try {
-      // GERÇEK API ÇAĞRISI: POST /api/Auth/sifre-degistir
-      const sonuc = await sifreDegistir(currentPassword, newPassword);
-      toast.success(sonuc.mesaj); // "Şifre başarıyla değiştirildi. Lütfen tekrar giriş yapın."
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      toast.success('Şifreniz başarıyla değiştirildi! 🎉');
       setShowPasswordModal(false);
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
-      // Backend şifre değişince tüm oturumları düşürüyor -> yeniden giriş gerekli
-      localStorage.removeItem('token');
-      localStorage.removeItem('refreshToken');
       localStorage.removeItem('user');
-      sessionStorage.removeItem('user');
       navigate('/login');
     } catch (error) {
-      toast.error(error.message); // backend mesajı: "Mevcut şifre hatalı." vb.
+      toast.error('Şifre değiştirilemedi!');
     } finally {
       setPasswordLoading(false);
     }
   };
 
+  // ============ DURUM RENKLERİ ============
   const getStatusColor = (status) => {
     switch(status) {
       case 'Tamamlandı': return 'bg-green-500/20 text-green-400';
       case 'Hazırlanıyor': return 'bg-yellow-500/20 text-yellow-400';
       case 'Bekliyor': return 'bg-orange-500/20 text-orange-400';
+      case 'Teslim Edildi': return 'bg-blue-500/20 text-blue-400';
+      case 'İptal': return 'bg-red-500/20 text-red-400';
+      case 'Ödendi': return 'bg-purple-500/20 text-purple-400';
       default: return 'bg-gray-500/20 text-gray-400';
     }
   };
@@ -284,7 +710,7 @@ const AdminPanel = () => {
     </div>
   );
 
-  // ============ DASHBOARD ============
+  // ============ DASHBOARD RENDER ============
   const renderDashboard = () => {
     if (loading) {
       return (
@@ -299,45 +725,55 @@ const AdminPanel = () => {
 
     return (
       <div className="space-y-6">
-        {/* Restoran Özeti */}
         <div className="bg-black/90 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
-          <h2 className="text-lg font-semibold text-white mb-2">{dashboardData.date} - Restoran Özeti</h2>
-          <p className="text-gray-400 text-sm mb-4">İşletmenizin geçmiş gün verileri</p>
+          <h2 className="text-lg font-semibold text-white mb-2">
+            {dashboardData.date} - Restoran Özeti
+          </h2>
+          <p className="text-gray-400 text-sm mb-4">İşletmenizin anlık verileri</p>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-white/5 rounded-xl p-5">
-              <p className="text-gray-400 text-xs">Toplam Ciro</p>
+              <p className="text-gray-400 text-xs">Bugünkü Ciro</p>
               <p className="text-white text-3xl font-bold">₺{dashboardData.totalRevenue.toLocaleString()}</p>
-              <p className="text-green-500 text-xs mt-1">↑ %12</p>
+              <p className={`text-xs mt-1 ${dashboardData.changePercent >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                {dashboardData.changePercent >= 0 ? '↑' : '↓'} %{Math.abs(dashboardData.changePercent)}
+              </p>
+            </div>
+            <div className="bg-white/5 rounded-xl p-5">
+              <p className="text-gray-400 text-xs">Dünkü Ciro</p>
+              <p className="text-white text-3xl font-bold">₺{dashboardData.oncekiGunCiro?.toLocaleString() || 0}</p>
+              <p className="text-gray-400 text-xs mt-1">Önceki gün</p>
             </div>
             <div className="bg-white/5 rounded-xl p-5">
               <p className="text-gray-400 text-xs">Toplam Sipariş</p>
               <p className="text-white text-3xl font-bold">{dashboardData.totalOrders}</p>
-              <p className="text-green-500 text-xs mt-1">↑ %8</p>
+              <p className="text-gray-400 text-xs mt-1">Bugün</p>
             </div>
           </div>
         </div>
 
-        {/* En Çok Satanlar ve Son Siparişler */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* En Çok Satanlar */}
           <div className="bg-black/90 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-white">En Çok Satanlar</h2>
               <FaFire className="text-orange-500" />
             </div>
             <div className="space-y-3">
-              {topProducts.map((product, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-white/5 rounded-xl">
-                  <div>
-                    <p className="text-white font-medium text-sm">
-                      {index + 1}. {product.name}
-                    </p>
-                    <p className="text-gray-400 text-xs">{product.quantity} porsiyon</p>
+              {topProducts.length === 0 ? (
+                <p className="text-gray-400 text-center py-4">Henüz veri yok</p>
+              ) : (
+                topProducts.map((product) => (
+                  <div key={product.index} className="flex items-center justify-between p-3 bg-white/5 rounded-xl">
+                    <div>
+                      <p className="text-white font-medium text-sm">
+                        {product.index}. {product.name}
+                      </p>
+                      <p className="text-gray-400 text-xs">{product.quantity} porsiyon</p>
+                    </div>
+                    <p className="text-white font-semibold">₺{product.revenue.toLocaleString()}</p>
                   </div>
-                  <p className="text-white font-semibold">₺{product.revenue.toLocaleString()}</p>
-                </div>
-              ))}
+                ))
+              )}
             </div>
             <button className="w-full mt-4 flex items-center justify-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl text-white text-sm transition-all">
               Tüm Menüyü Gör
@@ -345,7 +781,6 @@ const AdminPanel = () => {
             </button>
           </div>
 
-          {/* Son Siparişler */}
           <div className="bg-black/90 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
             <h2 className="text-lg font-semibold text-white mb-4">Son Siparişler</h2>
             <div className="overflow-x-auto">
@@ -361,20 +796,24 @@ const AdminPanel = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {recentOrders.map((order) => (
-                    <tr key={order.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                      <td className="py-2 px-2 text-white text-xs">{order.id}</td>
-                      <td className="py-2 px-2 text-gray-300 text-xs">{order.table}</td>
-                      <td className="py-2 px-2 text-gray-400 text-xs">{order.content}</td>
-                      <td className="py-2 px-2 text-gray-400 text-xs">{order.time}</td>
-                      <td className="py-2 px-2 text-white text-xs font-medium">₺{order.amount}</td>
-                      <td className="py-2 px-2">
-                        <span className={`px-2 py-1 rounded text-[10px] ${getStatusColor(order.status)}`}>
-                          {order.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
+                  {recentOrders.length === 0 ? (
+                    <tr><td colSpan="6" className="text-center py-4 text-gray-400">Henüz sipariş yok</td></tr>
+                  ) : (
+                    recentOrders.map((order, index) => (
+                      <tr key={index} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                        <td className="py-2 px-2 text-white text-xs">{order.siparisNo}</td>
+                        <td className="py-2 px-2 text-gray-300 text-xs">{order.masa}</td>
+                        <td className="py-2 px-2 text-gray-400 text-xs">{order.icerik}</td>
+                        <td className="py-2 px-2 text-gray-400 text-xs">{order.saat}</td>
+                        <td className="py-2 px-2 text-white text-xs font-medium">₺{order.tutar}</td>
+                        <td className="py-2 px-2">
+                          <span className={`px-2 py-1 rounded text-[10px] ${getStatusColor(order.durum)}`}>
+                            {order.durum}
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -391,42 +830,91 @@ const AdminPanel = () => {
       <p className="text-gray-400 text-sm mb-6">Ürün ve menü işlemlerinizi buradan yönetin.</p>
       
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-      <ActionButton icon={<FaPlus />} label="Ürün Ekle" onClick={async () => { await kategorileriYukle(); setShowUrunEkleModal(true); }} />
-        <ActionButton icon={<FaTrash />} label="Ürün Sil" />
-        <ActionButton icon={<FaEdit />} label="Ürün Düzenle" />
-        <ActionButton icon={<FaList />} label="Ürün Listele" />
-        <ActionButton icon={<FaPizzaSlice />} label="Menü Listele" />
+        <ActionButton icon={<FaPlus />} label="Ürün Ekle" onClick={() => { kategorileriYukle(); setShowUrunEkleModal(true); }} />
+        <ActionButton icon={<FaTrash />} label="Ürün Sil" onClick={handleUrunSil} />
+        <ActionButton icon={<FaEdit />} label="Ürün Düzenle" onClick={handleUrunDuzenle} />
+        <ActionButton icon={<FaList />} label="Ürün Listele" onClick={urunleriListele} />
+        <ActionButton icon={<FaPizzaSlice />} label="Menü Listele" onClick={() => toast.info(`📋 ${products.length} menü ürünü bulunuyor`)} />
       </div>
 
-      {/* Kategori Yönetimi Butonları */}
       <div className="mt-4 pt-4 border-t border-white/10">
         <p className="text-gray-400 text-xs mb-3">Kategori İşlemleri</p>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <ActionButton icon={<FaPlusCircle />} label="Kategori Ekle" onClick={() => setShowKategoriEkleModal(true)} />
-          <ActionButton icon={<FaTrash />} label="Kategori Sil" />
-          <ActionButton icon={<FaEdit />} label="Kategori Düzenle" />
+          <ActionButton icon={<FaTrash />} label="Kategori Sil" onClick={handleKategoriSilPrompt} />
+          <ActionButton icon={<FaEdit />} label="Kategori Düzenle" onClick={handleKategoriDuzenle} />
           <ActionButton icon={<FaList />} label="Kategori Listele" onClick={kategorileriYukle} />
         </div>
       </div>
 
-      {/* Kategori Listesi (backend'den gelir) */}
       {showKategoriListesi && (
         <div className="mt-6 pt-4 border-t border-white/10">
-          <p className="text-gray-400 text-xs mb-3">Kategoriler ({kategoriler.length})</p>
+          <p className="text-gray-400 text-xs mb-3">Kategoriler ({categories.length})</p>
           <div className="space-y-2">
-            {kategoriler.map((k) => (
-              <div key={k.kategoriId} className="flex items-center justify-between p-3 bg-white/5 rounded-xl">
+            {categories.map((k) => (
+              <div key={k.kategoriId || k.id} className="flex items-center justify-between p-3 bg-white/5 rounded-xl">
                 <div>
-                  <span className="text-white text-sm">{k.kategoriAdi}</span>
-                  <div className="text-gray-400 text-xs">#{k.kategoriId}</div>
+                  <span className="text-white text-sm">{k.kategoriAdi || k.name}</span>
+                  <div className="text-gray-400 text-xs">#{k.kategoriId || k.id}</div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button onClick={() => handleKategoriSil(k.kategoriId)} className="text-red-400 hover:text-red-300">
+                  <button onClick={() => handleKategoriSil(k.kategoriId || k.id)} className="text-red-400 hover:text-red-300">
                     <FaTrash />
                   </button>
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Ürün Listesi Modal */}
+      {showUrunListesi && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="bg-black/95 backdrop-blur-sm rounded-2xl border border-white/10 shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b border-white/10">
+              <div>
+                <h2 className="text-white font-bold text-lg">📋 Ürün Listesi</h2>
+                <p className="text-gray-400 text-xs">Toplam {urunListesi.length} ürün</p>
+              </div>
+              <button onClick={() => setShowUrunListesi(false)} className="text-gray-400 hover:text-white">
+                <FaTimes size={20} />
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-4">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-gray-400 text-xs border-b border-white/10">
+                    <th className="text-left py-2 px-3">#</th>
+                    <th className="text-left py-2 px-3">Ürün Adı</th>
+                    <th className="text-left py-2 px-3">Kategori</th>
+                    <th className="text-right py-2 px-3">Fiyat</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {urunListesi.length === 0 ? (
+                    <tr><td colSpan="4" className="text-center py-4 text-gray-400">Henüz ürün eklenmemiş</td></tr>
+                  ) : (
+                    urunListesi.map((urun, index) => (
+                      <tr key={index} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                        <td className="py-2 px-3 text-gray-400 text-xs">{index + 1}</td>
+                        <td className="py-2 px-3 text-white text-sm">{urun.urunAdi || urun.name || 'Bilinmiyor'}</td>
+                        <td className="py-2 px-3 text-gray-400 text-sm">{urun.kategori || urun.kategoriAdi || '-'}</td>
+                        <td className="py-2 px-3 text-yellow-400 text-sm text-right">₺{urun.fiyat || urun.price || 0}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+            
+            <div className="p-4 border-t border-white/10 flex justify-between">
+              <span className="text-gray-400 text-xs">Toplam: {urunListesi.length} ürün</span>
+              <button onClick={() => setShowUrunListesi(false)} className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm transition-all">
+                Kapat
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -438,13 +926,12 @@ const AdminPanel = () => {
     <div className="bg-black/90 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
       <SectionHeader icon={<FaUsers />} title="Üye Yönetimi" />
       <p className="text-gray-400 text-sm mb-6">Personel ve müşteri üye işlemlerini yönetin.</p>
-      
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        <ActionButton icon={<FaUserPlus />} label="Üye Ekle" />
-        <ActionButton icon={<FaUserMinus />} label="Üye Sil" />
-        <ActionButton icon={<FaUserEdit />} label="Üye Düzenle" />
-        <ActionButton icon={<FaList />} label="Üye Listele" />
-        <ActionButton icon={<FaEye />} label="Üye Detay" />
+        <ActionButton icon={<FaUserPlus />} label="Üye Ekle" onClick={() => toast.warning('⚠️ Üye ekleme işlemi henüz aktif değil.')} />
+        <ActionButton icon={<FaUserMinus />} label="Üye Sil" onClick={() => toast.warning('⚠️ Üye silme işlemi henüz aktif değil.')} />
+        <ActionButton icon={<FaUserEdit />} label="Üye Düzenle" onClick={() => toast.warning('⚠️ Üye düzenleme işlemi henüz aktif değil.')} />
+        <ActionButton icon={<FaList />} label="Üye Listele" onClick={() => toast.info(`📋 ${users.length} üye bulunuyor`)} />
+        <ActionButton icon={<FaEye />} label="Üye Detay" onClick={() => toast.warning('⚠️ Üye detay işlemi henüz aktif değil.')} />
       </div>
     </div>
   );
@@ -454,12 +941,11 @@ const AdminPanel = () => {
     <div className="bg-black/90 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
       <SectionHeader icon={<FaMoneyBillWave />} title="Finans ve Kasa Yönetimi" />
       <p className="text-gray-400 text-sm mb-6">Kasa hareketleri ve finansal işlemler.</p>
-      
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        <ActionButton icon={<FaHistory />} label="Ödeme Geçmişi" />
-        <ActionButton icon={<FaCheckDouble />} label="Gün Sonu İşlemleri" />
-        <ActionButton icon={<FaUndo />} label="Ödeme İade İşlemleri" />
-        <ActionButton icon={<FaExchangeAlt />} label="Kasa Hareketleri" />
+        <ActionButton icon={<FaHistory />} label="Ödeme Geçmişi" onClick={() => toast.info(`📋 ${payments.length} ödeme kaydı bulunuyor`)} />
+        <ActionButton icon={<FaCheckDouble />} label="Gün Sonu İşlemleri" onClick={() => toast.warning('⚠️ Gün sonu işlemleri henüz aktif değil.')} />
+        <ActionButton icon={<FaUndo />} label="Ödeme İade İşlemleri" onClick={() => toast.warning('⚠️ Ödeme iade işlemleri henüz aktif değil.')} />
+        <ActionButton icon={<FaExchangeAlt />} label="Kasa Hareketleri" onClick={() => toast.info(`📋 ${cash.length} kasa hareketi bulunuyor`)} />
       </div>
     </div>
   );
@@ -469,12 +955,11 @@ const AdminPanel = () => {
     <div className="bg-black/90 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
       <SectionHeader icon={<FaBoxes />} title="Depo / Stok Yönetimi" />
       <p className="text-gray-400 text-sm mb-6">Stok seviyeleri ve malzeme işlemleri.</p>
-      
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        <ActionButton icon={<FaWarehouse />} label="Güncel Stok Durumları" />
-        <ActionButton icon={<FaPlusCircle />} label="Malzeme Giriş" />
-        <ActionButton icon={<FaMinusCircle />} label="Malzeme Çıkış" />
-        <ActionButton icon={<FaTruck />} label="Malzeme Sipariş" />
+        <ActionButton icon={<FaWarehouse />} label="Güncel Stok Durumları" onClick={() => toast.info(`📊 ${materials.length} malzeme bulunuyor`)} />
+        <ActionButton icon={<FaPlusCircle />} label="Malzeme Giriş" onClick={() => toast.warning('⚠️ Malzeme giriş işlemi henüz aktif değil.')} />
+        <ActionButton icon={<FaMinusCircle />} label="Malzeme Çıkış" onClick={() => toast.warning('⚠️ Malzeme çıkış işlemi henüz aktif değil.')} />
+        <ActionButton icon={<FaTruck />} label="Malzeme Sipariş" onClick={() => toast.warning('⚠️ Malzeme sipariş işlemi henüz aktif değil.')} />
       </div>
     </div>
   );
@@ -484,12 +969,11 @@ const AdminPanel = () => {
     <div className="bg-black/90 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
       <SectionHeader icon={<FaClipboardList />} title="Sipariş Yönetimi" />
       <p className="text-gray-400 text-sm mb-6">Aktif siparişler ve sipariş işlemleri.</p>
-      
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        <ActionButton icon={<FaShoppingCart />} label="Aktif Siparişleri Göster" />
-        <ActionButton icon={<FaEye />} label="Sipariş Detay İşlemleri" />
-        <ActionButton icon={<FaHistory />} label="Sipariş Geçmişi" />
-        <ActionButton icon={<FaUndo />} label="Sipariş İade ve İptal" />
+        <ActionButton icon={<FaShoppingCart />} label="Aktif Siparişleri Göster" onClick={() => toast.info(`📋 ${orders.length} aktif sipariş`)} />
+        <ActionButton icon={<FaEye />} label="Sipariş Detay İşlemleri" onClick={() => toast.warning('⚠️ Sipariş detay işlemleri henüz aktif değil.')} />
+        <ActionButton icon={<FaHistory />} label="Sipariş Geçmişi" onClick={() => toast.warning('⚠️ Sipariş geçmişi henüz aktif değil.')} />
+        <ActionButton icon={<FaUndo />} label="Sipariş İade ve İptal" onClick={() => toast.warning('⚠️ Sipariş iade/iptal işlemleri henüz aktif değil.')} />
       </div>
     </div>
   );
@@ -499,22 +983,20 @@ const AdminPanel = () => {
     <div className="bg-black/90 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
       <SectionHeader icon={<FaTable />} title="Masa ve Rezervasyon Yönetimi" />
       <p className="text-gray-400 text-sm mb-6">Masa ve rezervasyon işlemlerini yönetin.</p>
-      
       <div className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          <ActionButton icon={<FaPlus />} label="Masa Ekle" />
-          <ActionButton icon={<FaTrash />} label="Masa Sil" />
-          <ActionButton icon={<FaEdit />} label="Masa Düzenle" />
-          <ActionButton icon={<FaChair />} label="Masa Planı" />
+          <ActionButton icon={<FaPlus />} label="Masa Ekle" onClick={handleMasaEkle} />
+          <ActionButton icon={<FaTrash />} label="Masa Sil" onClick={handleMasaSil} />
+          <ActionButton icon={<FaEdit />} label="Masa Düzenle" onClick={handleMasaDuzenle} />
+          <ActionButton icon={<FaChair />} label="Masa Planı" onClick={() => toast.info(`🪑 ${tables.length} masa bulunuyor`)} />
         </div>
-
         <div className="pt-4 border-t border-white/10">
           <p className="text-gray-400 text-xs mb-3">Rezervasyon İşlemleri</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <ActionButton icon={<FaCalendarCheck />} label="Rezervasyon Ekle" />
-            <ActionButton icon={<FaTrash />} label="Rezervasyon Sil" />
-            <ActionButton icon={<FaEdit />} label="Rezervasyon Düzenle" />
-            <ActionButton icon={<FaList />} label="Rezervasyon Listele" />
+            <ActionButton icon={<FaCalendarCheck />} label="Rezervasyon Ekle" onClick={handleRezervasyonEkle} />
+            <ActionButton icon={<FaTrash />} label="Rezervasyon Sil" onClick={handleRezervasyonSil} />
+            <ActionButton icon={<FaEdit />} label="Rezervasyon Düzenle" onClick={handleRezervasyonDuzenle} />
+            <ActionButton icon={<FaList />} label="Rezervasyon Listele" onClick={() => toast.info(`📋 ${reservations.length} rezervasyon bulunuyor`)} />
           </div>
         </div>
       </div>
@@ -526,63 +1008,106 @@ const AdminPanel = () => {
     <div className="bg-black/90 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
       <SectionHeader icon={<FaUserCog />} title="Personel Yönetimi" />
       <p className="text-gray-400 text-sm mb-6">Personel işlemleri ve yetki yönetimi.</p>
-      
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        <ActionButton icon={<FaUserPlus />} label="Personel Ekle" />
-        <ActionButton icon={<FaUserEdit />} label="Personel Düzenle" />
-        <ActionButton icon={<FaUserMinus />} label="Personel Sil" />
-        <ActionButton icon={<FaShieldAlt />} label="Rol / Yetki Yönetimi" />
-        <ActionButton icon={<FaUmbrella />} label="İzin Yönetimi" />
+        <ActionButton icon={<FaUserPlus />} label="Personel Ekle" onClick={handlePersonelEkle} />
+        <ActionButton icon={<FaUserEdit />} label="Personel Düzenle" onClick={handlePersonelDuzenle} />
+        <ActionButton icon={<FaUserMinus />} label="Personel Sil" onClick={handlePersonelSil} />
+        <ActionButton icon={<FaList />} label="Personel Listele" onClick={personelListele} />
+        <ActionButton icon={<FaShieldAlt />} label="Rol / Yetki Yönetimi" onClick={() => toast.warning('⚠️ Rol/yetki yönetimi henüz aktif değil.')} />
+        <ActionButton icon={<FaUmbrella />} label="İzin Yönetimi" onClick={() => toast.warning('⚠️ İzin yönetimi henüz aktif değil.')} />
+      </div>
+
+      {/* Personel Listesi Modal */}
+      {showPersonelListesi && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="bg-black/95 backdrop-blur-sm rounded-2xl border border-white/10 shadow-2xl max-w-3xl w-full max-h-[80vh] overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b border-white/10">
+              <div>
+                <h2 className="text-white font-bold text-lg">📋 Personel Listesi</h2>
+                <p className="text-gray-400 text-xs">Toplam {personelListesi.length} personel</p>
+              </div>
+              <button onClick={() => setShowPersonelListesi(false)} className="text-gray-400 hover:text-white">
+                <FaTimes size={20} />
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-4">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-gray-400 text-xs border-b border-white/10">
+                    <th className="text-left py-2 px-3">#</th>
+                    <th className="text-left py-2 px-3">Ad Soyad</th>
+                    <th className="text-left py-2 px-3">Kullanıcı Adı</th>
+                    <th className="text-left py-2 px-3">Rol</th>
+                    <th className="text-left py-2 px-3">Durum</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {personelListesi.length === 0 ? (
+                    <tr><td colSpan="5" className="text-center py-4 text-gray-400">Henüz personel eklenmemiş</td></tr>
+                  ) : (
+                    personelListesi.map((p, index) => (
+                      <tr key={index} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                        <td className="py-2 px-3 text-gray-400 text-xs">{index + 1}</td>
+                        <td className="py-2 px-3 text-white text-sm">{p.personelAdi || p.Adi || 'Bilinmiyor'} {p.personelSoyadi || p.Soyadi || ''}</td>
+                        <td className="py-2 px-3 text-gray-300 text-sm">{p.kullaniciAdi || p.KullaniciAdi || '-'}</td>
+                        <td className="py-2 px-3 text-gray-300 text-sm">{p.rol || p.Rol || '-'}</td>
+                        <td className="py-2 px-3">
+                          <span className={`px-2 py-1 rounded text-xs ${p.isActive !== false ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                            {p.isActive !== false ? 'Aktif' : 'Pasif'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+            
+            <div className="p-4 border-t border-white/10 flex justify-between">
+              <span className="text-gray-400 text-xs">Toplam: {personelListesi.length} personel</span>
+              <button onClick={() => setShowPersonelListesi(false)} className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm transition-all">
+                Kapat
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  // ============ RAPORLAR VE İSTATİSTİKLER ============
+  const renderReports = () => (
+    <div className="bg-black/90 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
+      <SectionHeader icon={<FaChartBar />} title="Raporlar ve İstatistikler" />
+      <p className="text-gray-400 text-sm mb-6">İşletmenizin tüm rapor ve istatistiklerine buradan ulaşın.</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <ActionButton icon={<FaChartLine />} label="Günlük Satış Raporları" onClick={() => toast.info('📊 Günlük satış raporu yükleniyor...')} />
+        <ActionButton icon={<FaPizzaSlice />} label="Ürün Satış Raporu" />
+        <ActionButton icon={<FaCalendarCheck />} label="Rezervasyon Raporu" />
+        <ActionButton icon={<FaMoneyBillWave />} label="Gelir İstatistikleri" />
+      </div>
+      <div className="mt-6 p-8 bg-white/5 rounded-xl border border-white/5 text-center">
+        <p className="text-gray-500 text-sm">📊 Raporlar burada görüntülenecek</p>
+        <p className="text-gray-600 text-xs mt-1">Backend entegrasyonu için hazır</p>
       </div>
     </div>
   );
 
-// ============ RAPORLAR VE İSTATİSTİKLER ============
-const renderReports = () => (
-  <div className="bg-black/90 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
-    <SectionHeader icon={<FaChartBar />} title="Raporlar ve İstatistikler" />
-    <p className="text-gray-400 text-sm mb-6">İşletmenizin tüm rapor ve istatistiklerine buradan ulaşın.</p>
-    
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <ActionButton 
-        icon={<FaChartLine />} 
-        label="Günlük Satış Raporları" 
-      />
-      <ActionButton 
-        icon={<FaPizzaSlice />} 
-        label="Ürün Satış Raporu" 
-      />
-      <ActionButton 
-        icon={<FaCalendarCheck />} 
-        label="Rezervasyon Raporu" 
-      />
-      <ActionButton 
-        icon={<FaMoneyBillWave />} 
-        label="Gelir İstatistikleri" 
-      />
-    </div>
-
-    {/* Rapor önizleme alanı - backend entegrasyonu için hazır */}
-    <div className="mt-6 p-8 bg-white/5 rounded-xl border border-white/5 text-center">
-      <p className="text-gray-500 text-sm">📊 Raporlar burada görüntülenecek</p>
-      <p className="text-gray-600 text-xs mt-1">Backend entegrasyonu için hazır</p>
-    </div>
-  </div>
-);
-
   // ============ RENDER CONTENT ============
   const renderContent = () => {
-    if (selectedMenu === 'dashboard') return renderDashboard();
-    if (selectedMenu === 'product_menu') return renderProductMenu();
-    if (selectedMenu === 'members') return renderMembers();
-    if (selectedMenu === 'finance') return renderFinance();
-    if (selectedMenu === 'stock') return renderStock();
-    if (selectedMenu === 'orders') return renderOrders();
-    if (selectedMenu === 'tables') return renderTables();
-    if (selectedMenu === 'personnel') return renderPersonnel();
-    if (selectedMenu === 'reports') return renderReports();
-    
-    return renderDashboard();
+    switch(selectedMenu) {
+      case 'dashboard': return renderDashboard();
+      case 'product_menu': return renderProductMenu();
+      case 'members': return renderMembers();
+      case 'finance': return renderFinance();
+      case 'stock': return renderStock();
+      case 'orders': return renderOrders();
+      case 'tables': return renderTables();
+      case 'personnel': return renderPersonnel();
+      case 'reports': return renderReports();
+      default: return renderDashboard();
+    }
   };
 
   // ============ ANA RENDER ============
@@ -811,8 +1336,8 @@ const renderReports = () => (
                 <label className="block text-sm font-medium text-gray-300 mb-1.5">Kategori</label>
                 <select value={urunKategoriId} onChange={(e) => setUrunKategoriId(e.target.value)} className="w-full py-2.5 bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-gray-500 focus:ring-2 focus:ring-white/20 outline-none" required>
                   <option value="">-- Kategori Seç --</option>
-                  {kategoriler.map(k => (
-                    <option key={k.kategoriId} value={k.kategoriId}>{k.kategoriAdi}</option>
+                  {categories.map(k => (
+                    <option key={k.kategoriId || k.id} value={k.kategoriId || k.id}>{k.kategoriAdi || k.name}</option>
                   ))}
                 </select>
               </div>

@@ -1,175 +1,195 @@
 // src/api/api.js
-const API_URL = "https://localhost:7099/api";
+import axios from 'axios';
 
-// Her istekte token'ı otomatik ekleyen merkezi yardımcı fonksiyon
-async function request(endpoint, options = {}) {
-  const token = localStorage.getItem("token");
+const API_URL = 'http://localhost:5000/api';
 
-  const res = await fetch(`${API_URL}${endpoint}`, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options.headers,
-    },
-  });
+const api = axios.create({
+  baseURL: API_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
 
-  // 401 gelirse oturum düşmüş demektir
-  if (res.status === 401) {
-    localStorage.removeItem("token");
-    // istersen login sayfasına yönlendir:
-    // window.location.href = "/login";
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response) {
+      console.error('Backend Hatası:', error.response.data);
+    } else if (error.request) {
+      console.error('Sunucuya bağlanılamadı!');
+    }
+    return Promise.reject(error);
   }
+);
 
-  // Yanıt gövdesini oku (bazı yanıtlar boş olabilir)
-  const data = await res.json().catch(() => null);
+// ============================================
+// AUTH SERVİSLERİ
+// ============================================
+export const authService = {
+  login: (kullaniciAdi, sifre) => api.post('/Auth/login', { 
+    KullaniciAdi: kullaniciAdi,
+    Sifre: sifre
+  }),
+  
+  logout: () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('user');
+    sessionStorage.removeItem('user');
+  },
+  
+  sifreDegistir: (eskiSifre, yeniSifre) => 
+    api.post('/Auth/sifre-degistir', { 
+      EskiSifre: eskiSifre, 
+      YeniSifre: yeniSifre 
+    }),
+  
+  refresh: (refreshToken) => 
+    api.post('/Auth/refresh', { RefreshToken: refreshToken }),
+};
 
-  if (!res.ok) {
-    // API'nin standart hata formatı: { "mesaj": "..." }
-    throw new Error(data?.mesaj ?? `Hata: ${res.status}`);
-  }
+// ============================================
+// SİPARİŞ SERVİSLERİ
+// ============================================
+export const orderService = {
+  getAll: () => api.get('/siparisler'),
+  getById: (id) => api.get(`/siparisler/${id}`),
+  updateStatus: (id, status) => api.put(`/siparisler/${id}/durum`, { siparisDurumu: status }),
+  cancel: (id) => api.put(`/siparisler/${id}/iptal`),
+  create: (data) => api.post('/siparisler', data),
+  delete: (id) => api.delete(`/siparisler/${id}`),
+};
 
-  return data;
-}
+// ============================================
+// ÜRÜN SERVİSLERİ
+// ============================================
+export const productService = {
+  getAll: () => api.get('/Urunler'),
+  getById: (id) => api.get(`/Urunler/${id}`),
+  create: (data) => api.post('/Urunler', data),
+  update: (id, data) => api.put(`/Urunler/${id}`, data),
+  delete: (id) => api.delete(`/Urunler/${id}`),
+};
 
-// ================= AUTH =================
-export const login = (kullaniciAdi, sifre) =>
-  request("/Auth/login", {
-    method: "POST",
-    body: JSON.stringify({ kullaniciAdi, sifre }),
-  });
+// ============================================
+// KATEGORİ SERVİSLERİ
+// ============================================
+export const categoryService = {
+  getAll: () => api.get('/Kategoriler'),
+  getById: (id) => api.get(`/Kategoriler/${id}`),
+  create: (data) => api.post('/Kategoriler', data),
+  update: (id, data) => api.put(`/Kategoriler/${id}`, data),
+  delete: (id) => api.delete(`/Kategoriler/${id}`),
+};
 
-export const register = (dto) =>
-  request("/Auth/register", { method: "POST", body: JSON.stringify(dto) });
+// ============================================
+// MALZEME SERVİSLERİ
+// ============================================
+export const materialService = {
+  getAll: () => api.get('/Malzemeler'),
+  getById: (id) => api.get(`/Malzemeler/${id}`),
+  create: (data) => api.post('/Malzemeler', data),
+  update: (id, data) => api.put(`/Malzemeler/${id}`, data),
+  delete: (id) => api.delete(`/Malzemeler/${id}`),
+};
 
-export const refresh = (refreshToken) =>
-  request("/Auth/refresh", {
-    method: "POST",
-    body: JSON.stringify({ refreshToken }),
-  });
+// ============================================
+// MASA SERVİSLERİ
+// ============================================
+export const tableService = {
+  getAll: () => api.get('/Masa'),
+  getById: (id) => api.get(`/Masa/${id}`),
+  create: (data) => api.post('/Masa', data),
+  update: (id, data) => api.put(`/Masa/${id}`, data),
+  delete: (id) => api.delete(`/Masa/${id}`),
+};
 
-export const sifreDegistir = (eskiSifre, yeniSifre) =>
-  request("/Auth/sifre-degistir", {
-    method: "POST",
-    body: JSON.stringify({ eskiSifre, yeniSifre }),
-  });
+// ============================================
+// REZERVASYON SERVİSLERİ
+// ============================================
+export const reservationService = {
+  getAll: () => api.get('/Rezervasyon'),
+  getById: (id) => api.get(`/Rezervasyon/${id}`),
+  create: (data) => api.post('/Rezervasyon', data),
+  update: (id, data) => api.put(`/Rezervasyon/${id}`, data),
+  delete: (id) => api.delete(`/Rezervasyon/${id}`),
+};
 
-export const logout = () => request("/Auth/logout", { method: "POST" });
+// ============================================
+// PERSONEL SERVİSLERİ
+// ============================================
+export const personnelService = {
+  getAll: () => api.get('/Personel'),
+  getById: (id) => api.get(`/Personel/${id}`),
+  create: (data) => api.post('/Personel', data),
+  update: (id, data) => api.put(`/Personel/${id}`, data),
+  delete: (id) => api.delete(`/Personel/${id}`),
+};
 
-// ================= KATEGORILER =================
-export const getKategoriler = () => request("/Kategoriler");
-export const getKategori = (id) => request(`/Kategoriler/${id}`);
-export const kategoriEkle = (dto) =>
-  request("/Kategoriler", { method: "POST", body: JSON.stringify(dto) });
-export const kategoriGuncelle = (id, dto) =>
-  request(`/Kategoriler/${id}`, { method: "PUT", body: JSON.stringify(dto) });
-export const kategoriSil = (id) =>
-  request(`/Kategoriler/${id}`, { method: "DELETE" });
+// ============================================
+// KULLANICI SERVİSLERİ
+// ============================================
+export const userService = {
+  getAll: () => api.get('/Uyeler'),
+  getById: (id) => api.get(`/Uyeler/${id}`),
+  create: (data) => api.post('/Uyeler', data),
+  update: (id, data) => api.put(`/Uyeler/${id}`, data),
+  delete: (id) => api.delete(`/Uyeler/${id}`),
+};
 
-// ================= URUNLER =================
-export const getUrunler = () => request("/Urunler");
-export const getUrun = (id) => request(`/Urunler/${id}`);
-export const urunEkle = (dto) =>
-  request("/Urunler", { method: "POST", body: JSON.stringify(dto) });
-export const urunGuncelle = (id, dto) =>
-  request(`/Urunler/${id}`, { method: "PUT", body: JSON.stringify(dto) });
-export const urunSil = (id) => request(`/Urunler/${id}`, { method: "DELETE" });
+// ============================================
+// ✅ ÖDEME SERVİSLERİ (YENİ EKLENDİ)
+// ============================================
+export const paymentService = {
+  getAll: () => api.get('/Odeme'),
+  getById: (id) => api.get(`/Odeme/${id}`),
+  create: (data) => api.post('/Odeme', data),
+  update: (id, data) => api.put(`/Odeme/${id}`, data),
+  delete: (id) => api.delete(`/Odeme/${id}`),
+};
 
-// ================= MASALAR =================
-export const getMasalar = () => request("/Masa");
-export const getMasa = (id) => request(`/Masa/${id}`);
-export const masaEkle = (dto) =>
-  request("/Masa", { method: "POST", body: JSON.stringify(dto) });
-export const masaGuncelle = (id, dto) =>
-  request(`/Masa/${id}`, { method: "PUT", body: JSON.stringify(dto) });
-export const masaSil = (id) => request(`/Masa/${id}`, { method: "DELETE" });
+// ============================================
+// ✅ KASA SERVİSLERİ (YENİ EKLENDİ)
+// ============================================
+export const cashService = {
+  getAll: () => api.get('/Kasa'),
+  getById: (id) => api.get(`/Kasa/${id}`),
+  create: (data) => api.post('/Kasa', data),
+  update: (id, data) => api.put(`/Kasa/${id}`, data),
+  delete: (id) => api.delete(`/Kasa/${id}`),
+};
 
-// ================= SIPARISLER =================
-export const getSiparisler = () => request("/Siparisler");
-export const getSiparis = (id) => request(`/Siparisler/${id}`);
-export const siparisOlustur = (dto) =>
-  request("/Siparisler", { method: "POST", body: JSON.stringify(dto) });
-export const siparisGuncelle = (id, dto) =>
-  request(`/Siparisler/${id}`, { method: "PUT", body: JSON.stringify(dto) });
-export const siparisDurumGuncelle = (id, siparisDurumu) =>
-  request(`/Siparisler/${id}/durum`, {
-    method: "PUT",
-    body: JSON.stringify({ siparisDurumu }),
-  });
-export const siparisIptal = (id) =>
-  request(`/Siparisler/${id}/iptal`, { method: "PUT" });
+// ============================================
+// BİLDİRİM SERVİSLERİ
+// ============================================
+export const notificationService = {
+  getAll: () => api.get('/bildirimler'),
+  markAsRead: (id) => api.put(`/bildirimler/${id}/okundu`),
+  markAllAsRead: () => api.put('/bildirimler/tumunu-okundu'),
+};
 
-// ================= ODEME =================
-export const getOdemeler = () => request("/Odeme");
-export const odemeAl = (dto) =>
-  request("/Odeme", { method: "POST", body: JSON.stringify(dto) });
-export const odemeGuncelle = (id, dto) =>
-  request(`/Odeme/${id}`, { method: "PUT", body: JSON.stringify(dto) });
-export const odemeSil = (id) => request(`/Odeme/${id}`, { method: "DELETE" });
+// ============================================
+// DESTEK FONKSİYONLAR (AdminPanel için)
+// ============================================
+export const logout = authService.logout;
+export const sifreDegistir = authService.sifreDegistir;
+export const getKategoriler = categoryService.getAll;
+export const kategoriEkle = categoryService.create;
+export const kategoriSil = categoryService.delete;
+export const urunEkle = productService.create;
 
-// ================= KASA =================
-export const getKasalar = () => request("/Kasa");
-export const kasaAc = (dto) =>
-  request("/Kasa", { method: "POST", body: JSON.stringify(dto) });
-export const kasaKapat = (id, kapanisBakiyesi) =>
-  request(`/Kasa/${id}/kapat`, {
-    method: "PUT",
-    body: JSON.stringify({ kapanisBakiyesi }),
-  });
+// ============================================
+// RAPOR SERVİSLERİ
+// ============================================
+export const reportService = {
+  // Günlük ciro
+  getGunlukCiro: (tarih) => api.get('/Rapor/gunluk-ciro', { params: { tarih } }),
+  
+  // En çok satanlar
+  getEnCokSatanlar: (gun) => api.get('/Rapor/en-cok-satanlar', { params: { gun } }),
+  
+  // Son siparişler
+  getSonSiparisler: (adet) => api.get('/Rapor/son-siparisler', { params: { adet } }),
+};
 
-// ================= REZERVASYON =================
-export const getRezervasyonlar = () => request("/Rezervasyon");
-export const rezervasyonEkle = (dto) =>
-  request("/Rezervasyon", { method: "POST", body: JSON.stringify(dto) });
-export const rezervasyonGuncelle = (id, dto) =>
-  request(`/Rezervasyon/${id}`, { method: "PUT", body: JSON.stringify(dto) });
-export const rezervasyonDurumGuncelle = (id, durum) =>
-  request(`/Rezervasyon/${id}/durum`, {
-    method: "PUT",
-    body: JSON.stringify({ durum }),
-  });
-export const rezervasyonSil = (id) =>
-  request(`/Rezervasyon/${id}`, { method: "DELETE" });
-
-// ================= MALZEMELER =================
-export const getMalzemeler = () => request("/Malzemeler");
-export const malzemeEkle = (dto) =>
-  request("/Malzemeler", { method: "POST", body: JSON.stringify(dto) });
-export const malzemeGuncelle = (id, dto) =>
-  request(`/Malzemeler/${id}`, { method: "PUT", body: JSON.stringify(dto) });
-export const malzemeSil = (id) =>
-  request(`/Malzemeler/${id}`, { method: "DELETE" });
-
-// ================= RECETELER =================
-export const getReceteler = () => request("/Receteler");
-export const getUrunRecetesi = (urunId) => request(`/Receteler/urun/${urunId}`);
-export const receteEkle = (dto) =>
-  request("/Receteler", { method: "POST", body: JSON.stringify(dto) });
-export const receteGuncelle = (id, dto) =>
-  request(`/Receteler/${id}`, { method: "PUT", body: JSON.stringify(dto) });
-export const receteSil = (id) =>
-  request(`/Receteler/${id}`, { method: "DELETE" });
-
-// ================= STOK HAREKETLERI =================
-export const getStokHareketleri = () => request("/StokHareketleri");
-export const stokHareketEkle = (dto) =>
-  request("/StokHareketleri/Ekle", { method: "POST", body: JSON.stringify(dto) });
-
-// ================= PERSONEL =================
-export const getPersoneller = () => request("/Personel");
-export const personelEkle = (dto) =>
-  request("/Personel", { method: "POST", body: JSON.stringify(dto) });
-export const personelGuncelle = (id, dto) =>
-  request(`/Personel/${id}`, { method: "PUT", body: JSON.stringify(dto) });
-export const personelSil = (id) =>
-  request(`/Personel/${id}`, { method: "DELETE" });
-
-// ================= PERSONEL IZIN =================
-export const getIzinler = () => request("/PersonelIzin");
-export const izinEkle = (dto) =>
-  request("/PersonelIzin", { method: "POST", body: JSON.stringify(dto) });
-export const izinDurumGuncelle = (id, izinDurumu) =>
-  request(`/PersonelIzin/${id}/durum`, {
-    method: "PUT",
-    body: JSON.stringify({ izinDurumu }),
-  });
+export default api;

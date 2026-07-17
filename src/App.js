@@ -1,5 +1,4 @@
 // src/App.js
-import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -10,54 +9,27 @@ import GarsonPanel from './Garson/GarsonPanel';
 import AsciPanel from './Asci/AsciPanel';
 import KuryePanel from './Kurye/KuryePanel';
 
-// Backend'den gelen RolAdi -> panel anahtarı eşlemesi
-// (DB'deki Roller tablosuyla birebir uyumlu olmalı)
-const rolEsleme = {
-  'yönetici': 'admin',
-  'garson': 'garson',
-  'aşçı': 'asci',
-  'kurye': 'kurye',
+// ============ PROTECTED ROUTE ============
+const ProtectedRoute = ({ children, allowedRoles }) => {
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  
+  // Kullanıcı giriş yapmamışsa login'e yönlendir
+  if (!user.role) {
+    return <Navigate to="/" replace />;
+  }
+  
+  // Rol yetkisi kontrolü
+  if (allowedRoles && !allowedRoles.includes(user.role)) {
+    return <Navigate to="/" replace />;
+  }
+  
+  return children;
 };
 
 function App() {
-  // Kullanıcı kontrolü
-  const getUser = () => {
-    try {
-      let userData = localStorage.getItem('user');
-      if (!userData) {
-        userData = sessionStorage.getItem('user');
-      }
-      if (userData) {
-        return JSON.parse(userData);
-      }
-    } catch (error) {
-      console.error('Kullanıcı okuma hatası:', error);
-    }
-    return null;
-  };
-
-  const user = getUser();
-  // Backend rolünü ('Yönetici' vb.) panel anahtarına ('admin' vb.) çevir
-  const userRole = rolEsleme[user?.role?.toLowerCase()] ?? null;
-
-  console.log('👤 Kullanıcı:', user);
-  console.log('🎯 Rol:', userRole);
-
-  // Role göre ana sayfa
-  const getHomeRoute = () => {
-    if (!user) return '/login';
-    switch (userRole) {
-      case 'admin': return '/admin';
-      case 'garson': return '/garson';
-      case 'asci': return '/asci';
-      case 'kurye': return '/kurye';
-      default: return '/login';
-    }
-  };
-
   return (
     <BrowserRouter>
-      <ToastContainer
+      <ToastContainer 
         position="top-right"
         autoClose={3000}
         hideProgressBar={false}
@@ -69,14 +41,42 @@ function App() {
         pauseOnHover
         theme="dark"
       />
+      
       <Routes>
+        {/* Login Sayfası */}
+        <Route path="/" element={<Login />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/admin" element={userRole === 'admin' ? <AdminPanel /> : <Navigate to={getHomeRoute()} />} />
-        <Route path="/garson" element={userRole === 'garson' ? <GarsonPanel /> : <Navigate to={getHomeRoute()} />} />
-        <Route path="/asci" element={userRole === 'asci' ? <AsciPanel /> : <Navigate to={getHomeRoute()} />} />
-        <Route path="/kurye" element={userRole === 'kurye' ? <KuryePanel /> : <Navigate to={getHomeRoute()} />} />
-        <Route path="/" element={<Navigate to={getHomeRoute()} />} />
-        <Route path="*" element={<Navigate to="/" />} />
+        
+        {/* Admin Paneli */}
+        <Route path="/admin" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <AdminPanel />
+          </ProtectedRoute>
+        } />
+        
+        {/* Garson Paneli */}
+        <Route path="/garson" element={
+          <ProtectedRoute allowedRoles={['garson']}>
+            <GarsonPanel />
+          </ProtectedRoute>
+        } />
+        
+        {/* Aşçı Paneli */}
+        <Route path="/asci" element={
+          <ProtectedRoute allowedRoles={['asci']}>
+            <AsciPanel />
+          </ProtectedRoute>
+        } />
+        
+        {/* Kurye Paneli */}
+        <Route path="/kurye" element={
+          <ProtectedRoute allowedRoles={['kurye']}>
+            <KuryePanel />
+          </ProtectedRoute>
+        } />
+        
+        {/* Tanımsız route'lar login'e yönlendir */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );
