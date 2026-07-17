@@ -35,27 +35,40 @@ const Login = () => {
         }
 
         // ============ ROL BELİRLEME ============
-        // Backend'den gelen rolü kontrol et (büyük/küçük harf duyarsız)
         let userRole = data.rol || data.Rol || data.role || '';
         userRole = userRole.toLowerCase().trim();
 
-        // Eğer rol boşsa veya geçersizse, kullanıcı adına göre ata
+        // 🔥 ROL EŞLEME (Türkçe -> İngilizce)
+        const roleMapping = {
+          'admin': 'admin',
+          'garson': 'garson',
+          'asci': 'asci',
+          'aşçı': 'asci',     // ← Aşçı -> asci olarak eşle
+          'kurye': 'kurye'
+        };
+
         const validRoles = ['admin', 'garson', 'asci', 'kurye'];
-        if (!userRole || !validRoles.includes(userRole)) {
-          // Kullanıcı adına göre rol ata
+
+        // Eğer rol mapping'de varsa onu kullan
+        if (roleMapping[userRole] && validRoles.includes(roleMapping[userRole])) {
+          userRole = roleMapping[userRole];
+        } else {
+          // Fallback: kullanıcı adına göre ata
           if (kullaniciAdi === 'admin' || kullaniciAdi === 'nafiye2' || kullaniciAdi === 'nafiye') {
             userRole = 'admin';
           } else if (kullaniciAdi === 'garson') {
             userRole = 'garson';
-          } else if (kullaniciAdi === 'asci') {
+          } else if (kullaniciAdi === 'asci' || kullaniciAdi.includes('asci')) {
             userRole = 'asci';
           } else if (kullaniciAdi === 'kurye') {
             userRole = 'kurye';
           } else {
             userRole = 'user';
           }
-          console.log('⚠️ Rol backend\'den gelmedi, kullanıcı adına göre atandı:', userRole);
+          console.log('⚠️ Rol mapping bulunamadı, kullanıcı adına göre atandı:', userRole);
         }
+
+        console.log('✅ Kullanıcı rolü:', userRole);
 
         // Kullanıcı bilgilerini kaydet
         const user = {
@@ -205,7 +218,7 @@ const Login = () => {
                 <input
                   type="checkbox"
                   checked={beniHatirla}
-                  onChange={(e) => setBeniHatirla(e.target.checked)}
+                  onChange={(e) => setBeniHatirla(e.target.value)}
                   className="rounded border-gray-300 text-gray-800 focus:ring-gray-800/30"
                 />
                 Beni hatırla
