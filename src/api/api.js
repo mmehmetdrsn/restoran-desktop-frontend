@@ -1,7 +1,9 @@
 // src/api/api.js
-import axios from 'axios';
+const API_URL = "https://localhost:7099/api";
 
-const API_URL = 'http://localhost:5000/api';
+// Her istekte token'ı otomatik ekleyen merkezi yardımcı fonksiyon
+async function request(endpoint, options = {}) {
+  const token = localStorage.getItem("token");
 
 const api = axios.create({
   baseURL: API_URL,
