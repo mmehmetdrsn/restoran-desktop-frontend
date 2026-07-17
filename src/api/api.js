@@ -1,24 +1,30 @@
 // src/api/api.js
-const API_URL = "https://localhost:7099/api";
+import axios from "axios";
 
-// Her istekte token'ı otomatik ekleyen merkezi yardımcı fonksiyon
-async function request(endpoint, options = {}) {
-  const token = localStorage.getItem("token");
+const API_URL = "https://localhost:7099/api";
 
 const api = axios.create({
   baseURL: API_URL,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
+});
+
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
+  if (token && config.headers) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
 });
 
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response) {
-      console.error('Backend Hatası:', error.response.data);
+      console.error("Backend Hatası:", error.response.data);
     } else if (error.request) {
-      console.error('Sunucuya bağlanılamadı!');
+      console.error("Sunucuya bağlanılamadı!");
     }
     return Promise.reject(error);
   }
