@@ -145,7 +145,7 @@ export const userService = {
 };
 
 // ============================================
-// ✅ ÖDEME SERVİSLERİ (YENİ EKLENDİ)
+// ÖDEME SERVİSLERİ
 // ============================================
 export const paymentService = {
   getAll: () => api.get('/Odeme'),
@@ -156,7 +156,7 @@ export const paymentService = {
 };
 
 // ============================================
-// ✅ KASA SERVİSLERİ (YENİ EKLENDİ)
+// KASA SERVİSLERİ
 // ============================================
 export const cashService = {
   getAll: () => api.get('/Kasa'),
@@ -176,7 +176,16 @@ export const notificationService = {
 };
 
 // ============================================
-// DESTEK FONKSİYONLAR (AdminPanel için)
+// RAPOR SERVİSLERİ
+// ============================================
+export const reportService = {
+  getGunlukCiro: (tarih) => api.get('/Rapor/gunluk-ciro', { params: { tarih } }),
+  getEnCokSatanlar: (gun) => api.get('/Rapor/en-cok-satanlar', { params: { gun } }),
+  getSonSiparisler: (adet) => api.get('/Rapor/son-siparisler', { params: { adet } }),
+};
+
+// ============================================
+// DESTEK FONKSİYONLAR
 // ============================================
 export const logout = authService.logout;
 export const sifreDegistir = authService.sifreDegistir;
@@ -184,19 +193,5 @@ export const getKategoriler = categoryService.getAll;
 export const kategoriEkle = categoryService.create;
 export const kategoriSil = categoryService.delete;
 export const urunEkle = productService.create;
-
-// ============================================
-// RAPOR SERVİSLERİ
-// ============================================
-export const reportService = {
-  // Günlük ciro
-  getGunlukCiro: (tarih) => api.get('/Rapor/gunluk-ciro', { params: { tarih } }),
-  
-  // En çok satanlar
-  getEnCokSatanlar: (gun) => api.get('/Rapor/en-cok-satanlar', { params: { gun } }),
-  
-  // Son siparişler
-  getSonSiparisler: (adet) => api.get('/Rapor/son-siparisler', { params: { adet } }),
-};
 
 export default api;
