@@ -92,7 +92,7 @@ const KuryePanel = () => {
   const handleLogout = () => {
     localStorage.removeItem('user');
     sessionStorage.removeItem('user');
-    toast.success('👋 Başarıyla çıkış yapıldı!');
+    toast.success(' Başarıyla çıkış yapıldı!');
     setTimeout(() => {
       navigate('/');
       window.location.reload();
@@ -104,10 +104,10 @@ const KuryePanel = () => {
     if (!order) return;
     
     if (order?.phone) {
-      toast.info(`📞 ${order.phone} aranıyor...`);
+      toast.info(` ${order.phone} aranıyor...`);
     } else {
-      const phone = prompt('📞 Müşteri telefon numarasını girin:');
-      if (phone?.trim()) toast.success(`📞 ${phone} aranıyor...`);
+      const phone = prompt(' Müşteri telefon numarasını girin:');
+      if (phone?.trim()) toast.success(` ${phone} aranıyor...`);
     }
   };
 
@@ -115,15 +115,15 @@ const KuryePanel = () => {
   const handleDeliveryConfirm = (order) => {
     if (!order) return;
     
-    toast.info(`📦 Sipariş #${order.id} teslimat onaylanıyor...`);
+    toast.info(` Sipariş #${order.id} teslimat onaylanıyor...`);
     const confirm = window.confirm(
-      `📦 Sipariş #${order.id}\nMüşteri: ${order.customer}\nTutar: ₺${order.amount}\n\nTeslimatı onaylıyor musunuz?`
+      ` Sipariş #${order.id}\nMüşteri: ${order.customer}\nTutar: ₺${order.amount}\n\nTeslimatı onaylıyor musunuz?`
     );
     if (confirm) {
-      toast.success(`✅ Sipariş #${order.id} teslim edildi!`);
+      toast.success(` Sipariş #${order.id} teslim edildi!`);
       setActiveOrders(activeOrders.filter(o => o.id !== order.id));
       setTimeout(() => {
-        toast.info(`📱 Müşteriye ${order.customer} teslimat bildirimi gönderildi!`);
+        toast.info(` Müşteriye ${order.customer} teslimat bildirimi gönderildi!`);
       }, 1000);
     } else {
       toast.info('Teslimat onayı iptal edildi.');
@@ -137,7 +137,7 @@ const KuryePanel = () => {
       <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div className="bg-black/90 rounded-2xl border border-white/10 max-w-2xl w-full">
           <div className="p-6 border-b border-white/10 flex items-center justify-between">
-            <h3 className="text-white text-xl font-bold">📋 Sipariş #{order.id}</h3>
+            <h3 className="text-white text-xl font-bold"> Sipariş #{order.id}</h3>
             <button onClick={onClose} className="text-gray-400 hover:text-white"><FaTimes /></button>
           </div>
           <div className="p-6 space-y-4">
@@ -186,7 +186,7 @@ const KuryePanel = () => {
           <div key={order.id} className="flex items-center justify-between p-4 bg-white/5 rounded-xl hover:bg-white/10 transition-all">
             <div className="flex items-start gap-4">
               <div className="w-10 h-10 rounded-full bg-yellow-500/20 flex items-center justify-center text-yellow-400">
-                🍽️
+                
               </div>
               <div>
                 <div className="flex items-center gap-2">
@@ -242,7 +242,7 @@ const KuryePanel = () => {
         ))}
         {activeOrders.length === 0 && (
           <div className="text-center py-8 text-gray-400">
-            🎉 Bugün teslim edilecek sipariş kalmadı!
+             Bugün teslim edilecek sipariş kalmadı!
           </div>
         )}
       </div>
@@ -262,32 +262,32 @@ const KuryePanel = () => {
         <div className="flex justify-between items-center p-3 bg-white/5 rounded-lg">
           <div><span className="text-white font-medium">#3021</span> - <span className="text-gray-300">Ahmet Yıldız</span></div>
           <span className="text-yellow-400">₺320</span>
-          <span className="text-green-400 text-sm">✅ Tamamlandı</span>
+          <span className="text-green-400 text-sm"> Tamamlandı</span>
         </div>
         <div className="flex justify-between items-center p-3 bg-white/5 rounded-lg">
           <div><span className="text-white font-medium">#3018</span> - <span className="text-gray-300">Zeynep Kara</span></div>
           <span className="text-yellow-400">₺470</span>
-          <span className="text-green-400 text-sm">✅ Tamamlandı</span>
+          <span className="text-green-400 text-sm"> Tamamlandı</span>
         </div>
         <div className="flex justify-between items-center p-3 bg-white/5 rounded-lg">
           <div><span className="text-white font-medium">#3005</span> - <span className="text-gray-300">Emre Çelik</span></div>
           <span className="text-yellow-400">₺210</span>
-          <span className="text-red-400 text-sm">❌ İptal</span>
+          <span className="text-red-400 text-sm"> İptal</span>
         </div>
         <div className="flex justify-between items-center p-3 bg-white/5 rounded-lg">
           <div><span className="text-white font-medium">#2998</span> - <span className="text-gray-300">Seda Yılmaz</span></div>
           <span className="text-yellow-400">₺560</span>
-          <span className="text-green-400 text-sm">✅ Tamamlandı</span>
+          <span className="text-green-400 text-sm"> Tamamlandı</span>
         </div>
         <div className="flex justify-between items-center p-3 bg-white/5 rounded-lg">
           <div><span className="text-white font-medium">#2985</span> - <span className="text-gray-300">Murat Aydın</span></div>
           <span className="text-yellow-400">₺390</span>
-          <span className="text-green-400 text-sm">✅ Tamamlandı</span>
+          <span className="text-green-400 text-sm"> Tamamlandı</span>
         </div>
         <div className="flex justify-between items-center p-3 bg-white/5 rounded-lg">
           <div><span className="text-white font-medium">#2972</span> - <span className="text-gray-300">Elif Demir</span></div>
           <span className="text-yellow-400">₺610</span>
-          <span className="text-red-400 text-sm">❌ İptal</span>
+          <span className="text-red-400 text-sm"> İptal</span>
         </div>
       </div>
     </div>
@@ -314,9 +314,9 @@ const KuryePanel = () => {
           <div className="max-w-7xl mx-auto px-4">
             <div className="flex items-center justify-between h-16">
               <div className="flex items-center gap-3 flex-shrink-0">
-                <div className="text-2xl">🛵</div>
+                <div className="text-2xl"></div>
                 <div>
-                  <h1 className="text-white font-bold text-base">SekerRestoran</h1>
+                  <h1 className="text-white font-bold text-base">S E R V I S S A</h1>
                   <p className="text-gray-400 text-[10px]">{userData?.email || 'kurye@restoran.com'}</p>
                 </div>
               </div>
