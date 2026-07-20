@@ -10,7 +10,7 @@ import {
   FaReceipt, FaPrint, FaCreditCard, FaMoneyBill,
   FaArrowLeft, FaTruck, FaBox, FaPhone, FaMapMarkerAlt,
   FaExclamationTriangle, FaCheckCircle, FaSpinner,
-  FaStickyNote
+  FaStickyNote, FaSun, FaMoon
 } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 
@@ -38,6 +38,7 @@ const GarsonPanel = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [selectedTable, setSelectedTable] = useState(null);
+  const [isDayMode, setIsDayMode] = useState(false);
   
   // Modallar
   const [showOrderModal, setShowOrderModal] = useState(false);
@@ -47,6 +48,8 @@ const GarsonPanel = () => {
   const [showMoveTableModal, setShowMoveTableModal] = useState(false);
   const [showRefundModal, setShowRefundModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [showStatusModal, setShowStatusModal] = useState(false);
+  const [selectedStatusTable, setSelectedStatusTable] = useState(null);
   const [activeTab, setActiveTab] = useState('masa');
   
   // Şifre değiştirme state'leri
@@ -99,7 +102,8 @@ const GarsonPanel = () => {
           id: m.masaId,
           name: m.masaAdi || `Masa ${m.masaNo || m.masaId}`,
           status: m.masaDurumu?.toLowerCase() === 'dolu' ? 'occupied' : 
-                  m.masaDurumu?.toLowerCase() === 'rezerve' ? 'reserved' : 'empty',
+                  m.masaDurumu?.toLowerCase() === 'rezerve' ? 'reserved' :
+                  m.masaDurumu?.toLowerCase() === 'arızalı' || m.masaDurumu?.toLowerCase() === 'arizali' ? 'broken' : 'empty',
           capacity: m.kapasite || 4,
           order: m.aktifSiparis || null,
           time: null
@@ -254,6 +258,12 @@ const GarsonPanel = () => {
 
   const buildCartFromOrder = (order) => getOrderItems(order).map(item => normalizeOrderItem(item));
 
+  const getOrderObject = (tableOrOrder) => {
+    if (!tableOrOrder) return null;
+    if (tableOrOrder.order) return tableOrOrder.order;
+    return tableOrOrder;
+  };
+
   const handleOpenOrderDetail = async (table) => {
     setSelectedTable(table);
     if (table.order) {
@@ -274,10 +284,10 @@ const GarsonPanel = () => {
 
       if (foundOrder) {
         setSelectedOrderTable({ ...table, order: foundOrder });
-        setShowOrderDetailModal(true);
       } else {
-        toast.info('Bu masa için aktif sipariş bulunamadı.');
+        setSelectedOrderTable(table);
       }
+      setShowOrderDetailModal(true);
     } catch (error) {
       toast.error('Sipariş detayları alınamadı.');
       console.error(error);
@@ -295,8 +305,8 @@ const GarsonPanel = () => {
   };
 
   const handleEditOrderFromDetail = () => {
-    if (!selectedOrderTable?.order) return;
-    setCart(buildCartFromOrder(selectedOrderTable.order));
+    const order = getOrderObject(selectedOrderTable);
+    setCart(order ? buildCartFromOrder(order) : []);
     setSelectedTable(selectedOrderTable);
     setShowOrderModal(true);
     setShowOrderDetailModal(false);
@@ -307,6 +317,44 @@ const GarsonPanel = () => {
     setSelectedTable(selectedOrderTable);
     setShowPaymentModal(true);
     setShowOrderDetailModal(false);
+  };
+
+  const handleCancelNewOrder = () => {
+    setActiveTab('masa');
+    setSelectedTable(null);
+    setCart([]);
+    setCurrentOrder({ tableId: null, items: [], total: 0 });
+  };
+
+  const handleOpenStatusModal = (table) => {
+    setSelectedStatusTable(table);
+    setShowStatusModal(true);
+  };
+
+  const handleSaveStatus = async (status) => {
+    if (!selectedStatusTable) return;
+    await changeTableStatus(selectedStatusTable, status);
+    setShowStatusModal(false);
+    setSelectedStatusTable(null);
+  };
+
+  const changeTableStatus = async (table, status) => {
+    const durumMap = {
+      empty: 'BOŞ',
+      occupied: 'DOLU',
+      reserved: 'REZERVE',
+      broken: 'ARIZALI'
+    };
+    const masaDurumu = durumMap[status] || 'BOŞ';
+
+    try {
+      await tableService.update(table.id, { masaDurumu });
+      setTables(prev => prev.map(t => t.id === table.id ? { ...t, status } : t));
+      toast.success('Masa durumu güncellendi.');
+    } catch (error) {
+      toast.error('Masa durumu güncellenemedi.');
+      console.error(error);
+    }
   };
 
   const filteredTables = tables.filter(table => {
@@ -551,74 +599,99 @@ const GarsonPanel = () => {
         backgroundAttachment: 'fixed'
       }}
     >
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-xl"></div>
+      <div className={`absolute inset-0 ${isDayMode ? 'bg-white/30' : 'bg-black/40'} backdrop-blur-xl`}></div>
       
       <div className="relative z-10 flex">
         {/* Sidebar */}
         <div className={`
-          fixed lg:relative lg:flex lg:flex-col
+          fixed lg:relative lg:flex lg:flex-col relative
           ${sidebarOpen ? 'w-64' : 'w-20'}
-          bg-black/90 backdrop-blur-sm border-r border-white/10
+          ${isDayMode ? 'bg-slate-50/95 text-slate-900 border-slate-200/50' : 'bg-black/90 text-white border-white/10'}
+          backdrop-blur-sm
           h-screen transition-all duration-300 overflow-y-auto
           ${mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
           z-50 flex-shrink-0
         `}>
-          <div className="flex items-center justify-between p-4 border-b border-white/10">
+          <div className={`flex items-center justify-between p-4 border-b ${isDayMode ? 'border-slate-200/60' : 'border-white/10'}`}>
             {sidebarOpen ? (
               <div className="flex items-center gap-3">
                 <div className="text-2xl">🍽️</div>
                 <div>
-                  <h1 className="text-white font-bold text-sm">SekerRestoran</h1>
-                  <p className="text-gray-400 text-[9px]">Garson Paneli</p>
+                  <h1 className={`${isDayMode ? 'text-slate-900' : 'text-white'} font-bold text-sm`}>SekerRestoran</h1>
+                  <p className={`${isDayMode ? 'text-slate-500' : 'text-gray-400'} text-[9px]`}>Garson Paneli</p>
                 </div>
               </div>
             ) : (
               <div className="text-2xl mx-auto">🍽️</div>
             )}
-            <button onClick={toggleSidebar} className="text-gray-400 hover:text-white hidden lg:block">
+            <button onClick={toggleSidebar} className={`${isDayMode ? 'text-slate-700 hover:text-slate-900' : 'text-gray-400 hover:text-white'} hidden lg:block`}>
               {sidebarOpen ? <FaTimes size={16} /> : <FaBars size={16} />}
             </button>
           </div>
 
           <div className="py-4 px-3">
-            <button onClick={() => setActiveTab('masa')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all text-white ${activeTab === 'masa' ? 'bg-white/20' : 'bg-white/10 hover:bg-white/15'}`}>
+            <button onClick={() => { setActiveTab('masa'); setShowOrderModal(false); setShowPaymentModal(false); }} className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all ${activeTab === 'masa' ? (isDayMode ? 'bg-slate-300 text-slate-900 shadow-sm' : 'bg-white/20 text-white') : (isDayMode ? 'text-slate-700 bg-slate-100 hover:text-slate-900 hover:bg-slate-200' : 'text-gray-400 bg-white/10 hover:text-white hover:bg-white/15')}`}>
               <FaTable size={18} />
               {sidebarOpen && (
                 <div className="flex-1 text-left">
-                  <p className="text-sm font-medium">Masa Yönetimi</p>
-                  <p className="text-[10px] text-gray-500">Salon planı</p>
+                  <p className={`${isDayMode ? 'text-slate-900' : 'text-sm font-medium text-white'}`}>Masa Yönetimi</p>
+                  <p className={`${isDayMode ? 'text-slate-500' : 'text-[10px] text-gray-500'}`}>Salon planı</p>
                 </div>
               )}
             </button>
 
-            <button onClick={() => setShowOrderModal(true)} className="w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all text-gray-400 hover:text-white hover:bg-white/5 mt-2">
+            <button onClick={() => { setActiveTab('yeni'); setShowOrderModal(false); setShowPaymentModal(false); }} className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all mt-2 ${activeTab === 'yeni' ? (isDayMode ? 'bg-slate-300 text-slate-900 shadow-sm' : 'bg-white/20 text-white') : (isDayMode ? 'text-slate-700 bg-slate-100 hover:text-slate-900 hover:bg-slate-200' : 'text-gray-400 bg-white/10 hover:text-white hover:bg-white/15')}`}>
               <FaClipboardList size={18} />
               {sidebarOpen && (
                 <div className="flex-1 text-left">
-                  <p className="text-sm font-medium">Yeni Sipariş</p>
-                  <p className="text-[10px] text-gray-500">Sipariş oluştur</p>
+                  <p className={`${isDayMode ? 'text-slate-900' : 'text-sm font-medium text-white'}`}>Yeni Sipariş</p>
+                  <p className={`${isDayMode ? 'text-slate-500' : 'text-[10px] text-gray-500'}`}>Sipariş oluştur</p>
                 </div>
               )}
             </button>
 
-            <button onClick={() => setShowPaymentModal(true)} className="w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all text-gray-400 hover:text-white hover:bg-white/5 mt-2">
+            <button onClick={() => { setActiveTab('hesap'); setShowOrderModal(false); setShowPaymentModal(false); }} className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all mt-2 ${activeTab === 'hesap' ? (isDayMode ? 'bg-slate-300 text-slate-900 shadow-sm' : 'bg-white/20 text-white') : (isDayMode ? 'text-slate-700 bg-slate-100 hover:text-slate-900 hover:bg-slate-200' : 'text-gray-400 bg-white/10 hover:text-white hover:bg-white/15')}`}>
               <FaReceipt size={18} />
               {sidebarOpen && (
                 <div className="flex-1 text-left">
-                  <p className="text-sm font-medium">Hesap İşlemleri</p>
-                  <p className="text-[10px] text-gray-500">Ödeme & fiş</p>
+                  <p className={`${isDayMode ? 'text-slate-900' : 'text-sm font-medium text-white'}`}>Hesap İşlemleri</p>
+                  <p className={`${isDayMode ? 'text-slate-500' : 'text-[10px] text-gray-500'}`}>Ödeme & fiş</p>
                 </div>
               )}
             </button>
 
-            <div className="border-t border-white/10 my-3"></div>
+            <div className="mt-6 space-y-2">
+              <div className="px-3">
+                {sidebarOpen && <p className={`${isDayMode ? 'text-slate-500' : 'text-gray-500'} text-xs uppercase tracking-[0.2em]`}>Hızlı İşlemler</p>}
+              </div>
+              <button onClick={() => setShowMoveTableModal(true)} className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all ${isDayMode ? 'text-slate-700 bg-slate-200/80 hover:text-slate-900 hover:bg-slate-300' : 'text-gray-300 bg-white/5 hover:text-white hover:bg-white/15'}`}>
+                <FaTruck size={16} />
+                {sidebarOpen && <span className="text-sm">Masa Taşı</span>}
+              </button>
+              <button onClick={() => setShowRefundModal(true)} className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all ${isDayMode ? 'text-slate-700 bg-slate-200/80 hover:text-slate-900 hover:bg-slate-300' : 'text-gray-300 bg-white/5 hover:text-white hover:bg-white/15'}`}>
+                <FaArrowLeft size={16} />
+                {sidebarOpen && <span className="text-sm">İade / İptal</span>}
+              </button>
+            </div>
 
-            <button onClick={() => setShowPasswordModal(true)} className="w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all text-gray-400 hover:text-white hover:bg-white/5">
+            <div className={`border-t my-3 ${isDayMode ? 'border-slate-200/60' : 'border-white/10'}`}></div>
+            <div className="absolute left-4 bottom-4">
+              <button
+                onClick={() => setIsDayMode(prev => !prev)}
+                title={isDayMode ? 'Gece Modu' : 'Gündüz Modu'}
+                className={`flex ${sidebarOpen ? 'justify-between w-[calc(100%-2rem)]' : 'justify-center w-12'} items-center gap-3 px-3 py-3 rounded-2xl transition-all ${isDayMode ? 'bg-slate-300 text-slate-900 hover:bg-slate-400' : 'bg-white/10 text-gray-300 hover:bg-white/20'}`}
+              >
+                {isDayMode ? <FaMoon size={18} /> : <FaSun size={18} />}
+                {sidebarOpen && <span className="text-sm">{isDayMode ? 'Gece Modu' : 'Gündüz Modu'}</span>}
+              </button>
+            </div>
+
+            <button onClick={() => setShowPasswordModal(true)} className={`${isDayMode ? 'w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all text-slate-700 hover:text-slate-900 hover:bg-slate-200/70' : 'w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all text-gray-400 hover:text-white hover:bg-white/5'}`}>
               <FaKey size={18} />
               {sidebarOpen && <span className="text-sm">Şifre Değiştir</span>}
             </button>
 
-            <button onClick={handleLogout} className="w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all text-red-400 hover:text-red-300 hover:bg-red-500/10 mt-2">
+            <button onClick={handleLogout} className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all mt-2 ${isDayMode ? 'text-rose-600 hover:text-rose-700 hover:bg-rose-100' : 'text-red-400 hover:text-red-300 hover:bg-red-500/10'}`}>
               <FaSignOutAlt size={18} />
               {sidebarOpen && <span className="text-sm">Çıkış Yap</span>}
             </button>
@@ -626,13 +699,13 @@ const GarsonPanel = () => {
         </div>
 
         {/* İçerik */}
-        <div className="flex-1">
-          <div className="bg-black/80 backdrop-blur-sm border-b border-white/10 sticky top-0 z-30">
+        <div className={`flex-1 ${isDayMode ? 'bg-slate-50 text-slate-900' : ''}`}>
+          <div className={`${isDayMode ? 'bg-white/80 text-slate-900 border-slate-200/30' : 'bg-black/80 text-white'} backdrop-blur-sm border-b sticky top-0 z-30`}>
             <div className="max-w-7xl mx-auto px-4 py-3">
               <div className="flex items-center justify-end gap-4">
                 <div className="text-right hidden sm:block">
-                  <p className="text-white text-sm font-medium">{userData.name}</p>
-                  <p className="text-gray-400 text-[10px]">{userData.email}</p>
+                  <p className={`${isDayMode ? 'text-slate-900' : 'text-white'} text-sm font-medium`}>{userData.name}</p>
+                  <p className={`${isDayMode ? 'text-slate-500' : 'text-gray-400'} text-[10px]`}>{userData.email}</p>
                 </div>
               </div>
             </div>
@@ -640,7 +713,7 @@ const GarsonPanel = () => {
 
           <div className="max-w-7xl mx-auto px-4 py-6">
             {loading ? (
-              <div className="flex items-center justify-center py-20 text-white gap-3">
+              <div className={`flex items-center justify-center py-20 gap-3 ${isDayMode ? 'text-slate-900' : 'text-white'}`}>
                 <FaSpinner className="animate-spin" size={24} />
                 <span>Veriler Yükleniyor...</span>
               </div>
@@ -656,10 +729,8 @@ const GarsonPanel = () => {
                     getTableStatusColor={getTableStatusColor}
                     getTableStatusText={getTableStatusText}
                     getStatusIcon={getStatusIcon}
-                    onNewOrderClick={() => setShowOrderModal(true)}
-                    onOpenPaymentClick={() => setShowPaymentModal(true)}
-                    onOpenMoveTableClick={() => setShowMoveTableModal(true)}
-                    onOpenRefundClick={() => setShowRefundModal(true)}
+                    onOpenStatusModal={handleOpenStatusModal}
+                    isDayMode={isDayMode}
                   />
                 )}
 
@@ -676,12 +747,14 @@ const GarsonPanel = () => {
                     onConfirmOrder={confirmOrder}
                     selectedTable={selectedTable}
                     onSelectTable={(table) => setSelectedTable(table)}
+                    onCancelSelection={handleCancelNewOrder}
                     tables={tables}
+                    isDayMode={isDayMode}
                   />
                 )}
 
                 {activeTab === 'hesap' && (
-                  <HesapIslemleri occupiedTables={occupiedTables} processPayment={processPayment} />
+                  <HesapIslemleri occupiedTables={occupiedTables} processPayment={processPayment} isDayMode={isDayMode} />
                 )}
               </>
             )}
@@ -737,9 +810,9 @@ const GarsonPanel = () => {
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
               <div>
                 <h2 className="text-white font-bold text-xl">{selectedOrderTable.name} - Sipariş Detayları</h2>
-                <p className="text-gray-400 text-sm mt-1">{getOrderTimeText(selectedOrderTable.order)}</p>
+                <p className="text-gray-400 text-sm mt-1">{getOrderTimeText(getOrderObject(selectedOrderTable))}</p>
                 <span className="inline-flex mt-2 px-3 py-1 rounded-full text-xs font-semibold bg-white/10 text-white border border-white/10">
-                  {getOrderStatusLabel(selectedOrderTable.order)}
+                  {getOrderStatusLabel(getOrderObject(selectedOrderTable))}
                 </span>
               </div>
               <button onClick={() => setShowOrderDetailModal(false)} className="text-gray-400 hover:text-white">
@@ -748,11 +821,11 @@ const GarsonPanel = () => {
             </div>
 
             <div className="space-y-4">
-              {getOrderItems(selectedOrderTable.order).length === 0 ? (
+              {getOrderItems(getOrderObject(selectedOrderTable)).length === 0 ? (
                 <div className="text-gray-400 text-sm">Sipariş kalemi bulunamadı.</div>
               ) : (
                 <div className="space-y-3">
-                  {getOrderItems(selectedOrderTable.order).map((item, index) => {
+                  {getOrderItems(getOrderObject(selectedOrderTable)).map((item, index) => {
                     const normalized = normalizeOrderItem(item);
                     return (
                       <div key={index} className="bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
@@ -775,7 +848,7 @@ const GarsonPanel = () => {
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div>
                   <p className="text-gray-400 text-sm">Toplam Tutar</p>
-                  <p className="text-white text-2xl font-bold">₺{getOrderTotal(selectedOrderTable.order).toFixed(2)}</p>
+                  <p className="text-white text-2xl font-bold">₺{getOrderTotal(getOrderObject(selectedOrderTable)).toFixed(2)}</p>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full sm:w-auto">
                   <button onClick={handleEditOrderFromDetail} className="px-4 py-3 bg-white/10 hover:bg-white/15 text-white rounded-xl transition-all">
@@ -817,6 +890,28 @@ const GarsonPanel = () => {
         toggleRefundItem={toggleRefundItem}
         processRefund={processRefund}
       />
+
+      {showStatusModal && selectedStatusTable && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="bg-black/95 backdrop-blur-sm rounded-2xl border border-white/10 shadow-2xl max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-white font-bold text-xl">Masa Durumu Değiştir</h2>
+                <p className="text-gray-400 text-sm">{selectedStatusTable.name}</p>
+              </div>
+              <button onClick={() => setShowStatusModal(false)} className="text-gray-400 hover:text-white">
+                <FaTimes size={20} />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <button onClick={() => handleSaveStatus('empty')} className="w-full py-3 rounded-xl bg-green-500/20 hover:bg-green-500/30 text-green-200">Boş Yap</button>
+              <button onClick={() => handleSaveStatus('occupied')} className="w-full py-3 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-200">Dolu Yap</button>
+              <button onClick={() => handleSaveStatus('reserved')} className="w-full py-3 rounded-xl bg-orange-500/20 hover:bg-orange-500/30 text-orange-200">Rezerve Yap</button>
+              <button onClick={() => handleSaveStatus('broken')} className="w-full py-3 rounded-xl bg-gray-500/20 hover:bg-gray-500/30 text-gray-200">Arızalı Yap</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <SifreModal
         showPasswordModal={showPasswordModal}
