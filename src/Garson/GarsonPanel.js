@@ -13,6 +13,12 @@ import {
   FaStickyNote
 } from 'react-icons/fa';
 import { toast } from 'react-toastify';
+import MasaYonetimi from './pages/MasaYonetimi';
+import YeniSiparisPage from './pages/YeniSiparisPage';
+import HesapIslemleri from './pages/HesapIslemleri';
+import MasaTasiModal from './modals/MasaTasiModal';
+import IadeModal from './modals/IadeModal';
+import SifreModal from './modals/SifreModal';
 
 // Arka plan resmi
 const backgroundImage = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80';
@@ -22,11 +28,13 @@ const GarsonPanel = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [selectedTable, setSelectedTable] = useState(null);
+  // modal visibilities
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showMoveTableModal, setShowMoveTableModal] = useState(false);
   const [showRefundModal, setShowRefundModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [activeTab, setActiveTab] = useState('masa');
   
   // Şifre değiştirme state'leri
   const [currentPassword, setCurrentPassword] = useState('');
@@ -193,7 +201,8 @@ const GarsonPanel = () => {
   const handleTableClick = (table) => {
     setSelectedTable(table);
     if (table.status === 'empty') {
-      setShowOrderModal(true);
+      // Boş masaya tıklanınca yeni sipariş sayfasına yönlendir
+      setActiveTab('yeni');
       setCurrentOrder({ tableId: table.id, items: [], total: 0 });
     } else if (table.status === 'occupied') {
       toast.info(`${table.name} - Sipariş detayları`);
@@ -270,6 +279,7 @@ const GarsonPanel = () => {
     ));
 
     toast.success(`Sipariş oluşturuldu! Toplam: ₺${total}`);
+    setActiveTab('masa');
     setShowOrderModal(false);
     setCart([]);
     setCurrentOrder({ tableId: null, items: [], total: 0 });
@@ -417,6 +427,7 @@ const GarsonPanel = () => {
       ));
       
       toast.success(`✅ ${table.name} ödeme başarılı! (${method}) ₺${table.order.total}`);
+      setActiveTab('masa');
       setShowPaymentModal(false);
       setSelectedTable(null);
     }
@@ -487,7 +498,7 @@ const GarsonPanel = () => {
           </div>
 
           <div className="py-4 px-3">
-            <button className="w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all text-white bg-white/10">
+            <button onClick={() => setActiveTab('masa')} className="w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all text-white bg-white/10">
               <FaTable size={18} />
               {sidebarOpen && (
                 <div className="flex-1 text-left">
@@ -507,7 +518,7 @@ const GarsonPanel = () => {
               )}
             </button>
 
-            <button className="w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all text-gray-400 hover:text-white hover:bg-white/5 mt-2">
+            <button onClick={() => setShowPaymentModal(true)} className="w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all text-gray-400 hover:text-white hover:bg-white/5 mt-2">
               <FaReceipt size={18} />
               {sidebarOpen && (
                 <div className="flex-1 text-left">
@@ -578,166 +589,76 @@ const GarsonPanel = () => {
 
           {/* İçerik */}
           <div className="max-w-7xl mx-auto px-4 py-6">
-           
+            {activeTab === 'masa' && (
+              <MasaYonetimi
+                tables={tables}
+                filteredTables={filteredTables}
+                filter={filter}
+                setFilter={setFilter}
+                handleTableClick={handleTableClick}
+                getTableStatusColor={getTableStatusColor}
+                getTableStatusText={getTableStatusText}
+                getStatusIcon={getStatusIcon}
+                onNewOrderClick={() => setShowOrderModal(true)}
+                onOpenPaymentClick={() => setShowPaymentModal(true)}
+                onOpenMoveTableClick={() => setShowMoveTableModal(true)}
+                onOpenRefundClick={() => setShowRefundModal(true)}
+              />
+            )}
 
-            {/* Filtreler */}
-            <div className="flex flex-wrap gap-2 mb-6">
-              <button onClick={() => setFilter('all')} className={`px-4 py-2 rounded-lg text-sm transition-all ${filter === 'all' ? 'bg-white/20 text-white' : 'bg-white/5 text-gray-400 hover:text-white hover:bg-white/10'}`}>Tümü ({tables.length})</button>
-              <button onClick={() => setFilter('empty')} className={`px-4 py-2 rounded-lg text-sm transition-all ${filter === 'empty' ? 'bg-green-500/30 text-green-400' : 'bg-white/5 text-gray-400 hover:text-white hover:bg-white/10'}`}>Boş ({tables.filter(t => t.status === 'empty').length})</button>
-              <button onClick={() => setFilter('occupied')} className={`px-4 py-2 rounded-lg text-sm transition-all ${filter === 'occupied' ? 'bg-red-500/30 text-red-400' : 'bg-white/5 text-gray-400 hover:text-white hover:bg-white/10'}`}>Dolu ({tables.filter(t => t.status === 'occupied').length})</button>
-              <button onClick={() => setFilter('reserved')} className={`px-4 py-2 rounded-lg text-sm transition-all ${filter === 'reserved' ? 'bg-orange-500/30 text-orange-400' : 'bg-white/5 text-gray-400 hover:text-white hover:bg-white/10'}`}>Rezerve ({tables.filter(t => t.status === 'reserved').length})</button>
-              <button onClick={() => setFilter('broken')} className={`px-4 py-2 rounded-lg text-sm transition-all ${filter === 'broken' ? 'bg-gray-500/30 text-gray-400' : 'bg-white/5 text-gray-400 hover:text-white hover:bg-white/10'}`}>Arızalı ({tables.filter(t => t.status === 'broken').length})</button>
-            </div>
+            {activeTab === 'yeni' && (
+              <YeniSiparisPage
+                categories={categories}
+                selectedCategory={selectedCategory}
+                onCategorySelect={setSelectedCategory}
+                filteredMenu={filteredMenu}
+                cart={cart}
+                onAddToCart={addToCart}
+                onRemoveFromCart={removeFromCart}
+                onUpdateItemNote={updateItemNote}
+                onConfirmOrder={confirmOrder}
+                selectedTable={selectedTable}
+                onSelectTable={(table) => setSelectedTable(table)}
+                tables={tables}
+              />
+            )}
 
-            {/* Masa Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-              {filteredTables.map((table) => (
-                <div key={table.id} onClick={() => handleTableClick(table)} className={`rounded-2xl p-4 cursor-pointer transition-all duration-300 ${getTableStatusColor(table.status)} shadow-lg hover:shadow-xl hover:scale-105 border border-white/10`}>
-                  <div className="flex flex-col items-center text-center">
-                    <div className="text-3xl mb-2">{getStatusIcon(table.status)}</div>
-                    <h3 className="text-white font-bold text-lg">{table.name}</h3>
-                    <div className="flex items-center gap-1 text-white/80 text-sm"><FaChair size={12} /><span>{table.capacity} Kişi</span></div>
-                    {table.status === 'occupied' && table.order && (
-                      <>
-                        <div className="mt-2 text-white/90 text-sm font-medium">₺{table.order.total}</div>
-                        <div className="text-white/70 text-xs">{table.time}</div>
-                      </>
-                    )}
-                    {table.status === 'reserved' && <div className="mt-2 text-white/80 text-sm">{table.time}</div>}
-                    <div className="mt-2 text-white/60 text-[10px] uppercase">{getTableStatusText(table.status)}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Hızlı İşlemler */}
-            <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
-              <button onClick={() => setShowOrderModal(true)} className="bg-black/60 backdrop-blur-sm rounded-xl p-4 border border-white/10 hover:bg-black/80 transition-all text-center">
-                <FaPlus className="text-white text-2xl mx-auto mb-2" />
-                <span className="text-white text-sm">Yeni Sipariş</span>
-              </button>
-              <button onClick={() => { if (occupiedTables.length === 0) { toast.warning('Dolu masa yok!'); return; } setShowPaymentModal(true); }} className="bg-black/60 backdrop-blur-sm rounded-xl p-4 border border-white/10 hover:bg-black/80 transition-all text-center">
-                <FaMoneyBillWave className="text-white text-2xl mx-auto mb-2" />
-                <span className="text-white text-sm">Ödeme Al</span>
-              </button>
-              <button onClick={() => { if (tables.filter(t => t.status === 'occupied').length < 1) { toast.warning('Taşıma için en az 1 dolu masa gerekli!'); return; } setShowMoveTableModal(true); }} className="bg-black/60 backdrop-blur-sm rounded-xl p-4 border border-white/10 hover:bg-black/80 transition-all text-center">
-                <FaArrowRight className="text-white text-2xl mx-auto mb-2" />
-                <span className="text-white text-sm">Masa Taşı</span>
-              </button>
-              <button onClick={() => { if (occupiedTables.length === 0) { toast.warning('İade edilecek masa yok!'); return; } setShowRefundModal(true); }} className="bg-black/60 backdrop-blur-sm rounded-xl p-4 border border-white/10 hover:bg-black/80 transition-all text-center">
-                <FaTrash className="text-white text-2xl mx-auto mb-2" />
-                <span className="text-white text-sm">İade/İptal</span>
-              </button>
-            </div>
+            {activeTab === 'hesap' && (
+              <HesapIslemleri occupiedTables={occupiedTables} processPayment={processPayment} />
+            )}
           </div>
         </div>
       </div>
 
-      {/* Sipariş Modal */}
+      {/* Sipariş ve Ödeme modal görünümleri — eski görünümü korumak için sayfaları modal içine sarıyoruz */}
+
       {showOrderModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <div className="bg-black/95 backdrop-blur-sm rounded-2xl border border-white/10 shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-            <div className="flex items-center justify-between p-4 border-b border-white/10">
-              <div className="flex items-center gap-3">
-                <FaClipboardList className="text-white text-xl" />
-                <div>
-                  <h2 className="text-white font-bold text-lg">Yeni Sipariş</h2>
-                  <p className="text-gray-400 text-xs">{selectedTable ? selectedTable.name : 'Masa seçili değil'}</p>
-                </div>
-              </div>
-              <button onClick={() => { setShowOrderModal(false); setCart([]); }} className="text-gray-400 hover:text-white transition-colors">
+          <div className="bg-black/95 backdrop-blur-sm rounded-2xl border border-white/10 shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-white font-bold text-lg">Yeni Sipariş</h2>
+              <button onClick={() => { setShowOrderModal(false); setCart([]); }} className="text-gray-400 hover:text-white">
                 <FaTimes size={20} />
               </button>
             </div>
-
-            <div className="p-4 border-b border-white/10">
-              <label className="text-white text-sm font-medium mb-2 block">Masa Seç</label>
-              <div className="flex flex-wrap gap-2">
-                {tables.filter(t => t.status === 'empty' || t.status === 'occupied').map(table => (
-                  <button key={table.id} onClick={() => setSelectedTable(table)} className={`px-3 py-1.5 rounded-lg text-sm transition-all ${selectedTable?.id === table.id ? 'bg-white/20 text-white' : 'bg-white/5 text-gray-400 hover:text-white hover:bg-white/10'}`}>
-                    {table.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-4">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <div>
-                  <div className="flex flex-wrap gap-2 mb-3">
-                    {categories.map(cat => (
-                      <button key={cat} onClick={() => setSelectedCategory(cat)} className={`px-3 py-1 rounded-lg text-xs transition-all ${selectedCategory === cat ? 'bg-white/20 text-white' : 'bg-white/5 text-gray-400 hover:text-white'}`}>
-                        {cat}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="grid grid-cols-1 gap-2">
-                    {filteredMenu.map(item => (
-                      <button key={item.id} onClick={() => addToCart(item)} className="flex items-center justify-between p-3 bg-white/5 hover:bg-white/10 rounded-xl transition-all">
-                        <div className="text-left">
-                          <span className="text-white text-sm">{item.name}</span>
-                          <p className="text-gray-500 text-xs">{item.category}</p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-white font-medium">₺{item.price}</span>
-                          <FaPlus className="text-gray-400 text-xs" />
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="bg-white/5 rounded-xl p-4">
-                  <h3 className="text-white font-semibold mb-3">🛒 Sepet</h3>
-                  {cart.length === 0 ? (
-                    <p className="text-gray-500 text-sm text-center py-8">Sepet boş</p>
-                  ) : (
-                    <>
-                      <div className="space-y-2 max-h-60 overflow-y-auto">
-                        {cart.map(item => (
-                          <div key={item.id} className="flex items-center justify-between p-2 bg-white/5 rounded-lg">
-                            <div className="flex-1">
-                              <span className="text-white text-sm">{item.name}</span>
-                              {item.note && <span className="text-yellow-400 text-xs ml-2">📝 {item.note}</span>}
-                              <div className="flex items-center gap-2">
-                                <span className="text-gray-400 text-xs">{item.quantity}x</span>
-                                <span className="text-white text-xs">₺{item.price * item.quantity}</span>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <button onClick={() => updateItemNote(item.id)} className="p-1 hover:bg-yellow-500/20 rounded transition-all" title="Not ekle/güncelle">
-                                <FaStickyNote className="text-yellow-400 text-xs" />
-                              </button>
-                              <button onClick={() => removeFromCart(item.id)} className="p-1 hover:bg-red-500/20 rounded transition-all">
-                                <FaMinus className="text-red-400 text-xs" />
-                              </button>
-                              <span className="text-white text-sm w-6 text-center">{item.quantity}</span>
-                              <button onClick={() => addToCart(item)} className="p-1 hover:bg-green-500/20 rounded transition-all">
-                                <FaPlus className="text-green-400 text-xs" />
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                      <div className="border-t border-white/10 mt-3 pt-3">
-                        <div className="flex justify-between text-white font-bold">
-                          <span>Toplam:</span>
-                          <span>₺{cart.reduce((sum, item) => sum + (item.price * item.quantity), 0)}</span>
-                        </div>
-                        <button onClick={confirmOrder} disabled={!selectedTable || cart.length === 0} className="w-full mt-3 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed">
-                          Siparişi Onayla
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
+            <YeniSiparisPage
+              categories={categories}
+              selectedCategory={selectedCategory}
+              onCategorySelect={setSelectedCategory}
+              filteredMenu={filteredMenu}
+              cart={cart}
+              onAddToCart={addToCart}
+              onRemoveFromCart={removeFromCart}
+              onUpdateItemNote={updateItemNote}
+              onConfirmOrder={confirmOrder}
+              selectedTable={selectedTable}
+              onSelectTable={(table) => setSelectedTable(table)}
+              tables={tables}
+            />
           </div>
         </div>
       )}
 
-      {/* Ödeme Modal */}
       {showPaymentModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
           <div className="bg-black/95 backdrop-blur-sm rounded-2xl border border-white/10 shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
@@ -747,282 +668,47 @@ const GarsonPanel = () => {
                 <FaTimes size={20} />
               </button>
             </div>
-            
-            <div className="space-y-4">
-              {occupiedTables.map(table => (
-                <div key={table.id} className="bg-white/5 rounded-xl p-4 border border-white/10">
-                  <div className="flex items-center justify-between mb-3">
-                    <div>
-                      <p className="text-white font-medium text-lg">{table.name}</p>
-                      <p className="text-gray-400 text-sm">{table.time}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-yellow-400 font-bold text-xl">₺{table.order?.total || 0}</p>
-                    </div>
-                  </div>
-                  
-                  {/* Sipariş detayları */}
-                  <div className="bg-black/30 rounded-lg p-3 mb-3">
-                    <p className="text-gray-400 text-xs mb-2">📋 Sipariş Detayları:</p>
-                    {table.order?.items.map((item, index) => (
-                      <div key={index} className="flex justify-between text-sm text-gray-300">
-                        <span>{item.quantity}x {item.name}</span>
-                        <span>₺{item.price * item.quantity}</span>
-                      </div>
-                    ))}
-                    <div className="border-t border-white/10 mt-2 pt-2 flex justify-between text-white font-bold">
-                      <span>Toplam</span>
-                      <span>₺{table.order?.total || 0}</span>
-                    </div>
-                  </div>
-                  
-                  {/* Ödeme butonları */}
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => processPayment(table.id, 'Nakit')}
-                      className="flex-1 py-2.5 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg text-sm transition-all flex items-center justify-center gap-2 font-medium"
-                    >
-                      <FaMoneyBill /> Nakit
-                    </button>
-                    <button
-                      onClick={() => processPayment(table.id, 'Kart')}
-                      className="flex-1 py-2.5 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg text-sm transition-all flex items-center justify-center gap-2 font-medium"
-                    >
-                      <FaCreditCard /> Kart
-                    </button>
-                  </div>
-                </div>
-              ))}
-              {occupiedTables.length === 0 && (
-                <p className="text-gray-500 text-center py-8">Ödeme alınacak masa yok</p>
-              )}
-            </div>
+            <HesapIslemleri occupiedTables={occupiedTables} processPayment={processPayment} />
           </div>
         </div>
       )}
 
-      {/* Masa Taşıma Modal */}
-      {showMoveTableModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <div className="bg-black/95 backdrop-blur-sm rounded-2xl border border-white/10 shadow-2xl max-w-md w-full p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-white font-bold text-lg">📦 Masa Taşı</h2>
-              <button onClick={() => { setShowMoveTableModal(false); setMoveFromTable(''); setMoveToTable(''); }} className="text-gray-400 hover:text-white">
-                <FaTimes size={20} />
-              </button>
-            </div>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="text-white text-sm block mb-2">📍 Kaynak Masa (Dolu)</label>
-                <select 
-                  value={moveFromTable} 
-                  onChange={(e) => setMoveFromTable(e.target.value)}
-                  className="w-full p-2.5 bg-white/5 border border-white/10 rounded-lg text-white focus:ring-2 focus:ring-white/20 focus:border-transparent outline-none"
-                >
-                  <option value="">Seçiniz...</option>
-                  {tables.filter(t => t.status === 'occupied').map(table => (
-                    <option key={table.id} value={table.id}>{table.name} (₺{table.order?.total || 0})</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="text-white text-sm block mb-2">📍 Hedef Masa (Boş)</label>
-                <select 
-                  value={moveToTable} 
-                  onChange={(e) => setMoveToTable(e.target.value)}
-                  className="w-full p-2.5 bg-white/5 border border-white/10 rounded-lg text-white focus:ring-2 focus:ring-white/20 focus:border-transparent outline-none"
-                >
-                  <option value="">Seçiniz...</option>
-                  {tables.filter(t => t.status === 'empty').map(table => (
-                    <option key={table.id} value={table.id}>{table.name}</option>
-                  ))}
-                </select>
-              </div>
-              <button
-                onClick={handleMoveTable}
-                className="w-full py-2.5 bg-white/20 hover:bg-white/30 text-white rounded-lg transition-all font-medium flex items-center justify-center gap-2"
-              >
-                <FaArrowRight /> Taşı
-              </button>
-              <p className="text-gray-500 text-xs text-center">⚠️ Dolu masa boş masaya taşınacaktır.</p>
-            </div>
-          </div>
-        </div>
-      )}
+      <MasaTasiModal
+        showMoveTableModal={showMoveTableModal}
+        onClose={() => { setShowMoveTableModal(false); setMoveFromTable(''); setMoveToTable(''); }}
+        tables={tables}
+        moveFromTable={moveFromTable}
+        moveToTable={moveToTable}
+        setMoveFromTable={setMoveFromTable}
+        setMoveToTable={setMoveToTable}
+        handleMoveTable={handleMoveTable}
+      />
 
-      {/* İade/İptal Modal */}
-      {showRefundModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <div className="bg-black/95 backdrop-blur-sm rounded-2xl border border-white/10 shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-white font-bold text-lg">↩️ İade/İptal</h2>
-              <button onClick={() => { setShowRefundModal(false); setRefundTable(null); setRefundItems([]); setSelectedRefundItems([]); }} className="text-gray-400 hover:text-white">
-                <FaTimes size={20} />
-              </button>
-            </div>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="text-white text-sm block mb-2">Masa Seç</label>
-                <select 
-                  onChange={(e) => {
-                    const tableId = parseInt(e.target.value);
-                    const table = tables.find(t => t.id === tableId);
-                    if (table && table.order) {
-                      setRefundTable(table);
-                      setRefundItems(table.order.items || []);
-                      setSelectedRefundItems([]);
-                    }
-                  }}
-                  className="w-full p-2.5 bg-white/5 border border-white/10 rounded-lg text-white focus:ring-2 focus:ring-white/20 focus:border-transparent outline-none"
-                >
-                  <option value="">Seçiniz...</option>
-                  {tables.filter(t => t.status === 'occupied' && t.order).map(table => (
-                    <option key={table.id} value={table.id}>{table.name} (₺{table.order?.total || 0})</option>
-                  ))}
-                </select>
-              </div>
+      <IadeModal
+        showRefundModal={showRefundModal}
+        onClose={() => { setShowRefundModal(false); setRefundTable(null); setRefundItems([]); setSelectedRefundItems([]); }}
+        tables={tables}
+        refundItems={refundItems}
+        refundReason={refundReason}
+        selectedRefundItems={selectedRefundItems}
+        setRefundReason={setRefundReason}
+        onTableSelect={handleRefundSelect}
+        toggleRefundItem={toggleRefundItem}
+        processRefund={processRefund}
+      />
 
-              {refundItems.length > 0 && (
-                <div>
-                  <label className="text-white text-sm block mb-2">📋 İade Edilecek Ürünler</label>
-                  <div className="space-y-2">
-                    {refundItems.map((item, index) => (
-                      <div key={index} className="flex items-center gap-3 p-2 bg-white/5 rounded-lg hover:bg-white/10 transition-all">
-                        <input
-                          type="checkbox"
-                          checked={selectedRefundItems.includes(index)}
-                          onChange={() => toggleRefundItem(index)}
-                          className="w-4 h-4 rounded border-white/20 bg-white/5 text-yellow-500 focus:ring-yellow-500 focus:ring-offset-0 cursor-pointer"
-                        />
-                        <div className="flex-1">
-                          <span className="text-white text-sm">{item.quantity}x {item.name}</span>
-                          {item.note && <span className="text-yellow-400 text-xs ml-2">📝 {item.note}</span>}
-                        </div>
-                        <span className="text-white text-sm">₺{item.price * item.quantity}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div>
-                <label className="text-white text-sm block mb-2">İade Sebebi</label>
-                <select 
-                  value={refundReason}
-                  onChange={(e) => setRefundReason(e.target.value)}
-                  className="w-full p-2.5 bg-white/5 border border-white/10 rounded-lg text-white focus:ring-2 focus:ring-white/20 focus:border-transparent outline-none"
-                >
-                  <option value="">Seçiniz...</option>
-                  <option value="Müşteri vazgeçti">Müşteri vazgeçti</option>
-                  <option value="Yanlış ürün">Yanlış ürün</option>
-                  <option value="Ürün beğenilmedi">Ürün beğenilmedi</option>
-                  <option value="Geç teslimat">Geç teslimat</option>
-                  <option value="Hatalı sipariş">Hatalı sipariş</option>
-                  <option value="Diğer">Diğer</option>
-                </select>
-              </div>
-
-              {selectedRefundItems.length > 0 && (
-                <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
-                  <p className="text-red-400 text-sm">
-                    İade Tutarı: ₺{selectedRefundItems.reduce((sum, idx) => {
-                      const item = refundItems[idx];
-                      return sum + (item.price * item.quantity);
-                    }, 0)}
-                  </p>
-                </div>
-              )}
-
-              <button
-                onClick={processRefund}
-                disabled={selectedRefundItems.length === 0 || !refundReason}
-                className="w-full py-2.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-              >
-                İadeyi Onayla
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Şifre Değiştirme Modal */}
-      {showPasswordModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <div className="bg-black/95 backdrop-blur-sm rounded-2xl border border-white/10 shadow-2xl max-w-md w-full p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-white font-bold text-lg">🔑 Şifre Değiştir</h2>
-              <button onClick={() => setShowPasswordModal(false)} className="text-gray-400 hover:text-white">
-                <FaTimes size={20} />
-              </button>
-            </div>
-            
-            <form onSubmit={handlePasswordChange} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1.5">Mevcut Şifre</label>
-                <input 
-                  type="password" 
-                  value={currentPassword} 
-                  onChange={(e) => setCurrentPassword(e.target.value)} 
-                  className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-gray-500 focus:ring-2 focus:ring-white/20 focus:border-transparent outline-none transition-all" 
-                  placeholder="Mevcut şifreniz" 
-                  disabled={passwordLoading} 
-                  required 
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1.5">Yeni Şifre</label>
-                <input 
-                  type="password" 
-                  value={newPassword} 
-                  onChange={(e) => setNewPassword(e.target.value)} 
-                  className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-gray-500 focus:ring-2 focus:ring-white/20 focus:border-transparent outline-none transition-all" 
-                  placeholder="Yeni şifreniz (min 6 karakter)" 
-                  disabled={passwordLoading} 
-                  required 
-                  minLength={6} 
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1.5">Yeni Şifre Tekrar</label>
-                <input 
-                  type="password" 
-                  value={confirmPassword} 
-                  onChange={(e) => setConfirmPassword(e.target.value)} 
-                  className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-gray-500 focus:ring-2 focus:ring-white/20 focus:border-transparent outline-none transition-all" 
-                  placeholder="Yeni şifrenizi tekrar girin" 
-                  disabled={passwordLoading} 
-                  required 
-                />
-              </div>
-              <div className="flex gap-3">
-                <button 
-                  type="button" 
-                  onClick={() => setShowPasswordModal(false)} 
-                  className="flex-1 px-4 py-2 bg-white/5 hover:bg-white/10 text-gray-300 rounded-lg transition-all text-sm"
-                >
-                  İptal
-                </button>
-                <button 
-                  type="submit" 
-                  disabled={passwordLoading} 
-                  className="flex-1 px-4 py-2 bg-white hover:bg-gray-200 text-black font-semibold rounded-lg transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {passwordLoading ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin"></div> 
-                      Değiştiriliyor...
-                    </>
-                  ) : (
-                    'Şifreyi Değiştir'
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <SifreModal
+        showPasswordModal={showPasswordModal}
+        onClose={() => setShowPasswordModal(false)}
+        currentPassword={currentPassword}
+        newPassword={newPassword}
+        confirmPassword={confirmPassword}
+        setCurrentPassword={setCurrentPassword}
+        setNewPassword={setNewPassword}
+        setConfirmPassword={setConfirmPassword}
+        handlePasswordChange={handlePasswordChange}
+        passwordLoading={passwordLoading}
+      />
     </div>
   );
 };
