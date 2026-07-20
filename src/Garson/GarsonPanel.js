@@ -1,4 +1,4 @@
-// src/pages/Garson/GarsonPanel.js
+// src/Garson/GarsonPanel.js
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -13,6 +13,17 @@ import {
   FaStickyNote
 } from 'react-icons/fa';
 import { toast } from 'react-toastify';
+
+// API servisleri
+import { 
+  tableService, 
+  productService, 
+  orderService, 
+  paymentService, 
+  authService, 
+  logout 
+} from '../api/api'; 
+
 import MasaYonetimi from './pages/MasaYonetimi';
 import YeniSiparisPage from './pages/YeniSiparisPage';
 import HesapIslemleri from './pages/HesapIslemleri';
@@ -20,7 +31,6 @@ import MasaTasiModal from './modals/MasaTasiModal';
 import IadeModal from './modals/IadeModal';
 import SifreModal from './modals/SifreModal';
 
-// Arka plan resmi
 const backgroundImage = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80';
 
 const GarsonPanel = () => {
@@ -28,9 +38,12 @@ const GarsonPanel = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [selectedTable, setSelectedTable] = useState(null);
-  // modal visibilities
+  
+  // Modallar
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showOrderDetailModal, setShowOrderDetailModal] = useState(false);
+  const [selectedOrderTable, setSelectedOrderTable] = useState(null);
   const [showMoveTableModal, setShowMoveTableModal] = useState(false);
   const [showRefundModal, setShowRefundModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -49,71 +62,78 @@ const GarsonPanel = () => {
     role: 'garson'
   });
 
-  // Masalar
-  const [tables, setTables] = useState([
-    { id: 1, name: 'Masa 01', status: 'empty', capacity: 4, order: null, time: null },
-    { id: 2, name: 'Masa 02', status: 'occupied', capacity: 4, order: { items: [{name: 'Adana Kebap', quantity: 2, price: 120, note: ''}, {name: 'Lahmacun', quantity: 1, price: 70, note: ''}], total: 310 }, time: '45dk' },
-    { id: 3, name: 'Masa 03', status: 'empty', capacity: 2, order: null, time: null },
-    { id: 4, name: 'Masa 04', status: 'reserved', capacity: 3, order: null, time: '19:30' },
-    { id: 5, name: 'Masa 05', status: 'occupied', capacity: 6, order: { items: [{name: 'Karışık Izgara', quantity: 1, price: 180, note: ''}, {name: 'Künefe', quantity: 2, price: 85, note: ''}], total: 350 }, time: '30dk' },
-    { id: 6, name: 'Masa 06', status: 'occupied', capacity: 6, order: { items: [{name: 'Pizza', quantity: 1, price: 95, note: 'Ekstra peynir'}, {name: 'Makarna', quantity: 1, price: 75, note: ''}], total: 170 }, time: '20dk' },
-    { id: 7, name: 'Masa 07', status: 'empty', capacity: 2, order: null, time: null },
-    { id: 8, name: 'Masa 08', status: 'broken', capacity: 4, order: null, time: null },
-    { id: 9, name: 'Teras 01', status: 'occupied', capacity: 5, order: { items: [{name: 'Balık Tabağı', quantity: 1, price: 160, note: ''}, {name: 'Salata', quantity: 2, price: 40, note: ''}], total: 240 }, time: '15dk' },
-    { id: 10, name: 'Teras 02', status: 'empty', capacity: 2, order: null, time: null },
-    { id: 11, name: 'Teras 03', status: 'reserved', capacity: 4, order: null, time: '20:00' },
-    { id: 12, name: 'Teras 04', status: 'empty', capacity: 4, order: null, time: null }
-  ]);
+  // Backend'den gelecek veriler
+  const [tables, setTables] = useState([]);
+  const [menuItems, setMenuItems] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   // Filtreleme
   const [filter, setFilter] = useState('all');
-  
-  // Menü ürünleri
-  const menuItems = [
-    { id: 1, name: 'Adana Kebap', price: 120, category: 'Kebaplar' },
-    { id: 2, name: 'Lahmacun', price: 70, category: 'Hamur İşleri' },
-    { id: 3, name: 'Künefe', price: 85, category: 'Tatlılar' },
-    { id: 4, name: 'Mercimek Çorbası', price: 45, category: 'Çorbalar' },
-    { id: 5, name: 'Karışık Izgara', price: 180, category: 'Ana Yemek' },
-    { id: 6, name: 'Pizza Margherita', price: 95, category: 'Pizza' },
-    { id: 7, name: 'Makarna', price: 75, category: 'Makarna' },
-    { id: 8, name: 'Balık Tabağı', price: 160, category: 'Deniz Ürünleri' },
-    { id: 9, name: 'Salata', price: 40, category: 'Salatalar' },
-    { id: 10, name: 'Ayran', price: 15, category: 'İçecekler' }
-  ];
 
   // Sepet
   const [cart, setCart] = useState([]);
   const [currentOrder, setCurrentOrder] = useState({ tableId: null, items: [], total: 0 });
 
-  // Bildirimler
-  const [notifications, setNotifications] = useState([
-    { id: 1, message: 'Masa 02 siparişi hazır', time: '2 dk önce', read: false },
-    { id: 2, message: 'Masa 05 yeni sipariş verdi', time: '5 dk önce', read: false },
-    { id: 3, message: 'Masa 04 rezervasyonu 19:30', time: '15 dk önce', read: false }
-  ]);
-
-  // Masa taşıma state'leri
+  // Masa taşıma & İade state'leri
   const [moveFromTable, setMoveFromTable] = useState('');
   const [moveToTable, setMoveToTable] = useState('');
-
-  // İade/İptal state'leri
   const [refundTable, setRefundTable] = useState(null);
   const [refundItems, setRefundItems] = useState([]);
   const [selectedRefundItems, setSelectedRefundItems] = useState([]);
   const [refundReason, setRefundReason] = useState('');
 
+  // 🔄 1. İlk Yükleme
   useEffect(() => {
     fetchUserData();
+    verileriYukle();
   }, []);
 
-  const fetchUserData = async () => {
+  const verileriYukle = async () => {
+    setLoading(true);
+    try {
+      const masalarRes = await tableService.getAll();
+      const masalarData = masalarRes?.data || masalarRes;
+
+      if (Array.isArray(masalarData)) {
+        const formatliMasalar = masalarData.map(m => ({
+          id: m.masaId,
+          name: m.masaAdi || `Masa ${m.masaNo || m.masaId}`,
+          status: m.masaDurumu?.toLowerCase() === 'dolu' ? 'occupied' : 
+                  m.masaDurumu?.toLowerCase() === 'rezerve' ? 'reserved' : 'empty',
+          capacity: m.kapasite || 4,
+          order: m.aktifSiparis || null,
+          time: null
+        }));
+        setTables(formatliMasalar);
+      }
+
+      const urunlerRes = await productService.getAll();
+      const urunlerData = urunlerRes?.data || urunlerRes;
+
+      if (Array.isArray(urunlerData)) {
+        const formatliUrunler = urunlerData.map(u => ({
+          id: u.urunId,
+          name: u.urunAdi,
+          price: u.fiyat,
+          category: u.kategoriAdi || 'Genel'
+        }));
+        setMenuItems(formatliUrunler);
+      }
+    } catch (error) {
+      toast.error("Veriler yüklenirken hata oluştu!");
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchUserData = () => {
     try {
       const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
       if (storedUser) {
         const parsed = JSON.parse(storedUser);
         setUserData({
-          name: parsed.name || 'Garson',
+          name: parsed.name || parsed.adSoyad || 'Garson',
           email: parsed.email || 'garson@restoran.com',
           role: parsed.role || 'garson'
         });
@@ -123,11 +143,14 @@ const GarsonPanel = () => {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('user');
-    sessionStorage.removeItem('user');
-    toast.success('Başarıyla çıkış yapıldı!');
-    navigate('/');
+  const handleLogout = async () => {
+    try {
+      await logout();
+      toast.success('Başarıyla çıkış yapıldı!');
+      navigate('/login');
+    } catch (err) {
+      navigate('/login');
+    }
   };
 
   const handlePasswordChange = async (e) => {
@@ -147,20 +170,20 @@ const GarsonPanel = () => {
 
     setPasswordLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await authService.sifreDegistir(currentPassword, newPassword);
       toast.success('Şifreniz başarıyla değiştirildi! 🎉');
       setShowPasswordModal(false);
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
     } catch (error) {
-      toast.error('Şifre değiştirilemedi!');
+      toast.error(error.response?.data?.Mesaj || error.message || 'Şifre değiştirilemedi!');
     } finally {
       setPasswordLoading(false);
     }
   };
 
-  // Masa durumu renkleri
+  // Helper Metotlar
   const getTableStatusColor = (status) => {
     switch(status) {
       case 'empty': return 'bg-green-500 hover:bg-green-600';
@@ -191,28 +214,109 @@ const GarsonPanel = () => {
     }
   };
 
-  // Filtreleme
+  const getOrderItems = (order) => {
+    if (!order) return [];
+    if (Array.isArray(order.items)) return order.items;
+    if (Array.isArray(order.siparisUrunleri)) return order.siparisUrunleri;
+    if (Array.isArray(order.urunler)) return order.urunler;
+    if (Array.isArray(order.siparisDetays)) return order.siparisDetays;
+    return [];
+  };
+
+  const normalizeOrderItem = (item) => {
+    if (!item) return { id: '', name: 'Bilinmeyen Ürün', quantity: 1, price: 0, note: '' };
+    if (typeof item === 'string') return { id: item, name: item, quantity: 1, price: 0, note: '' };
+
+    return {
+      id: item.id ?? item.urunId ?? item.productId ?? item.urun?.id ?? item.siparisUrunId ?? item.siparisDetayId,
+      name: item.name ?? item.urunAdi ?? item.urun?.adi ?? item.ad ?? item.adi ?? 'Ürün',
+      quantity: item.quantity ?? item.adet ?? 1,
+      price: item.price ?? item.fiyat ?? item.birimFiyat ?? 0,
+      note: item.detayNot ?? item.note ?? item.aciklama ?? ''
+    };
+  };
+
+  const getOrderStatusLabel = (order) => order?.status || order?.durum || order?.siparisDurumu || 'Beklemede';
+  const getOrderTimeText = (order) => order?.time || order?.siparisZamani || order?.olusturmaTarihi || order?.siparisSaati || 'Bilinmiyor';
+
+  const getOrderTotal = (order) => {
+    if (!order) return 0;
+    if (typeof order.total === 'number') return order.total;
+    if (typeof order.toplam === 'number') return order.toplam;
+    if (typeof order.tutar === 'number') return order.tutar;
+
+    return getOrderItems(order).reduce((sum, item) => {
+      const quantity = item.quantity ?? item.adet ?? 1;
+      const price = item.price ?? item.fiyat ?? item.birimFiyat ?? 0;
+      return sum + quantity * price;
+    }, 0);
+  };
+
+  const buildCartFromOrder = (order) => getOrderItems(order).map(item => normalizeOrderItem(item));
+
+  const handleOpenOrderDetail = async (table) => {
+    setSelectedTable(table);
+    if (table.order) {
+      setSelectedOrderTable(table);
+      setShowOrderDetailModal(true);
+      return;
+    }
+
+    try {
+      const response = await orderService.getAll();
+      const allOrders = response?.data || response;
+      const foundOrder = Array.isArray(allOrders)
+        ? allOrders.find(o =>
+            +o.masaId === +table.id || +o.tableId === +table.id ||
+            o.masa?.id === +table.id || o.table?.id === +table.id
+          )
+        : null;
+
+      if (foundOrder) {
+        setSelectedOrderTable({ ...table, order: foundOrder });
+        setShowOrderDetailModal(true);
+      } else {
+        toast.info('Bu masa için aktif sipariş bulunamadı.');
+      }
+    } catch (error) {
+      toast.error('Sipariş detayları alınamadı.');
+      console.error(error);
+    }
+  };
+
+  const handleTableClick = async (table) => {
+    setSelectedTable(table);
+    if (table.status === 'empty') {
+      setActiveTab('yeni');
+      setCurrentOrder({ tableId: table.id, items: [], total: 0 });
+    } else if (table.status === 'occupied') {
+      await handleOpenOrderDetail(table);
+    }
+  };
+
+  const handleEditOrderFromDetail = () => {
+    if (!selectedOrderTable?.order) return;
+    setCart(buildCartFromOrder(selectedOrderTable.order));
+    setSelectedTable(selectedOrderTable);
+    setShowOrderModal(true);
+    setShowOrderDetailModal(false);
+  };
+
+  const handlePaymentFromDetail = () => {
+    if (!selectedOrderTable) return;
+    setSelectedTable(selectedOrderTable);
+    setShowPaymentModal(true);
+    setShowOrderDetailModal(false);
+  };
+
   const filteredTables = tables.filter(table => {
     if (filter === 'all') return true;
     return table.status === filter;
   });
 
-  // Masa seçimi
-  const handleTableClick = (table) => {
-    setSelectedTable(table);
-    if (table.status === 'empty') {
-      // Boş masaya tıklanınca yeni sipariş sayfasına yönlendir
-      setActiveTab('yeni');
-      setCurrentOrder({ tableId: table.id, items: [], total: 0 });
-    } else if (table.status === 'occupied') {
-      toast.info(`${table.name} - Sipariş detayları`);
-    }
-  };
-
-  // Sepete ürün ekle (özel not ile)
+  // Sepet İşlemleri
   const addToCart = (item) => {
     const note = prompt(`📝 ${item.name} için özel not (isteğe bağlı):`, '');
-    
     const existing = cart.find(c => c.id === item.id);
     if (existing) {
       setCart(cart.map(c => 
@@ -221,10 +325,9 @@ const GarsonPanel = () => {
     } else {
       setCart([...cart, { ...item, quantity: 1, note: note || '' }]);
     }
-    toast.success(`${item.name} sepete eklendi${note ? ' 📝 Not: ' + note : ''}`);
+    toast.success(`${item.name} sepete eklendi`);
   };
 
-  // Sepetten ürün çıkar
   const removeFromCart = (itemId) => {
     const item = cart.find(c => c.id === itemId);
     if (item.quantity > 1) {
@@ -236,7 +339,6 @@ const GarsonPanel = () => {
     }
   };
 
-  // Ürün notu güncelle
   const updateItemNote = (itemId) => {
     const item = cart.find(c => c.id === itemId);
     if (item) {
@@ -245,108 +347,128 @@ const GarsonPanel = () => {
         setCart(cart.map(c => 
           c.id === itemId ? { ...c, note: newNote } : c
         ));
-        toast.info(`📝 Not güncellendi: ${newNote || 'Not silindi'}`);
       }
     }
   };
 
-  // Siparişi onayla
-  const confirmOrder = () => {
+  const confirmOrder = async () => {
     if (cart.length === 0) {
       toast.warning('Sepet boş!');
       return;
     }
+    if (!selectedTable) {
+      toast.warning('Lütfen bir masa seçin!');
+      return;
+    }
 
-    const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    
-    setTables(tables.map(table => 
-      table.id === selectedTable.id 
-        ? { 
-            ...table, 
-            status: 'occupied', 
-            order: { 
-              items: cart.map(c => ({ 
-                name: c.name, 
-                quantity: c.quantity, 
-                price: c.price,
-                note: c.note || ''
-              })), 
-              total: total 
-            },
-            time: '0dk'
-          }
-        : table
-    ));
+    try {
+      const siparisData = {
+        masaId: selectedTable.id,
+        siparisTipi: 'SALON',
+        detaylar: cart.map(item => ({
+          urunId: item.id,
+          adet: item.quantity,
+          detayNot: item.note || ''
+        }))
+      };
 
-    toast.success(`Sipariş oluşturuldu! Toplam: ₺${total}`);
-    setActiveTab('masa');
-    setShowOrderModal(false);
-    setCart([]);
-    setCurrentOrder({ tableId: null, items: [], total: 0 });
-    
-    setNotifications([
-      { id: Date.now(), message: `${selectedTable.name} sipariş verdi`, time: 'Şimdi', read: false },
-      ...notifications
-    ]);
+      await orderService.create(siparisData);
+      toast.success('Sipariş başarıyla mutfağa iletildi! 🍳');
+      
+      verileriYukle();
+      setActiveTab('masa');
+      setShowOrderModal(false);
+      setCart([]);
+    } catch (error) {
+      toast.error(error.response?.data?.Mesaj || error.message || 'Sipariş oluşturulamadı!');
+    }
   };
 
-  // Masa Taşıma
-  const handleMoveTable = () => {
+  const processPayment = async (tableId, method) => {
+    const table = tables.find(t => t.id === tableId);
+    const siparisId = table?.order?.siparisId;
+    if (!table || !siparisId) {
+      toast.error('Ödeme alınacak sipariş bilgisi bulunamadı.');
+      return;
+    }
+
+    try {
+      await paymentService.processPayment({
+        siparisId,
+        odemeTipi: method === 'Nakit' ? 'NAKIT' : 'KREDI KARTI',
+        personelId: 1,
+        kasaId: 1
+      });
+
+      toast.success('Ödeme başarıyla alındı!');
+      await verileriYukle();
+      setShowPaymentModal(false);
+    } catch (error) {
+      const errorMessage = error.response?.data?.Mesaj || error.response?.data?.message || error.message || 'Ödeme alınamadı!';
+      toast.error(errorMessage);
+    }
+  };
+
+  const handleMoveTable = async () => {
     if (!moveFromTable || !moveToTable) {
       toast.warning('Lütfen kaynak ve hedef masa seçin!');
       return;
     }
     if (moveFromTable === moveToTable) {
-      toast.warning('Aynı masa seçilemez!');
+      toast.warning('Kaynak ve hedef masa aynı olamaz!');
       return;
     }
 
-    const fromTable = tables.find(t => t.id === parseInt(moveFromTable));
-    const toTable = tables.find(t => t.id === parseInt(moveToTable));
-    
-    if (!fromTable || !toTable) {
-      toast.error('Masa bulunamadı!');
-      return;
+    try {
+      await tableService.moveTable({ kaynakMasaId: parseInt(moveFromTable, 10), hedefMasaId: parseInt(moveToTable, 10) });
+      toast.success('Masa başarıyla taşındı!');
+      await verileriYukle();
+      setShowMoveTableModal(false);
+      setMoveFromTable('');
+      setMoveToTable('');
+    } catch (error) {
+      const errorMessage = error.response?.data?.Mesaj || error.response?.data?.message || error.message || 'Masa taşıma başarısız oldu.';
+      toast.error(errorMessage);
     }
-
-    if (toTable.status !== 'empty') {
-      toast.error('Hedef masa boş değil!');
-      return;
-    }
-
-    if (fromTable.status !== 'occupied') {
-      toast.error('Kaynak masa dolu değil!');
-      return;
-    }
-
-    setTables(tables.map(table => {
-      if (table.id === parseInt(moveFromTable)) {
-        return { ...table, status: 'empty', order: null, time: null };
-      }
-      if (table.id === parseInt(moveToTable)) {
-        return { ...table, status: 'occupied', order: fromTable.order, time: fromTable.time };
-      }
-      return table;
-    }));
-
-    toast.success(`Masa başarıyla taşındı! ${fromTable.name} → ${toTable.name}`);
-    setShowMoveTableModal(false);
-    setMoveFromTable('');
-    setMoveToTable('');
   };
 
-  // İade/İptal
-  const handleRefundSelect = (tableId) => {
-    const table = tables.find(t => t.id === tableId);
-    if (!table || !table.order) {
-      toast.warning('Bu masada sipariş yok!');
+  // İade Masa Seçimi
+  const handleRefundSelect = async (tableId) => {
+    if (!tableId) return;
+
+    const table = tables.find(t => +t.id === +tableId);
+    if (!table) {
+      toast.error('Masa bulunamadı.');
       return;
     }
-    setRefundTable(table);
-    setRefundItems(table.order.items || []);
+
+    let order = table.order;
+
+    if (!order) {
+      try {
+        const response = await orderService.getAll();
+        const allOrders = response?.data || response;
+        if (Array.isArray(allOrders)) {
+          order = allOrders.find(o => 
+            (+o.masaId === +table.id || +o.tableId === +table.id) &&
+            o.siparisDurumu !== 'ODENDI' && o.siparisDurumu !== 'IPTAL'
+          );
+        }
+      } catch (error) {
+        console.error('Sipariş bilgisi çekilemedi:', error);
+      }
+    }
+
+    if (!order) {
+      toast.error('Bu masa için aktif sipariş bulunamadı.');
+      return;
+    }
+
+    const items = getOrderItems(order).map(normalizeOrderItem);
+    setRefundTable({ ...table, order });
+    setRefundItems(items);
     setSelectedRefundItems([]);
     setRefundReason('');
-    setShowRefundModal(true);
   };
 
   const toggleRefundItem = (index) => {
@@ -357,90 +479,58 @@ const GarsonPanel = () => {
     }
   };
 
-  const processRefund = () => {
+  // İade Talebi Gönderme
+  const processRefund = async () => {
+    if (!refundTable?.order?.siparisId) {
+      toast.error('İade edilecek sipariş bilgisi bulunamadı.');
+      return;
+    }
     if (selectedRefundItems.length === 0) {
-      toast.warning('Lütfen iade edilecek ürünleri seçin!');
+      toast.warning('Lütfen iade edilecek ürünleri seçin.');
       return;
     }
     if (!refundReason) {
-      toast.warning('Lütfen iade sebebini seçin!');
+      toast.warning('Lütfen iade nedeni seçin.');
       return;
     }
 
-    const refundTotal = selectedRefundItems.reduce((sum, index) => {
-      const item = refundItems[index];
-      return sum + (item.price * item.quantity);
-    }, 0);
+    try {
+      const iadeIstekleri = selectedRefundItems.map((index) => {
+        const item = refundItems[index];
+        const birimFiyat = item?.price || 0;
+        const adet = item?.quantity || 1;
+        const toplamTutar = birimFiyat * adet;
 
-    const remainingItems = refundItems.filter((_, index) => !selectedRefundItems.includes(index));
-    
-    if (remainingItems.length === 0) {
-      setTables(tables.map(table => 
-        table.id === refundTable.id 
-          ? { ...table, status: 'empty', order: null, time: null }
-          : table
-      ));
-      toast.info(`Tüm sipariş iptal edildi! İade tutarı: ₺${refundTotal}`);
-    } else {
-      const newTotal = remainingItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-      setTables(tables.map(table => 
-        table.id === refundTable.id 
-          ? { ...table, order: { items: remainingItems, total: newTotal } }
-          : table
-      ));
-      toast.info(`Seçili ürünler iade edildi! İade tutarı: ₺${refundTotal}`);
-    }
+        return paymentService.processRefund({
+          iadeSebebi: refundReason,
+          iadeDurumu: 'BEKLEMEDE',
+          iadeTutari: toplamTutar,
+          siparisDetayId: item?.id || null,
+          urunId: item?.id || null,
+          personelId: 1
+        });
+      });
 
-    toast.success(`İade sebebi: ${refundReason}`);
-    setShowRefundModal(false);
-    setRefundTable(null);
-    setRefundItems([]);
-    setSelectedRefundItems([]);
-    setRefundReason('');
-  };
+      await Promise.all(iadeIstekleri);
 
-  // Ödeme Al
-  const processPayment = (tableId, method) => {
-    const table = tables.find(t => t.id === tableId);
-    if (!table || !table.order) {
-      toast.error('Sipariş bulunamadı!');
-      return;
-    }
-
-    const orderDetails = table.order.items.map(item => 
-      `${item.quantity}x ${item.name}${item.note ? ` (📝${item.note})` : ''}`
-    ).join('\n');
-
-    const confirmPayment = window.confirm(
-      `💰 ${table.name}\n\n` +
-      `Sipariş Detayları:\n${orderDetails}\n\n` +
-      `Toplam: ₺${table.order.total}\n` +
-      `Ödeme Yöntemi: ${method}\n\n` +
-      `Ödemeyi onaylıyor musunuz?`
-    );
-
-    if (confirmPayment) {
-      setTables(tables.map(table => 
-        table.id === tableId 
-          ? { ...table, status: 'empty', order: null, time: null }
-          : table
-      ));
+      toast.success('İade talebi başarıyla oluşturuldu! 🎉');
+      await verileriYukle();
       
-      toast.success(`✅ ${table.name} ödeme başarılı! (${method}) ₺${table.order.total}`);
-      setActiveTab('masa');
-      setShowPaymentModal(false);
-      setSelectedTable(null);
+      setShowRefundModal(false);
+      setRefundTable(null);
+      setRefundItems([]);
+      setSelectedRefundItems([]);
+      setRefundReason('');
+    } catch (error) {
+      const errorMessage =
+        error.response?.data?.Mesaj ||
+        error.response?.data?.message ||
+        error.message ||
+        'İade işlemi başarısız oldu.';
+      toast.error(errorMessage);
     }
   };
 
-  // Bildirim okundu
-  const markNotificationAsRead = (id) => {
-    setNotifications(notifications.map(n => 
-      n.id === id ? { ...n, read: true } : n
-    ));
-  };
-
-  // Menü kategorileri
   const categories = ['Tümü', ...new Set(menuItems.map(item => item.category))];
   const [selectedCategory, setSelectedCategory] = useState('Tümü');
 
@@ -448,10 +538,7 @@ const GarsonPanel = () => {
     ? menuItems 
     : menuItems.filter(item => item.category === selectedCategory);
 
-  // Sidebar toggle
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
-
-  // Dolu masalar (ödeme için)
   const occupiedTables = tables.filter(t => t.status === 'occupied');
 
   return (
@@ -464,7 +551,6 @@ const GarsonPanel = () => {
         backgroundAttachment: 'fixed'
       }}
     >
-      {/* Arka plan overlay */}
       <div className="absolute inset-0 bg-black/40 backdrop-blur-xl"></div>
       
       <div className="relative z-10 flex">
@@ -492,13 +578,10 @@ const GarsonPanel = () => {
             <button onClick={toggleSidebar} className="text-gray-400 hover:text-white hidden lg:block">
               {sidebarOpen ? <FaTimes size={16} /> : <FaBars size={16} />}
             </button>
-            <button onClick={() => setMobileSidebarOpen(false)} className="text-gray-400 hover:text-white lg:hidden">
-              <FaTimes size={20} />
-            </button>
           </div>
 
           <div className="py-4 px-3">
-            <button onClick={() => setActiveTab('masa')} className="w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all text-white bg-white/10">
+            <button onClick={() => setActiveTab('masa')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all text-white ${activeTab === 'masa' ? 'bg-white/20' : 'bg-white/10 hover:bg-white/15'}`}>
               <FaTable size={18} />
               {sidebarOpen && (
                 <div className="flex-1 text-left">
@@ -542,43 +625,11 @@ const GarsonPanel = () => {
           </div>
         </div>
 
-        {/* Mobile Sidebar Toggle */}
-        <button onClick={() => setMobileSidebarOpen(true)} className="lg:hidden fixed top-4 left-4 z-40 p-2.5 bg-black/80 backdrop-blur-sm rounded-lg text-white">
-          <FaBars size={20} />
-        </button>
-
-        {mobileSidebarOpen && (
-          <div className="lg:hidden fixed inset-0 bg-black/50 z-40" onClick={() => setMobileSidebarOpen(false)} />
-        )}
-
-        {/* Ana İçerik */}
+        {/* İçerik */}
         <div className="flex-1">
-          {/* Üst Navbar */}
           <div className="bg-black/80 backdrop-blur-sm border-b border-white/10 sticky top-0 z-30">
             <div className="max-w-7xl mx-auto px-4 py-3">
               <div className="flex items-center justify-end gap-4">
-                <div className="relative group">
-                  <button className="text-gray-400 hover:text-white transition-colors relative">
-                    <FaBell size={18} />
-                    {notifications.filter(n => !n.read).length > 0 && (
-                      <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-[8px] text-white flex items-center justify-center">
-                        {notifications.filter(n => !n.read).length}
-                      </span>
-                    )}
-                  </button>
-                  <div className="absolute right-0 top-full mt-2 w-80 bg-black/95 backdrop-blur-sm rounded-xl border border-white/10 shadow-2xl py-2 hidden group-hover:block">
-                    <p className="px-4 py-2 text-white text-sm font-medium border-b border-white/10">Bildirimler</p>
-                    {notifications.map(n => (
-                      <div key={n.id} className={`px-4 py-2 hover:bg-white/5 cursor-pointer transition-colors ${!n.read ? 'bg-white/5' : ''}`} onClick={() => markNotificationAsRead(n.id)}>
-                        <p className="text-white text-sm">{n.message}</p>
-                        <p className="text-gray-500 text-xs">{n.time}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <button className="text-gray-400 hover:text-white transition-colors">
-                  <FaEnvelope size={18} />
-                </button>
                 <div className="text-right hidden sm:block">
                   <p className="text-white text-sm font-medium">{userData.name}</p>
                   <p className="text-gray-400 text-[10px]">{userData.email}</p>
@@ -587,51 +638,58 @@ const GarsonPanel = () => {
             </div>
           </div>
 
-          {/* İçerik */}
           <div className="max-w-7xl mx-auto px-4 py-6">
-            {activeTab === 'masa' && (
-              <MasaYonetimi
-                tables={tables}
-                filteredTables={filteredTables}
-                filter={filter}
-                setFilter={setFilter}
-                handleTableClick={handleTableClick}
-                getTableStatusColor={getTableStatusColor}
-                getTableStatusText={getTableStatusText}
-                getStatusIcon={getStatusIcon}
-                onNewOrderClick={() => setShowOrderModal(true)}
-                onOpenPaymentClick={() => setShowPaymentModal(true)}
-                onOpenMoveTableClick={() => setShowMoveTableModal(true)}
-                onOpenRefundClick={() => setShowRefundModal(true)}
-              />
-            )}
+            {loading ? (
+              <div className="flex items-center justify-center py-20 text-white gap-3">
+                <FaSpinner className="animate-spin" size={24} />
+                <span>Veriler Yükleniyor...</span>
+              </div>
+            ) : (
+              <>
+                {activeTab === 'masa' && (
+                  <MasaYonetimi
+                    tables={tables}
+                    filteredTables={filteredTables}
+                    filter={filter}
+                    setFilter={setFilter}
+                    handleTableClick={handleTableClick}
+                    getTableStatusColor={getTableStatusColor}
+                    getTableStatusText={getTableStatusText}
+                    getStatusIcon={getStatusIcon}
+                    onNewOrderClick={() => setShowOrderModal(true)}
+                    onOpenPaymentClick={() => setShowPaymentModal(true)}
+                    onOpenMoveTableClick={() => setShowMoveTableModal(true)}
+                    onOpenRefundClick={() => setShowRefundModal(true)}
+                  />
+                )}
 
-            {activeTab === 'yeni' && (
-              <YeniSiparisPage
-                categories={categories}
-                selectedCategory={selectedCategory}
-                onCategorySelect={setSelectedCategory}
-                filteredMenu={filteredMenu}
-                cart={cart}
-                onAddToCart={addToCart}
-                onRemoveFromCart={removeFromCart}
-                onUpdateItemNote={updateItemNote}
-                onConfirmOrder={confirmOrder}
-                selectedTable={selectedTable}
-                onSelectTable={(table) => setSelectedTable(table)}
-                tables={tables}
-              />
-            )}
+                {activeTab === 'yeni' && (
+                  <YeniSiparisPage
+                    categories={categories}
+                    selectedCategory={selectedCategory}
+                    onCategorySelect={setSelectedCategory}
+                    filteredMenu={filteredMenu}
+                    cart={cart}
+                    onAddToCart={addToCart}
+                    onRemoveFromCart={removeFromCart}
+                    onUpdateItemNote={updateItemNote}
+                    onConfirmOrder={confirmOrder}
+                    selectedTable={selectedTable}
+                    onSelectTable={(table) => setSelectedTable(table)}
+                    tables={tables}
+                  />
+                )}
 
-            {activeTab === 'hesap' && (
-              <HesapIslemleri occupiedTables={occupiedTables} processPayment={processPayment} />
+                {activeTab === 'hesap' && (
+                  <HesapIslemleri occupiedTables={occupiedTables} processPayment={processPayment} />
+                )}
+              </>
             )}
           </div>
         </div>
       </div>
 
-      {/* Sipariş ve Ödeme modal görünümleri — eski görünümü korumak için sayfaları modal içine sarıyoruz */}
-
+      {/* Modallar */}
       {showOrderModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
           <div className="bg-black/95 backdrop-blur-sm rounded-2xl border border-white/10 shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6">
@@ -669,6 +727,69 @@ const GarsonPanel = () => {
               </button>
             </div>
             <HesapIslemleri occupiedTables={occupiedTables} processPayment={processPayment} />
+          </div>
+        </div>
+      )}
+
+      {showOrderDetailModal && selectedOrderTable && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="bg-black/95 backdrop-blur-sm rounded-2xl border border-white/10 shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
+              <div>
+                <h2 className="text-white font-bold text-xl">{selectedOrderTable.name} - Sipariş Detayları</h2>
+                <p className="text-gray-400 text-sm mt-1">{getOrderTimeText(selectedOrderTable.order)}</p>
+                <span className="inline-flex mt-2 px-3 py-1 rounded-full text-xs font-semibold bg-white/10 text-white border border-white/10">
+                  {getOrderStatusLabel(selectedOrderTable.order)}
+                </span>
+              </div>
+              <button onClick={() => setShowOrderDetailModal(false)} className="text-gray-400 hover:text-white">
+                <FaTimes size={20} />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {getOrderItems(selectedOrderTable.order).length === 0 ? (
+                <div className="text-gray-400 text-sm">Sipariş kalemi bulunamadı.</div>
+              ) : (
+                <div className="space-y-3">
+                  {getOrderItems(selectedOrderTable.order).map((item, index) => {
+                    const normalized = normalizeOrderItem(item);
+                    return (
+                      <div key={index} className="bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                        <div>
+                          <p className="text-white font-semibold">{normalized.name}</p>
+                          <p className="text-gray-400 text-sm">
+                            {normalized.quantity} x ₺{normalized.price.toFixed(2)}
+                            {normalized.note ? ` · Not: ${normalized.note}` : ''}
+                          </p>
+                        </div>
+                        <div className="text-white font-semibold">₺{(normalized.quantity * normalized.price).toFixed(2)}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div className="mt-6 border-t border-white/10 pt-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                  <p className="text-gray-400 text-sm">Toplam Tutar</p>
+                  <p className="text-white text-2xl font-bold">₺{getOrderTotal(selectedOrderTable.order).toFixed(2)}</p>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full sm:w-auto">
+                  <button onClick={handleEditOrderFromDetail} className="px-4 py-3 bg-white/10 hover:bg-white/15 text-white rounded-xl transition-all">
+                    Sipariş Ekle / Düzenle
+                  </button>
+                  <button onClick={handlePaymentFromDetail} className="px-4 py-3 bg-green-500/20 hover:bg-green-500/30 text-green-300 rounded-xl transition-all">
+                    Ödeme Al
+                  </button>
+                  <button onClick={() => setShowOrderDetailModal(false)} className="px-4 py-3 bg-white/10 hover:bg-white/15 text-gray-300 rounded-xl transition-all">
+                    Kapat
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}

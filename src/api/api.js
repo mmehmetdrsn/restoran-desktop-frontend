@@ -109,6 +109,7 @@ export const tableService = {
   create: (data) => api.post('/Masa', data),
   update: (id, data) => api.put(`/Masa/${id}`, data),
   delete: (id) => api.delete(`/Masa/${id}`),
+  moveTable: (data) => api.post('/Masa/tasi', data).then(res => res.data),
 };
 
 // ============================================
@@ -151,6 +152,8 @@ export const paymentService = {
   getAll: () => api.get('/Odeme'),
   getById: (id) => api.get(`/Odeme/${id}`),
   create: (data) => api.post('/Odeme', data),
+  processPayment: (data) => api.post('/Odeme', data).then(res => res.data),
+  processRefund: (data) => api.post('/Odeme/iade-iptal', data).then(res => res.data),
   update: (id, data) => api.put(`/Odeme/${id}`, data),
   delete: (id) => api.delete(`/Odeme/${id}`),
 };

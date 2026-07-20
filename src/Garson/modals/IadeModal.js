@@ -33,12 +33,17 @@ const IadeModal = ({
           <div>
             <label className="text-white text-sm block mb-2">Masa Seç</label>
             <select
-              onChange={(e) => onTableSelect(parseInt(e.target.value, 10))}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val) onTableSelect(parseInt(val, 10));
+              }}
               className="w-full p-2.5 bg-white/5 border border-white/10 rounded-lg text-white focus:ring-2 focus:ring-white/20 focus:border-transparent outline-none"
             >
               <option value="">Seçiniz...</option>
-              {tables.filter(t => t.status === 'occupied' && t.order).map(table => (
-                <option key={table.id} value={table.id}>{table.name} (₺{table.order?.total || 0})</option>
+              {tables.filter(t => t.status === 'occupied').map(table => (
+                <option key={table.id} value={table.id}>
+                  {table.name}
+                </option>
               ))}
             </select>
           </div>
