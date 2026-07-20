@@ -47,7 +47,6 @@ const UyeListele = ({ acik, kapat, uyeler, loading }) => {
                           {ad} {soyad}
                         </h3>
                         <p className="text-gray-400 text-xs truncate flex items-center gap-1">
-                          <FaEnvelope size={10} />
                           {email}
                         </p>
                       </div>

@@ -124,6 +124,7 @@ const AdminPanel = () => {
   const [duzenlenecekUrunFiyat, setDuzenlenecekUrunFiyat] = useState('');
   const [duzenlenecekUrunKategori, setDuzenlenecekUrunKategori] = useState('');
   const [duzenlenecekUrunAciklama, setDuzenlenecekUrunAciklama] = useState('');
+  const [urunAciklama, setUrunAciklama] = useState('');
 
   //Üye
   const [showUyeEkle, setShowUyeEkle] = useState(false);
@@ -133,12 +134,17 @@ const AdminPanel = () => {
   const [uyeListesi, setUyeListesi] = useState([]);
   const [uyeLoading, setUyeLoading] = useState(false);
   const [yeniUye, setYeniUye] = useState({
-    ad: '',
-    soyad: '',
-    email: '',
-    telefon: '',
-    adres: ''
+    uyeAdi: '',
+    uyeSoyadi: '',
+    uyeEmail: '',
+    uyeSifre: '',
+    uyeTelefon: '',
+    cinsiyet: '',
+    adresTipi: '',
+    acikAdres: '',
+    teslimatBolgesindeMi: false
   });
+
   const [duzenlenecekUyeId, setDuzenlenecekUyeId] = useState('');
   const [duzenlenecekUyeAdi, setDuzenlenecekUyeAdi] = useState('');
   const [duzenlenecekUyeSoyadi, setDuzenlenecekUyeSoyadi] = useState('');
@@ -509,7 +515,7 @@ const AdminPanel = () => {
       <BolumBasligi icon={<FaUtensils />} title="Ürün ve Menü Yönetimi" />
       <p className="text-gray-400 text-sm mb-6">Ürün ve menü işlemlerinizi buradan yönetin.</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        <Buton icon={<FaPlus />} label="Ürün Ekle" onClick={() => { setShowUrunEkle(true); }} />
+        <Buton icon={<FaPlus />} label="Ürün Ekle" onClick={() => { setUrunAciklama(''); setShowUrunEkle(true); }} />
         <Buton icon={<FaTrash />} label="Ürün Sil" onClick={() => setShowUrunSil(true)} />
         <Buton icon={<FaEdit />} label="Ürün Düzenle" onClick={() => setShowUrunDuzenle(true)} />
         <Buton icon={<FaList />} label="Ürün Listele" onClick={handleUrunListele} />
@@ -788,6 +794,8 @@ const AdminPanel = () => {
         setUrunFiyat={setUrunFiyat}
         urunKategoriId={urunKategoriId}
         setUrunKategoriId={setUrunKategoriId}
+        urunAciklama={urunAciklama}
+        setUrunAciklama={setUrunAciklama}
         loading={urunLoading}
         setLoading={setUrunLoading}
       />
@@ -843,20 +851,6 @@ const AdminPanel = () => {
         acik={showUyeDuzenle}
         kapat={() => setShowUyeDuzenle(false)}
         onSuccess={handleUyeListele}
-        duzenlenecekUyeId={duzenlenecekUyeId}
-        setDuzenlenecekUyeId={setDuzenlenecekUyeId}
-        duzenlenecekUyeAdi={duzenlenecekUyeAdi}
-        setDuzenlenecekUyeAdi={setDuzenlenecekUyeAdi}
-        duzenlenecekUyeSoyadi={duzenlenecekUyeSoyadi}
-        setDuzenlenecekUyeSoyadi={setDuzenlenecekUyeSoyadi}
-        duzenlenecekUyeEmail={duzenlenecekUyeEmail}
-        setDuzenlenecekUyeEmail={setDuzenlenecekUyeEmail}
-        duzenlenecekUyeTelefon={duzenlenecekUyeTelefon}
-        setDuzenlenecekUyeTelefon={setDuzenlenecekUyeTelefon}
-        duzenlenecekUyeAdres={duzenlenecekUyeAdres}
-        setDuzenlenecekUyeAdres={setDuzenlenecekUyeAdres}
-        loading={uyeLoading}
-        setLoading={setUyeLoading}
       />
 
 
