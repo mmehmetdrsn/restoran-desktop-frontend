@@ -5,9 +5,41 @@ import { FaTimes, FaEye, FaEyeSlash } from 'react-icons/fa';
 const UrunListele = ({ acik, kapat, urunler }) => {
   if (!acik) return null;
 
-  // Aktif ve pasif ürünleri ayır
-  const aktifUrunler = urunler.filter(u => u.isActive !== false);
-  const pasifUrunler = urunler.filter(u => u.isActive === false);
+  // ✅ Tüm olası aktiflik durumlarını kontrol et
+  const isUrunAktif = (urun) => {
+    // Tüm olası alan adlarını kontrol et
+    const active = urun.isActive ?? urun.IsActive ?? urun.is_active ?? urun.IS_ACTIVE ?? urun.active ?? urun.Active;
+    
+    // null veya undefined ise aktif kabul et (varsayılan)
+    if (active === null || active === undefined) return true;
+    
+    // true, 1, "true", "1" ise aktif
+    if (active === true || active === 1 || active === 'true' || active === '1') return true;
+    
+    // false, 0, "false", "0" ise pasif
+    return false;
+  };
+
+  // ✅ Ürünün pasif olup olmadığını kontrol et
+  const isUrunPasif = (urun) => {
+    return !isUrunAktif(urun);
+  };
+
+  const aktifUrunler = urunler.filter(isUrunAktif);
+  const pasifUrunler = urunler.filter(isUrunPasif);
+
+  console.log('📊 Tüm ürünler:', urunler);
+  console.log('📊 Aktif ürünler:', aktifUrunler);
+  console.log('📊 Pasif ürünler:', pasifUrunler);
+
+  // Eğer pasif ürün yoksa ama backend'den geliyorsa, alan adını kontrol et
+  if (pasifUrunler.length === 0 && urunler.length > 0) {
+    console.warn('⚠️ Pasif ürün bulunamadı! İlk ürünün alanlarını kontrol edelim:');
+    console.log('🔍 İlk ürün:', urunler[0]);
+    console.log('🔍 isActive değeri:', urunler[0]?.isActive);
+    console.log('🔍 IsActive değeri:', urunler[0]?.IsActive);
+    console.log('🔍 Tüm anahtarlar:', Object.keys(urunler[0]));
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
@@ -31,7 +63,7 @@ const UrunListele = ({ acik, kapat, urunler }) => {
           ) : (
             <div className="space-y-2">
               {urunler.map((urun, index) => {
-                const aktif = urun.isActive !== false;
+                const aktif = isUrunAktif(urun);
                 return (
                   <div 
                     key={index} 
@@ -43,7 +75,7 @@ const UrunListele = ({ acik, kapat, urunler }) => {
                       <span className="text-gray-400 text-xs">{index + 1}.</span>
                       <div>
                         <span className="text-white text-sm">
-                          {urun.urunAdi || urun.name || 'Bilinmiyor'}
+                          {urun.urunAdi || urun.UrunAdi || urun.name || 'Bilinmiyor'}
                         </span>
                         {!aktif && (
                           <span className="ml-2 text-xs text-red-400">(Pasif)</span>
@@ -53,9 +85,9 @@ const UrunListele = ({ acik, kapat, urunler }) => {
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="text-yellow-400 text-sm font-medium">
-                        ₺{urun.fiyat || urun.price || 0}
+                        ₺{urun.fiyat || urun.Fiyat || urun.price || 0}
                       </span>
-                      <span className="text-gray-500 text-xs">#{urun.urunId || urun.id}</span>
+                      <span className="text-gray-500 text-xs">#{urun.urunId || urun.UrunId || urun.id}</span>
                       {aktif ? (
                         <FaEye className="text-green-400" size={14} />
                       ) : (
