@@ -91,7 +91,8 @@ const GarsonPanel = () => {
     fetchUserData();
     verileriYukle();
   }, []);
-const verileriYukle = async () => {
+
+  const verileriYukle = async () => {
     setLoading(true);
     try {
       const masalarRes = await tableService.getAll();
@@ -300,17 +301,22 @@ const verileriYukle = async () => {
     return tableOrOrder;
   };
 
+  // handleOpenOrderDetail - Sipariş detaylarını getir
   const handleOpenOrderDetail = async (table) => {
     setSelectedTable(table);
-    if (table.order) {
+    
+    // Eğer masanın order'ı varsa direkt göster
+    if (table.order && (table.order.siparisUrunleri || table.order.items)) {
       setSelectedOrderTable(table);
       setShowOrderDetailModal(true);
       return;
     }
 
     try {
+      // API'den sipariş detaylarını çek
       const response = await orderService.getAll();
       const allOrders = response?.data || response;
+      
       const foundOrder = Array.isArray(allOrders)
         ? allOrders.find(o =>
             +o.masaId === +table.id || +o.tableId === +table.id ||
@@ -319,7 +325,17 @@ const verileriYukle = async () => {
         : null;
 
       if (foundOrder) {
-        setSelectedOrderTable({ ...table, order: foundOrder });
+        // Sipariş detaylarını tabloya ekle
+        const updatedTable = {
+          ...table,
+          order: foundOrder
+        };
+        setSelectedOrderTable(updatedTable);
+        
+        // Tabloyu da güncelle
+        setTables(prev => prev.map(t => 
+          t.id === table.id ? updatedTable : t
+        ));
       } else {
         setSelectedOrderTable(table);
       }
@@ -330,13 +346,22 @@ const verileriYukle = async () => {
     }
   };
 
+  // handleTableClick - Masa tıklandığında
   const handleTableClick = async (table) => {
     setSelectedTable(table);
-    if (table.status === 'empty') {
+    
+    // Her durumda sipariş detaylarını göster
+    if (table.status === 'occupied' || table.status === 'reserved') {
+      // Dolu veya rezerve masa için sipariş detaylarını getir
+      await handleOpenOrderDetail(table);
+    } else if (table.status === 'empty') {
+      // Boş masa için yeni sipariş ekranı
       setActiveTab('yeni');
       setCurrentOrder({ tableId: table.id, items: [], total: 0 });
-    } else if (table.status === 'occupied') {
-      await handleOpenOrderDetail(table);
+      setShowOrderModal(false);
+    } else {
+      // Arızalı veya diğer durumlar için sadece bilgi göster
+      toast.info(`${table.name} - Durum: ${getTableStatusText(table.status)}`);
     }
   };
 
@@ -449,6 +474,7 @@ const verileriYukle = async () => {
       const siparisData = {
         masaId: selectedTable.id,
         siparisTipi: 'SALON',
+         personelId: 1,
         detaylar: cart.map(item => ({
           urunId: item.id,
           adet: item.quantity,
@@ -457,44 +483,53 @@ const verileriYukle = async () => {
       };
 
       const createdOrderResponse = await orderService.create(siparisData);
-      const createdOrder = createdOrderResponse?.data || createdOrderResponse;
+    const responseData = createdOrderResponse?.data || createdOrderResponse;
+    
+    // Sipariş başarıyla oluşturuldu
+    toast.success('Sipariş başarıyla mutfağa iletildi! 🍳');
 
-      toast.success('Sipariş başarıyla mutfağa iletildi! 🍳');
-
-      if (selectedTable) {
-        const previewOrder = {
-          ...createdOrder,
-          siparisUrunleri: createdOrder?.siparisUrunleri || cart.map(item => ({
+    // Gelen sipariş verilerini kontrol et
+    const createdOrder = responseData?.Siparis || responseData;
+    
+    if (createdOrder) {
+      // Masa bilgisini güncelle
+      const updatedTable = {
+        ...selectedTable,
+        status: 'occupied',
+        order: {
+          siparisId: createdOrder.siparisId || responseData?.SiparisId,
+          toplam: createdOrder.toplamTutar || responseData?.HesaplananToplamTutar || cart.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0),
+          siparisDurumu: createdOrder.siparisDurumu || 'BEKLEMEDE',
+          siparisTarihi: createdOrder.siparisTarihi || new Date().toISOString(),
+          siparisUrunleri: createdOrder.siparisUrunleri || cart.map(item => ({
             urunId: item.id,
             urunAdi: item.name,
             adet: item.quantity,
-            fiyat: item.price ?? item.fiyat ?? 0,
-            detayNot: item.note || ''
-          })),
-          toplam: createdOrder?.toplam ?? cart.reduce((sum, item) => sum + (item.price ?? item.fiyat ?? 0) * (item.quantity ?? item.adet ?? 1), 0),
-          siparisDurumu: createdOrder?.siparisDurumu || 'YENI'
-        };
+            fiyat: item.price || 0,
+            detayNot: item.note || '',
+            satirToplami: (item.price || 0) * (item.quantity || 1)
+          }))
+        },
+        time: createdOrder.siparisTarihi || new Date().toISOString()
+      };
 
-        const updatedTable = {
-          ...selectedTable,
-          status: 'occupied',
-          order: previewOrder,
-          time: getOrderTimeText(previewOrder)
-        };
-
-        setSelectedTable(updatedTable);
-        setTables(prev => prev.map(t => t.id === updatedTable.id ? updatedTable : t));
-      }
-
-      setFilter('all');
-      await verileriYukle();
-      setActiveTab('masa');
-      setShowOrderModal(false);
-      setCart([]);
-    } catch (error) {
-      toast.error(error.response?.data?.Mesaj || error.message || 'Sipariş oluşturulamadı!');
+      setSelectedTable(updatedTable);
+      setTables(prev => prev.map(t => 
+        t.id === updatedTable.id ? updatedTable : t
+      ));
     }
-  };
+
+    // Verileri yeniden yükle
+    await verileriYukle();
+    setActiveTab('masa');
+    setShowOrderModal(false);
+    setCart([]);
+    
+  } catch (error) {
+    console.error('Sipariş hatası:', error);
+    toast.error(error.response?.data?.Mesaj || error.message || 'Sipariş oluşturulamadı!');
+  }
+};
 
   const processPayment = async (tableId, method) => {
     const table = tables.find(t => t.id === tableId);
@@ -863,65 +898,127 @@ const verileriYukle = async () => {
                 <FaTimes size={20} />
               </button>
             </div>
-            <HesapIslemleri occupiedTables={occupiedTables} processPayment={processPayment} />
+            <HesapIslemleri occupiedTables={occupiedTables} processPayment={processPayment} isDayMode={isDayMode} />
           </div>
         </div>
       )}
 
       {showOrderDetailModal && selectedOrderTable && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <div className="bg-black/95 backdrop-blur-sm rounded-2xl border border-white/10 shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6">
+        <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm`}>
+          <div className={`${isDayMode ? 'bg-white text-slate-900' : 'bg-black/95 text-white'} backdrop-blur-sm rounded-2xl border ${isDayMode ? 'border-slate-200' : 'border-white/10'} shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6`}>
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
               <div>
-                <h2 className="text-white font-bold text-xl">{selectedOrderTable.name} - Sipariş Detayları</h2>
-                <p className="text-gray-400 text-sm mt-1">{getOrderTimeText(getOrderObject(selectedOrderTable))}</p>
-                <span className="inline-flex mt-2 px-3 py-1 rounded-full text-xs font-semibold bg-white/10 text-white border border-white/10">
+                <h2 className={`${isDayMode ? 'text-slate-900' : 'text-white'} font-bold text-xl`}>
+                  {selectedOrderTable.name} - Sipariş Detayları
+                </h2>
+                
+                {/* Masa durumu */}
+                <div className="flex items-center gap-2 mt-1">
+                  <span className={`text-sm ${isDayMode ? 'text-slate-500' : 'text-gray-400'}`}>
+                    Durum:
+                  </span>
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                    selectedOrderTable.status === 'occupied' ? 'bg-red-500/20 text-red-400' :
+                    selectedOrderTable.status === 'reserved' ? 'bg-orange-500/20 text-orange-400' :
+                    selectedOrderTable.status === 'empty' ? 'bg-green-500/20 text-green-400' :
+                    'bg-gray-500/20 text-gray-400'
+                  }`}>
+                    {getTableStatusText(selectedOrderTable.status)}
+                  </span>
+                </div>
+                
+                <p className={`${isDayMode ? 'text-slate-500' : 'text-gray-400'} text-sm mt-1`}>
+                  {getOrderTimeText(getOrderObject(selectedOrderTable))}
+                </p>
+                <span className={`inline-flex mt-2 px-3 py-1 rounded-full text-xs font-semibold ${isDayMode ? 'bg-slate-100 text-slate-700 border border-slate-200' : 'bg-white/10 text-white border border-white/10'}`}>
                   {getOrderStatusLabel(getOrderObject(selectedOrderTable))}
                 </span>
               </div>
-              <button onClick={() => setShowOrderDetailModal(false)} className="text-gray-400 hover:text-white">
+              <button onClick={() => setShowOrderDetailModal(false)} className={`${isDayMode ? 'text-slate-500 hover:text-slate-900' : 'text-gray-400 hover:text-white'}`}>
                 <FaTimes size={20} />
               </button>
             </div>
 
             <div className="space-y-4">
-              {getOrderItems(getOrderObject(selectedOrderTable)).length === 0 ? (
-                <div className="text-gray-400 text-sm">Sipariş kalemi bulunamadı.</div>
-              ) : (
-                <div className="space-y-3">
-                  {getOrderItems(getOrderObject(selectedOrderTable)).map((item, index) => {
-                    const normalized = normalizeOrderItem(item);
-                    return (
-                      <div key={index} className="bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                        <div>
-                          <p className="text-white font-semibold">{normalized.name}</p>
-                          <p className="text-gray-400 text-sm">
-                            {normalized.quantity} x ₺{normalized.price.toFixed(2)}
-                            {normalized.note ? ` · Not: ${normalized.note}` : ''}
-                          </p>
+              {(() => {
+                const order = getOrderObject(selectedOrderTable);
+                const items = getOrderItems(order);
+                
+                if (items.length === 0) {
+                  return (
+                    <div className={`${isDayMode ? 'text-slate-500' : 'text-gray-400'} text-sm text-center py-8`}>
+                      Bu siparişe ait ürün bulunamadı.
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="space-y-3">
+                    {/* Başlık */}
+                    <div className={`flex justify-between items-center px-1 ${isDayMode ? 'text-slate-500' : 'text-gray-400'} text-xs uppercase font-semibold`}>
+                      <span>Ürün</span>
+                      <span>Tutar</span>
+                    </div>
+                    
+                    {/* Ürün listesi */}
+                    {items.map((item, index) => {
+                      const normalized = normalizeOrderItem(item);
+                      const subtotal = normalized.quantity * normalized.price;
+                      return (
+                        <div key={index} className={`${isDayMode ? 'bg-slate-50 border-slate-200' : 'bg-white/5 border-white/10'} border rounded-2xl p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3`}>
+                          <div className="flex-1">
+                            <p className={`${isDayMode ? 'text-slate-900' : 'text-white'} font-semibold`}>
+                              {normalized.name}
+                            </p>
+                            <p className={`${isDayMode ? 'text-slate-500' : 'text-gray-400'} text-sm`}>
+                              {normalized.quantity} x ₺{normalized.price.toFixed(2)}
+                              {normalized.note && (
+                                <span className={`${isDayMode ? 'text-slate-600' : 'text-yellow-400'} text-xs ml-2`}>
+                                  📝 {normalized.note}
+                                </span>
+                              )}
+                            </p>
+                          </div>
+                          <div className={`${isDayMode ? 'text-slate-900' : 'text-white'} font-semibold`}>
+                            ₺{subtotal.toFixed(2)}
+                          </div>
                         </div>
-                        <div className="text-white font-semibold">₺{(normalized.quantity * normalized.price).toFixed(2)}</div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+                      );
+                    })}
+                  </div>
+                );
+              })()}
             </div>
 
-            <div className="mt-6 border-t border-white/10 pt-4">
+            <div className={`mt-6 border-t ${isDayMode ? 'border-slate-200' : 'border-white/10'} pt-4`}>
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div>
-                  <p className="text-gray-400 text-sm">Toplam Tutar</p>
-                  <p className="text-white text-2xl font-bold">₺{getOrderTotal(getOrderObject(selectedOrderTable)).toFixed(2)}</p>
+                  <p className={`${isDayMode ? 'text-slate-500' : 'text-gray-400'} text-sm`}>Toplam Tutar</p>
+                  <p className={`${isDayMode ? 'text-slate-900' : 'text-white'} text-2xl font-bold`}>
+                    ₺{getOrderTotal(getOrderObject(selectedOrderTable)).toFixed(2)}
+                  </p>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full sm:w-auto">
-                  <button onClick={handleEditOrderFromDetail} className="px-4 py-3 bg-white/10 hover:bg-white/15 text-white rounded-xl transition-all">
-                    Sipariş Ekle / Düzenle
-                  </button>
-                  <button onClick={handlePaymentFromDetail} className="px-4 py-3 bg-green-500/20 hover:bg-green-500/30 text-green-300 rounded-xl transition-all">
-                    Ödeme Al
-                  </button>
-                  <button onClick={() => setShowOrderDetailModal(false)} className="px-4 py-3 bg-white/10 hover:bg-white/15 text-gray-300 rounded-xl transition-all">
+                  {selectedOrderTable.status === 'occupied' && (
+                    <>
+                      <button 
+                        onClick={handleEditOrderFromDetail} 
+                        className={`px-4 py-3 ${isDayMode ? 'bg-slate-200 hover:bg-slate-300 text-slate-900' : 'bg-white/10 hover:bg-white/15 text-white'} rounded-xl transition-all`}
+                      >
+                        Sipariş Ekle / Düzenle
+                      </button>
+                      <button 
+                        onClick={handlePaymentFromDetail} 
+                        className="px-4 py-3 bg-green-500/20 hover:bg-green-500/30 text-green-300 rounded-xl transition-all"
+                      >
+                        Ödeme Al
+                      </button>
+                    </>
+                  )}
+                  <button 
+                    onClick={() => setShowOrderDetailModal(false)} 
+                    className={`px-4 py-3 ${isDayMode ? 'bg-slate-100 hover:bg-slate-200 text-slate-600' : 'bg-white/10 hover:bg-white/15 text-gray-300'} rounded-xl transition-all`}
+                  >
                     Kapat
                   </button>
                 </div>

@@ -1,4 +1,5 @@
-import React from 'react';
+// src/Garson/pages/MasaYonetimi.js
+import React, { useState } from 'react';
 import { FaChair } from 'react-icons/fa';
 
 const MasaYonetimi = ({
@@ -13,6 +14,89 @@ const MasaYonetimi = ({
   onOpenStatusModal,
   isDayMode
 }) => {
+  const [hoveredTable, setHoveredTable] = useState(null);
+
+  // Sipariş özetini gösteren tooltip içeriği
+  const getOrderTooltip = (table) => {
+    if (table.status !== 'occupied' || !table.order) {
+      return getTableStatusText(table.status);
+    }
+
+    const items = table.order.siparisUrunleri || table.order.items || [];
+    if (items.length === 0) {
+      return `${getTableStatusText(table.status)} - Sipariş yok`;
+    }
+
+    let tooltipText = `${getTableStatusText(table.status)}\n`;
+    items.forEach(item => {
+      const name = item.urunAdi || item.name || 'Ürün';
+      const qty = item.adet || item.quantity || 1;
+      const price = item.fiyat || item.price || 0;
+      tooltipText += `${name} x${qty} = ₺${(qty * price).toFixed(2)}\n`;
+    });
+    const total = table.order.toplam || table.order.total || 0;
+    tooltipText += `\n📊 Toplam: ₺${total.toFixed(2)}`;
+    return tooltipText;
+  };
+
+  // Sipariş detaylarını gösteren modal içeriği
+  const renderOrderDetails = (table) => {
+    if (table.status !== 'occupied' || !table.order) {
+      return (
+        <div className={`${isDayMode ? 'text-slate-500' : 'text-gray-400'} text-sm text-center py-4`}>
+          Bu masa için aktif sipariş bulunmuyor.
+        </div>
+      );
+    }
+
+    const items = table.order.siparisUrunleri || table.order.items || [];
+    const total = table.order.toplam || table.order.total || 0;
+
+    if (items.length === 0) {
+      return (
+        <div className={`${isDayMode ? 'text-slate-500' : 'text-gray-400'} text-sm text-center py-4`}>
+          Sipariş detayı bulunmuyor.
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-2">
+        {items.map((item, index) => {
+          const name = item.urunAdi || item.name || 'Ürün';
+          const qty = item.adet || item.quantity || 1;
+          const price = item.fiyat || item.price || 0;
+          const note = item.detayNot || item.note || '';
+          return (
+            <div key={index} className={`flex justify-between items-center p-2 ${isDayMode ? 'bg-slate-100' : 'bg-white/5'} rounded-lg`}>
+              <div>
+                <span className={`${isDayMode ? 'text-slate-900' : 'text-white'} font-medium`}>
+                  {qty}x {name}
+                </span>
+                {note && (
+                  <span className={`${isDayMode ? 'text-slate-500' : 'text-yellow-400'} text-xs block`}>
+                    📝 {note}
+                  </span>
+                )}
+              </div>
+              <span className={`${isDayMode ? 'text-slate-900' : 'text-white'} font-semibold`}>
+                ₺{(qty * price).toFixed(2)}
+              </span>
+            </div>
+          );
+        })}
+        <div className={`border-t ${isDayMode ? 'border-slate-200' : 'border-white/10'} pt-2 mt-2`}>
+          <div className="flex justify-between items-center">
+            <span className={`${isDayMode ? 'text-slate-600' : 'text-gray-400'} font-medium`}>Toplam</span>
+            <span className={`${isDayMode ? 'text-slate-900' : 'text-white'} text-xl font-bold`}>
+              ₺{total.toFixed(2)}
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div>
       <div className="flex flex-wrap gap-2 mb-6">
@@ -25,19 +109,62 @@ const MasaYonetimi = ({
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
         {filteredTables.map((table) => (
-          <div key={table.id} onClick={() => handleTableClick(table)} className={`rounded-2xl p-4 cursor-pointer transition-all duration-300 ${getTableStatusColor(table.status)} shadow-lg hover:shadow-xl hover:scale-105 border ${isDayMode ? 'border-slate-200/50' : 'border-white/10'}`}>
+          <div 
+            key={table.id} 
+            onClick={() => handleTableClick(table)} 
+            onMouseEnter={() => setHoveredTable(table.id)}
+            onMouseLeave={() => setHoveredTable(null)}
+            className={`rounded-2xl p-4 cursor-pointer transition-all duration-300 ${getTableStatusColor(table.status)} shadow-lg hover:shadow-xl hover:scale-105 border ${isDayMode ? 'border-slate-200/50' : 'border-white/10'} relative`}
+          >
+            {/* Hover durumunda gösterilen tooltip - masa durumu */}
+            {hoveredTable === table.id && (
+              <div className={`absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 p-3 rounded-xl ${isDayMode ? 'bg-slate-900 text-white' : 'bg-black/95 text-white'} shadow-2xl border ${isDayMode ? 'border-slate-700' : 'border-white/10'} z-50 min-w-[200px] max-w-[300px] whitespace-pre-line text-sm`}>
+                {getOrderTooltip(table)}
+                <div className={`absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-8 border-r-8 border-t-8 ${isDayMode ? 'border-l-transparent border-r-transparent border-t-slate-900' : 'border-l-transparent border-r-transparent border-t-black'}`}></div>
+              </div>
+            )}
+
             <div className="flex flex-col items-center text-center">
               <div className="text-3xl mb-2">{getStatusIcon(table.status)}</div>
               <h3 className={`${isDayMode ? 'text-slate-900' : 'text-white'} font-bold text-lg`}>{table.name}</h3>
               <div className={`flex items-center gap-1 ${isDayMode ? 'text-slate-600' : 'text-white/80'} text-sm`}><FaChair size={12} /><span>{table.capacity} Kişi</span></div>
+              
+              {/* Masa durumu metni - her zaman görünür */}
+              <div className={`mt-1 ${isDayMode ? 'text-slate-500' : 'text-white/60'} text-[10px] uppercase font-semibold`}>
+                {getTableStatusText(table.status)}
+              </div>
+
+              {/* Dolu masa için sipariş özeti */}
               {table.status === 'occupied' && table.order && (
                 <>
-                  <div className={`mt-2 ${isDayMode ? 'text-slate-900' : 'text-white/90'} text-sm font-medium`}>₺{table.order?.total ?? table.order?.toplam ?? table.order?.tutar ?? 0}</div>
-                  <div className={`${isDayMode ? 'text-slate-500' : 'text-white/70'} text-xs`}>{table.time}</div>
+                  <div className={`mt-2 ${isDayMode ? 'text-slate-900' : 'text-white/90'} text-sm font-medium`}>
+                    ₺{table.order?.toplam ?? table.order?.total ?? table.order?.tutar ?? 0}
+                  </div>
+                  <div className={`${isDayMode ? 'text-slate-500' : 'text-white/70'} text-xs`}>
+                    {table.order?.siparisTarihi || table.order?.siparisSaati || table.order?.time || ''}
+                  </div>
+                  {/* Sipariş edilen ürün sayısı */}
+                  {(() => {
+                    const items = table.order?.siparisUrunleri || table.order?.items || [];
+                    if (items.length > 0) {
+                      return (
+                        <div className={`${isDayMode ? 'text-slate-600' : 'text-white/60'} text-[10px] mt-1`}>
+                          {items.length} ürün
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
                 </>
               )}
-              {table.status === 'reserved' && <div className={`mt-2 ${isDayMode ? 'text-slate-600' : 'text-white/80'} text-sm`}>{table.time}</div>}
-              <div className={`mt-2 ${isDayMode ? 'text-slate-500' : 'text-white/60'} text-[10px] uppercase`}>{getTableStatusText(table.status)}</div>
+
+              {/* Rezerve masa için zaman bilgisi */}
+              {table.status === 'reserved' && (
+                <div className={`mt-2 ${isDayMode ? 'text-slate-600' : 'text-white/80'} text-sm`}>
+                  {table.time || 'Rezerve'}
+                </div>
+              )}
+
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -52,6 +179,7 @@ const MasaYonetimi = ({
         ))}
       </div>
 
+      {/* Tıklandığında açılan sipariş detay modalı - GarsonPanel'den yönetiliyor */}
     </div>
   );
 };

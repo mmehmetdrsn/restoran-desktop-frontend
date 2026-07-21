@@ -67,19 +67,45 @@ export const authService = {
     register: (data) => apiRequest('/Auth/register', 'POST', data),
     refresh: (data) => apiRequest('/Auth/refresh', 'POST', data),
     logout: () => apiRequest('/Auth/logout', 'POST'),
-    sifreDegistir: (data) => apiRequest('/Auth/sifre-degistir', 'POST', data),
+    sifreDegistir: (currentPassword, newPassword) => {
+        return apiRequest('/Auth/sifre-degistir', 'POST', { 
+            mevcutSifre: currentPassword, 
+            yeniSifre: newPassword 
+        });
+    },
 };
 
 // ========== SİPARİŞ SERVİSİ ==========
 export const orderService = {
     getAll: () => apiRequest('/Siparisler'),
     getById: (id) => apiRequest(`/Siparisler/${id}`),
-    create: (data) => apiRequest('/Siparisler', 'POST', data),
+    create: (data) => {
+        console.log('📦 Sipariş oluşturuluyor:', data);
+        return apiRequest('/Siparisler', 'POST', data);
+    },
     update: (id, data) => apiRequest(`/Siparisler/${id}`, 'PUT', data),
     delete: (id) => apiRequest(`/Siparisler/${id}`, 'DELETE'),
     updateStatus: (id, status) => apiRequest(`/Siparisler/${id}/durum`, 'PUT', { siparisDurumu: status }),
     cancel: (id) => apiRequest(`/Siparisler/${id}/iptal`, 'PUT'),
     complete: (id) => apiRequest(`/Siparisler/${id}/tamamla`, 'PUT'),
+    
+    // 🆕 Sipariş detaylarını güncelle (ürün ekle/çıkar)
+    updateDetails: (id, data) => {
+        console.log(`📦 Sipariş #${id} detayları güncelleniyor:`, data);
+        return apiRequest(`/Siparisler/${id}`, 'PUT', data);
+    },
+    
+    // 🆕 Siparişe ürün ekle
+    addItem: (id, item) => {
+        console.log(`📦 Sipariş #${id} ürün ekleniyor:`, item);
+        return apiRequest(`/Siparisler/${id}/urun-ekle`, 'POST', item);
+    },
+    
+    // 🆕 Siparişten ürün çıkar
+    removeItem: (id, itemId) => {
+        console.log(`📦 Sipariş #${id} ürün çıkarılıyor:`, itemId);
+        return apiRequest(`/Siparisler/${id}/urun-cikar/${itemId}`, 'DELETE');
+    }
 };
 
 // ========== AŞÇI SERVİSİ ==========
@@ -172,20 +198,41 @@ export const categoryService = {
 export const productService = {
     getAll: () => apiRequest('/Urunler'),
     getById: (id) => apiRequest(`/Urunler/${id}`),
-    create: (data) => apiRequest('/Urunler', 'POST', data),
-    update: (id, data) => apiRequest(`/Urunler/${id}`, 'PUT', data),
+    create: (data) => {
+        console.log('📦 Ürün oluşturuluyor:', data);
+        return apiRequest('/Urunler', 'POST', data);
+    },
+    update: (id, data) => {
+        console.log(`📦 Ürün #${id} güncelleniyor:`, data);
+        return apiRequest(`/Urunler/${id}`, 'PUT', data);
+    },
     delete: (id) => apiRequest(`/Urunler/${id}`, 'DELETE'),
 };
 
 // ========== MASA SERVİSİ ==========
 export const tableService = {
-    getAll: () => apiRequest('/Masa'),
+    getAll: () => {
+        console.log('📦 Masalar getiriliyor...');
+        return apiRequest('/Masa');
+    },
     getById: (id) => apiRequest(`/Masa/${id}`),
-    create: (data) => apiRequest('/Masa', 'POST', data),
-    update: (id, data) => apiRequest(`/Masa/${id}`, 'PUT', data),
+    create: (data) => {
+        console.log('📦 Masa oluşturuluyor:', data);
+        return apiRequest('/Masa', 'POST', data);
+    },
+    update: (id, data) => {
+        console.log(`📦 Masa #${id} güncelleniyor:`, data);
+        return apiRequest(`/Masa/${id}`, 'PUT', data);
+    },
     delete: (id) => apiRequest(`/Masa/${id}`, 'DELETE'),
-    moveTable: (data) => apiRequest('/Masa/tasi', 'POST', data),
-    updateStatus: (id, status) => apiRequest(`/Masa/${id}/durum`, 'PUT', { masaNo: `Masa ${id}`, masaDurumu: status })
+    moveTable: (data) => {
+        console.log('📦 Masa taşınıyor:', data);
+        return apiRequest('/Masa/tasi', 'POST', data);
+    },
+    updateStatus: (id, status) => {
+        console.log(`📦 Masa #${id} durumu güncelleniyor:`, status);
+        return apiRequest(`/Masa/${id}/durum`, 'PUT', { masaDurumu: status });
+    }
 };
 
 // ========== REZERVASYON SERVİSİ ==========
@@ -211,9 +258,20 @@ export const personnelService = {
 export const paymentService = {
     getAll: () => apiRequest('/Odeme'),
     getById: (id) => apiRequest(`/Odeme/${id}`),
-    create: (data) => apiRequest('/Odeme', 'POST', data),
+    create: (data) => {
+        console.log('💰 Ödeme oluşturuluyor:', data);
+        return apiRequest('/Odeme', 'POST', data);
+    },
     update: (id, data) => apiRequest(`/Odeme/${id}`, 'PUT', data),
     delete: (id) => apiRequest(`/Odeme/${id}`, 'DELETE'),
+    processPayment: (data) => {
+        console.log('💰 Ödeme işleniyor:', data);
+        return apiRequest('/Odeme/odeme-al', 'POST', data);
+    },
+    processRefund: (data) => {
+        console.log('↩️ İade işleniyor:', data);
+        return apiRequest('/Odeme/iade', 'POST', data);
+    }
 };
 
 // ========== KASA SERVİSİ ==========
@@ -310,9 +368,8 @@ export const kuryeAPI = {
     // ✅ DÜZELTİLDİ: Siparişi kuryeye ata (SiparisId EKLENDİ)
     siparisKuryeyeAta: (siparisId, kuryeId) => {
         console.log(`📦 Sipariş #${siparisId} kurye #${kuryeId}'a atanıyor...`);
-        // ✅ DOĞRU: Hem siparisId hem personelId gönder
         return apiRequest(`/Kurye/siparis-ata/${siparisId}`, 'POST', { 
-            siparisId: siparisId,    // ✅ EKLENDİ - BURASI ÖNEMLİ!
+            siparisId: siparisId,
             personelId: kuryeId 
         });
     },
@@ -321,7 +378,7 @@ export const kuryeAPI = {
     siparisKabul: (siparisId, kuryeId) => {
         console.log(`📦 Sipariş #${siparisId} kurye #${kuryeId} tarafından kabul ediliyor...`);
         return apiRequest(`/Kurye/siparis-kabul/${siparisId}`, 'POST', { 
-            siparisId: siparisId,    // ✅ EKLENDİ
+            siparisId: siparisId,
             personelId: kuryeId 
         });
     },
@@ -330,7 +387,7 @@ export const kuryeAPI = {
     siparisIptal: (siparisId, kuryeId) => {
         console.log(`📦 Sipariş #${siparisId} iptal ediliyor...`);
         return apiRequest(`/Kurye/siparis-iptal/${siparisId}`, 'PUT', { 
-            siparisId: siparisId,    // ✅ EKLENDİ
+            siparisId: siparisId,
             personelId: kuryeId 
         });
     },
@@ -366,6 +423,7 @@ export const logout = () => {
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
     sessionStorage.removeItem('user');
+    sessionStorage.removeItem('token');
 };
 
 export const sifreDegistir = authService.sifreDegistir;
