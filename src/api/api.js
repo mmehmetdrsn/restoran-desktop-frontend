@@ -61,10 +61,12 @@ export const authService = {
 export const orderService = {
   getAll: () => api.get('/siparisler'),
   getById: (id) => api.get(`/siparisler/${id}`),
+  create: (data) => api.post('/siparisler', data),
+  update: (id, data) => api.put(`/siparisler/${id}`, data),
+  delete: (id) => api.delete(`/siparisler/${id}`),
   updateStatus: (id, status) => api.put(`/siparisler/${id}/durum`, { siparisDurumu: status }),
   cancel: (id) => api.put(`/siparisler/${id}/iptal`),
-  create: (data) => api.post('/siparisler', data),
-  delete: (id) => api.delete(`/siparisler/${id}`),
+  complete: (id) => api.put(`/siparisler/${id}/tamamla`),
 };
 
 // ============================================
@@ -152,10 +154,10 @@ export const paymentService = {
   getAll: () => api.get('/Odeme'),
   getById: (id) => api.get(`/Odeme/${id}`),
   create: (data) => api.post('/Odeme', data),
-  processPayment: (data) => api.post('/Odeme', data).then(res => res.data),
-  processRefund: (data) => api.post('/Odeme/iade-iptal', data).then(res => res.data),
   update: (id, data) => api.put(`/Odeme/${id}`, data),
   delete: (id) => api.delete(`/Odeme/${id}`),
+  processPayment: (data) => api.post('/Odeme', data).then(res => res.data), // Arkadaşının eklediği
+  processRefund: (data) => api.post('/Odeme/iade-iptal', data).then(res => res.data), // Arkadaşının eklediği
 };
 
 // ============================================
