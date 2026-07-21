@@ -185,9 +185,9 @@ export const tableService = {
     update: (id, data) => apiRequest(`/Masa/${id}`, 'PUT', data),
     delete: (id) => apiRequest(`/Masa/${id}`, 'DELETE'),
     moveTable: (data) => apiRequest('/Masa/tasi', 'POST', data),
-    // 🔑 DTO ile %100 uyumlu Durum Güncelleme
     updateStatus: (id, status) => apiRequest(`/Masa/${id}/durum`, 'PUT', { masaNo: `Masa ${id}`, masaDurumu: status })
 };
+
 // ========== REZERVASYON SERVİSİ ==========
 export const reservationService = {
     getAll: () => apiRequest('/Rezervasyon'),
@@ -289,7 +289,9 @@ export const personelIzinService = {
     updateStatus: (id, status) => apiRequest(`/PersonelIzin/${id}/durum`, 'PUT', { izinDurumu: status }),
 };
 
-// ========== KURYE SERVİSİ (GÜNCELLENDİ) ==========
+// ============================================================
+// ✅ KURYE SERVİSİ (DÜZELTİLDİ)
+// ============================================================
 export const kuryeAPI = {
     // Mevcut fonksiyonlar
     getKuryeler: () => apiRequest('/Kurye/kuryeler'),
@@ -304,10 +306,40 @@ export const kuryeAPI = {
     
     // 🆕 YENİ FONKSİYONLAR
     getMusaitKuryeler: () => apiRequest('/Kurye/musait-kuryeler'),
-    siparisKuryeyeAta: (siparisId, kuryeId) => 
-        apiRequest(`/Kurye/siparis-ata/${siparisId}`, 'POST', { kuryeId }),
-    siparisKabul: (siparisId, kuryeId) => 
-        apiRequest(`/Kurye/siparis-kabul/${siparisId}`, 'POST', { kuryeId }),
+    
+    // ✅ DÜZELTİLDİ: Siparişi kuryeye ata (SiparisId EKLENDİ)
+    siparisKuryeyeAta: (siparisId, kuryeId) => {
+        console.log(`📦 Sipariş #${siparisId} kurye #${kuryeId}'a atanıyor...`);
+        // ✅ DOĞRU: Hem siparisId hem personelId gönder
+        return apiRequest(`/Kurye/siparis-ata/${siparisId}`, 'POST', { 
+            siparisId: siparisId,    // ✅ EKLENDİ - BURASI ÖNEMLİ!
+            personelId: kuryeId 
+        });
+    },
+    
+    // ✅ DÜZELTİLDİ: Sipariş kabul
+    siparisKabul: (siparisId, kuryeId) => {
+        console.log(`📦 Sipariş #${siparisId} kurye #${kuryeId} tarafından kabul ediliyor...`);
+        return apiRequest(`/Kurye/siparis-kabul/${siparisId}`, 'POST', { 
+            siparisId: siparisId,    // ✅ EKLENDİ
+            personelId: kuryeId 
+        });
+    },
+    
+    // ✅ DÜZELTİLDİ: Sipariş iptal
+    siparisIptal: (siparisId, kuryeId) => {
+        console.log(`📦 Sipariş #${siparisId} iptal ediliyor...`);
+        return apiRequest(`/Kurye/siparis-iptal/${siparisId}`, 'PUT', { 
+            siparisId: siparisId,    // ✅ EKLENDİ
+            personelId: kuryeId 
+        });
+    },
+    
+    // 🆕 Kurye teslim geçmişi
+    getTeslimGecmisi: (personelId) => {
+        console.log(`📦 Kurye #${personelId} teslim geçmişi çekiliyor...`);
+        return apiRequest(`/Kurye/${personelId}/gecmis`);
+    }
 };
 
 // ========== BİLDİRİM SERVİSİ ==========
