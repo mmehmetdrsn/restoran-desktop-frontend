@@ -23,15 +23,29 @@ const Login = () => {
 
     setLoading(true);
     try {
-      const response = await authService.login(kullaniciAdi, sifre);
-      console.log('Backend yanıtı:', response.data);
+      // 🔥 BACKEND'İN BEKLEDİĞİ FORMAT (LoginDto)
+      const loginData = {
+        KullaniciAdi: kullaniciAdi,
+        Sifre: sifre
+      };
+      
+      console.log('📤 Login isteği gönderiliyor:', loginData);
+      
+      const response = await authService.login(loginData);
+      console.log('📥 Backend yanıtı:', response);
 
-      if (response.data.success) {
-        const data = response.data;
+      // Backend'den gelen veriyi kontrol et
+      const data = response;
 
+      if (data.success === true) {
         // Token'ı kaydet
         if (data.token) {
           localStorage.setItem('token', data.token);
+        }
+
+        // Refresh Token'ı kaydet
+        if (data.refreshToken) {
+          localStorage.setItem('refreshToken', data.refreshToken);
         }
 
         // ============ ROL BELİRLEME ============
@@ -90,7 +104,7 @@ const Login = () => {
           'kargo': 'kurye',
           'teslimat': 'kurye',
 
-          // Diğer roller (isteğe bağlı)
+          // Diğer roller
           'müşteri': 'user',
           'musteri': 'user',
           'customer': 'user',
@@ -109,10 +123,8 @@ const Login = () => {
           // ============ FALLBACK: Kullanıcı adına göre rol ata ============
           console.log('⚠️ Rol mapping bulunamadı, kullanıcı adına göre atanacak.');
           
-          // Kullanıcı adını küçük harfe çevir
           const kullaniciAdiLower = kullaniciAdi.toLowerCase().trim();
           
-          // Kullanıcı adında hangi rol geçiyorsa ona göre ata (öncelik sırasına göre)
           if (kullaniciAdiLower.includes('admin') || 
               kullaniciAdiLower.includes('yonetici') || 
               kullaniciAdiLower.includes('yönetici') ||
@@ -148,13 +160,15 @@ const Login = () => {
 
         // Kullanıcı bilgilerini kaydet
         const user = {
-          id: data.personelId || data.PersonelId || data.id,
+          id: data.personelId || data.PersonelId || data.id || 0,
           name: data.adSoyad || data.AdSoyad || data.name || kullaniciAdi,
           email: data.email || kullaniciAdi,
-          role: userRole
+          role: userRole,
+          personelId: data.personelId || data.PersonelId || data.id || 0
         };
 
         localStorage.setItem('user', JSON.stringify(user));
+        sessionStorage.setItem('user', JSON.stringify(user));
 
         toast.success(`✅ Hoş geldiniz, ${user.name}!`);
 
@@ -162,7 +176,6 @@ const Login = () => {
         console.log('✅ Kullanıcı bilgileri:', user);
 
         // ============ YÖNLENDİRME ============
-        // Role göre yönlendir
         switch (user.role) {
           case 'admin':
             navigate('/admin');
@@ -181,10 +194,11 @@ const Login = () => {
             navigate('/');
         }
       } else {
-        toast.error('❌ Giriş başarısız!');
+        // success false ise
+        toast.error(`❌ ${data.message || 'Giriş başarısız!'}`);
       }
     } catch (error) {
-      console.error('Login hatası:', error);
+      console.error('❌ Login hatası:', error);
 
       if (error.response) {
         const errorMessage = error.response.data?.message ||
