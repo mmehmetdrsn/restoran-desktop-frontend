@@ -69,7 +69,6 @@ import MalzemeCikis from './Bilesenler/Stok/MalzemeCikis';
 import StokHareketleri from './Bilesenler/Stok/StokHareketleri';
 
 import SiparisDetay from './Bilesenler/Siparis/SiparisDetay';
-import { set } from 'react-hook-form';
 
 const backgroundImage = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80';
 
@@ -224,96 +223,176 @@ const AdminPanel = () => {
   ];
 
   // ============ DASHBOARD VERİLERİNİ ÇEK ============
-  const fetchDashboardData = async () => {
+const fetchDashboardData = async () => {
     try {
-      setLoading(true);
-      const [ciroRes, satanlarRes, sonSiparislerRes] = await Promise.all([
-        reportService.getGunlukCiro(),
-        reportService.getEnCokSatanlar(30),
-        reportService.getSonSiparisler(10)
-      ]);
+        setLoading(true);
 
-      if (ciroRes.data) {
-        const data = ciroRes.data;
+        let ciroData = { ciro: 0, siparisSayisi: 0, oncekiGunCiro: 0 };
+        let satanlarData = [];
+        let sonSiparislerData = [];
+
+        // ✅ Günlük ciro
+        try {
+            const ciroRes = await reportService.getGunlukCiro();
+            console.log('📊 Günlük ciro:', ciroRes);
+            if (ciroRes?.data) {
+                ciroData = ciroRes.data;
+            }
+        } catch (error) {
+            console.warn('⚠️ Günlük ciro verisi alınamadı:', error);
+        }
+
+        // ✅ En çok satanlar
+        try {
+            const satanlarRes = await reportService.getEnCokSatanlar(30);
+            console.log('📊 En çok satanlar:', satanlarRes);
+            if (satanlarRes?.data && Array.isArray(satanlarRes.data)) {
+                satanlarData = satanlarRes.data;
+            }
+        } catch (error) {
+            console.warn('⚠️ En çok satanlar verisi alınamadı:', error);
+        }
+
+        // ✅ Son siparişler
+        try {
+            const sonSiparislerRes = await reportService.getSonSiparisler(10);
+            console.log('📊 Son siparişler:', sonSiparislerRes);
+            if (sonSiparislerRes?.data && Array.isArray(sonSiparislerRes.data)) {
+                sonSiparislerData = sonSiparislerRes.data;
+            }
+        } catch (error) {
+            console.warn('⚠️ Son siparişler verisi alınamadı:', error);
+        }
+
+        // ✅ Dashboard state'ini güncelle
         setDashboardData({
-          totalRevenue: data.ciro || 0,
-          totalOrders: data.siparisSayisi || 0,
-          date: data.tarih || new Date().toLocaleDateString('tr-TR'),
-          changePercent: data.oncekiGunCiro > 0
-            ? Math.round(((data.ciro - data.oncekiGunCiro) / data.oncekiGunCiro) * 100)
-            : 0,
-          oncekiGunCiro: data.oncekiGunCiro || 0
+            totalRevenue: ciroData.ciro || 0,
+            totalOrders: ciroData.siparisSayisi || 0,
+            date: ciroData.tarih || new Date().toLocaleDateString('tr-TR'),
+            changePercent: ciroData.oncekiGunCiro > 0
+                ? Math.round(((ciroData.ciro - ciroData.oncekiGunCiro) / ciroData.oncekiGunCiro) * 100)
+                : 0,
+            oncekiGunCiro: ciroData.oncekiGunCiro || 0
         });
-      }
 
-      if (satanlarRes.data) {
-        const products = satanlarRes.data.map((p, index) => ({
-          name: p.urunAdi || 'Bilinmiyor',
-          quantity: p.toplamAdet || 0,
-          revenue: p.toplamCiro || 0,
-          index: index + 1
-        }));
-        setTopProducts(products);
-      }
+        // ✅ En çok satanlar
+        if (satanlarData && satanlarData.length > 0) {
+            const products = satanlarData.map((p, index) => ({
+                name: p.urunAdi || p.UrunAdi || p.urunAdi || 'Bilinmiyor',
+                quantity: p.toplamAdet || p.ToplamAdet || 0,
+                revenue: p.toplamCiro || p.ToplamCiro || 0,
+                index: index + 1
+            }));
+            setTopProducts(products);
+        }
 
-      if (sonSiparislerRes.data) {
-        setRecentOrders(sonSiparislerRes.data);
-      }
+        // ✅ Son siparişler
+        if (sonSiparislerData && sonSiparislerData.length > 0) {
+            setRecentOrders(sonSiparislerData);
+        }
 
-      console.log('✅ Dashboard verileri başarıyla yüklendi!');
+        console.log('✅ Dashboard verileri başarıyla yüklendi!');
     } catch (error) {
-      console.error('Dashboard verileri yüklenirken hata:', error);
-      toast.error('Dashboard verileri yüklenirken hata oluştu!');
+        console.error('Dashboard verileri yüklenirken hata:', error);
+        toast.error('Dashboard verileri yüklenirken hata oluştu!');
     } finally {
-      setLoading(false);
+        setLoading(false);
     }
-  };
-
-  // ============ TÜM VERİLERİ ÇEK ============
-  const fetchAllData = async () => {
+};
+// ============ TÜM VERİLERİ ÇEK ============
+const fetchAllData = async () => {
     try {
-      const [productsRes, categoriesRes, materialsRes,
-        tablesRes, reservationsRes, personnelRes, usersRes,
-        paymentsRes, cashRes] = await Promise.all([
-          productService.getAll(),
-          categoryService.getAll(),
-          materialService.getAll(),
-          tableService.getAll(),
-          reservationService.getAll(),
-          personnelService.getAll(),
-          userService.getAll(),
-          paymentService.getAll(),
-          cashService.getAll()
-        ]);
+        console.log('🔄 Veriler yükleniyor...');
 
-      setProducts(productsRes.data || []);
-      setCategories(categoriesRes.data || []);
-      setMaterials(materialsRes.data || []);
-      setTables(tablesRes.data || []);
-      setReservations(reservationsRes.data || []);
-      setPersonnel(personnelRes.data || []);
-      setUsers(usersRes.data || []);
-      setPayments(paymentsRes.data || []);
-      setCash(cashRes.data || []);
+        // Her bir servisi ayrı ayrı çağır
+        // ✅ apiRequest artık { data, status } şeklinde dönüyor, bu yüzden .data okunuyor
+        const productsRes = await productService.getAll().catch(err => {
+            console.warn('⚠️ Ürünler yüklenemedi:', err);
+            return { data: [] };
+        });
 
-      if (personnelRes.data) {
-        const personeller = personnelRes.data.map(p => ({
-          ...p,
-          rolAdi: p.rolAdi || p.RolAdi || p.rol || p.Rol || 'Bilinmiyor',
-          personelId: p.personelId || p.PersonelId || p.id,
-          personelAdi: p.personelAdi || p.PersonelAdi || p.adi || 'Bilinmiyor',
-          personelSoyadi: p.personelSoyadi || p.PersonelSoyadi || p.soyadi || '',
-          kullaniciAdi: p.kullaniciAdi || p.KullaniciAdi || p.kullaniciAdi || '-'
-        }));
-        setPersonelListesi(personeller);
-      }
+        const categoriesRes = await categoryService.getAll().catch(err => {
+            console.warn('⚠️ Kategoriler yüklenemedi:', err);
+            return { data: [] };
+        });
 
-      console.log('✅ Veriler başarıyla yüklendi!');
+        const materialsRes = await materialService.getAll().catch(err => {
+            console.warn('⚠️ Malzemeler yüklenemedi:', err);
+            return { data: [] };
+        });
+
+        const tablesRes = await tableService.getAll().catch(err => {
+            console.warn('⚠️ Masalar yüklenemedi:', err);
+            return { data: [] };
+        });
+
+        const reservationsRes = await reservationService.getAll().catch(err => {
+            console.warn('⚠️ Rezervasyonlar yüklenemedi:', err);
+            return { data: [] };
+        });
+
+        const personnelRes = await personnelService.getAll().catch(err => {
+            console.warn('⚠️ Personeller yüklenemedi:', err);
+            return { data: [] };
+        });
+
+        const usersRes = await userService.getAll().catch(err => {
+            console.warn('⚠️ Üyeler yüklenemedi:', err);
+            return { data: [] };
+        });
+
+        const paymentsRes = await paymentService.getAll().catch(err => {
+            console.warn('⚠️ Ödemeler yüklenemedi:', err);
+            return { data: [] };
+        });
+
+        const cashRes = await cashService.getAll().catch(err => {
+            console.warn('⚠️ Kasa hareketleri yüklenemedi:', err);
+            return { data: [] };
+        });
+
+        // Verileri konsola yazdır
+        console.log('📦 Ürünler:', productsRes);
+        console.log('📦 Kategoriler:', categoriesRes);
+        console.log('📦 Malzemeler:', materialsRes);
+        console.log('📦 Masalar:', tablesRes);
+        console.log('📦 Rezervasyonlar:', reservationsRes);
+        console.log('📦 Personeller:', personnelRes);
+        console.log('📦 Üyeler:', usersRes);
+        console.log('📦 Ödemeler:', paymentsRes);
+        console.log('📦 Kasa:', cashRes);
+
+        // State'lere ata (.data üzerinden okunuyor)
+        setProducts(Array.isArray(productsRes?.data) ? productsRes.data : []);
+        setCategories(Array.isArray(categoriesRes?.data) ? categoriesRes.data : []);
+        setMaterials(Array.isArray(materialsRes?.data) ? materialsRes.data : []);
+        setTables(Array.isArray(tablesRes?.data) ? tablesRes.data : []);
+        setReservations(Array.isArray(reservationsRes?.data) ? reservationsRes.data : []);
+        setPersonnel(Array.isArray(personnelRes?.data) ? personnelRes.data : []);
+        setUsers(Array.isArray(usersRes?.data) ? usersRes.data : []);
+        setPayments(Array.isArray(paymentsRes?.data) ? paymentsRes.data : []);
+        setCash(Array.isArray(cashRes?.data) ? cashRes.data : []);
+
+        // Personel listesini güncelle
+        if (Array.isArray(personnelRes?.data) && personnelRes.data.length > 0) {
+            const personeller = personnelRes.data.map(p => ({
+                ...p,
+                rolAdi: p.rolAdi || p.RolAdi || p.rol || p.Rol || 'Bilinmiyor',
+                personelId: p.personelId || p.PersonelId || p.id,
+                personelAdi: p.personelAdi || p.PersonelAdi || p.adi || 'Bilinmiyor',
+                personelSoyadi: p.personelSoyadi || p.PersonelSoyadi || p.soyadi || '',
+                kullaniciAdi: p.kullaniciAdi || p.KullaniciAdi || p.kullaniciAdi || '-'
+            }));
+            setPersonelListesi(personeller);
+        }
+
+        console.log('✅ Veriler başarıyla yüklendi!');
+        console.log('📊 State güncellemeleri tamamlandı.');
     } catch (error) {
-      console.error('Veriler yüklenirken hata:', error);
-      toast.error('Veriler yüklenirken hata oluştu!');
+        console.error('❌ Veriler yüklenirken hata:', error);
+        toast.error('Veriler yüklenirken hata oluştu!');
     }
-  };
+};
 
   // ============ DURUM RENKLERİ ============
   const getStatusColor = (status) => {
