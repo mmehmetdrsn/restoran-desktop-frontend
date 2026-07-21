@@ -35,9 +35,11 @@ const Login = () => {
       console.log('📥 Backend yanıtı:', response);
 
       // Backend'den gelen veriyi kontrol et
-      const data = response;
+      // apiRequest() cevabı { data: {...}, status } şeklinde sarıyor,
+      // bu yüzden gerçek backend verisi response.data içinde.
+      const data = response.data;
 
-      if (data.success === true) {
+      if (data?.success === true) {
         // Token'ı kaydet
         if (data.token) {
           localStorage.setItem('token', data.token);
@@ -195,7 +197,7 @@ const Login = () => {
         }
       } else {
         // success false ise
-        toast.error(`❌ ${data.message || 'Giriş başarısız!'}`);
+        toast.error(`❌ ${data?.message || response.error || 'Giriş başarısız!'}`);
       }
     } catch (error) {
       console.error('❌ Login hatası:', error);
