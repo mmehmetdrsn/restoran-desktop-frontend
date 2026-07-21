@@ -30,7 +30,7 @@ const MasaYonetimi = ({
               <div className="text-3xl mb-2">{getStatusIcon(table.status)}</div>
               <h3 className={`${isDayMode ? 'text-slate-900' : 'text-white'} font-bold text-lg`}>{table.name}</h3>
               <div className={`flex items-center gap-1 ${isDayMode ? 'text-slate-600' : 'text-white/80'} text-sm`}><FaChair size={12} /><span>{table.capacity} Kişi</span></div>
-              {table.status === 'occupied' && (
+              {table.status === 'occupied' && table.order && (
                 <>
                   <div className={`mt-2 ${isDayMode ? 'text-slate-900' : 'text-white/90'} text-sm font-medium`}>₺{table.order?.total ?? table.order?.toplam ?? table.order?.tutar ?? 0}</div>
                   <div className={`${isDayMode ? 'text-slate-500' : 'text-white/70'} text-xs`}>{table.time}</div>

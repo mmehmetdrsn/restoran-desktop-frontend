@@ -472,20 +472,43 @@ const fetchAllData = async () => {
     }
   };
 
-  // ============ ÜRÜN LİSTELE ============
-  const handleUrunListele = async () => {
-    try {
-      const response = await productService.getAll();
-      setUrunListesi(response.data || []);
-      setShowUrunListele(true);
-      const aktif = response.data?.filter(u => u.isActive !== false).length || 0;
-      const pasif = response.data?.filter(u => u.isActive === false).length || 0;
-      toast.info(`📋 ${response.data?.length || 0} ürün (${aktif} aktif, ${pasif} pasif)`);
-    } catch (error) {
-      console.error('Ürünler yüklenirken hata:', error);
-      toast.error('❌ Ürünler yüklenirken hata oluştu!');
-    }
-  };
+// ============ ÜRÜN LİSTELE ============
+const handleUrunListele = async () => {
+  try {
+    const response = await productService.getAll();
+    const data = response.data || [];
+    
+    console.log('📦 Tüm ürünler:', data);
+    
+    // Her ürünün isActive değerini kontrol et
+    data.forEach((urun, index) => {
+      console.log(`Ürün ${index + 1}: ${urun.urunAdi} - isActive:`, urun.isActive, '| IsActive:', urun.IsActive);
+    });
+    
+    // Pasif ürünleri bul (tüm olası alan adlarıyla)
+    const pasifUrunler = data.filter(u => {
+      const active = u.isActive ?? u.IsActive ?? u.is_active ?? u.IS_ACTIVE;
+      return active === false || active === 0 || active === 'false' || active === '0';
+    });
+    
+    const aktifUrunler = data.filter(u => {
+      const active = u.isActive ?? u.IsActive ?? u.is_active ?? u.IS_ACTIVE;
+      return active === true || active === 1 || active === 'true' || active === '1' || active == null;
+    });
+    
+    console.log('📊 Aktif ürünler:', aktifUrunler.length);
+    console.log('📊 Pasif ürünler:', pasifUrunler.length);
+    console.log('📊 Pasif ürün listesi:', pasifUrunler);
+    
+    setUrunListesi(data);
+    setShowUrunListele(true);
+    
+    toast.info(`📋 ${data.length || 0} ürün (${aktifUrunler.length} aktif, ${pasifUrunler.length} pasif)`);
+  } catch (error) {
+    console.error('Ürünler yüklenirken hata:', error);
+    toast.error('❌ Ürünler yüklenirken hata oluştu!');
+  }
+};
 
   // ============ ÜYE LİSTELE ============
   const handleUyeListele = async () => {

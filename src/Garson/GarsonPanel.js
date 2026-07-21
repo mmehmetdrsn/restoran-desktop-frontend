@@ -99,21 +99,49 @@ const verileriYukle = async () => {
 
       if (Array.isArray(masalarData)) {
         const formatliMasalar = masalarData.map(m => {
-          const durum = m.masaDurumu?.toUpperCase() || '';
+          const durumRaw = m.masaDurumu;
+          const durum = typeof durumRaw === 'string' ? durumRaw.toUpperCase().trim() : '';
+
+          const order = m.aktifSiparis || null;
+          const orderStatus = order?.siparisDurumu ? String(order.siparisDurumu).toUpperCase() : '';
+          const orderHasItems = Array.isArray(order?.siparisUrunleri) ? order.siparisUrunleri.length > 0 : Array.isArray(order?.items) ? order.items.length > 0 : false;
+          const hasActiveOrder = order && (orderStatus || orderHasItems) && !['IPTAL', 'ODENDI', 'CANCELLED', 'COMPLETED', 'FINISHED'].includes(orderStatus);
+
           let status = 'empty';
-          
           if (durum === 'DOLU') status = 'occupied';
           else if (durum === 'REZERVE') status = 'reserved';
           else if (durum === 'ARIZALI' || durum === 'KULLANIM DIŞI') status = 'broken';
+          else if (!durum && hasActiveOrder) status = 'occupied';
           else status = 'empty';
+
+          const computeTotal = (o) => {
+            if (!o) return 0;
+            if (typeof o.toplam === 'number') return o.toplam;
+            if (typeof o.total === 'number') return o.total;
+            if (typeof o.tutar === 'number') return o.tutar;
+            const items = o.siparisUrunleri || o.items || o.urunler || o.siparisDetays || [];
+            if (!Array.isArray(items)) return 0;
+            return items.reduce((sum, it) => {
+              const qty = it.adet ?? it.quantity ?? 1;
+              const price = it.fiyat ?? it.price ?? it.birimFiyat ?? 0;
+              return sum + qty * price;
+            }, 0);
+          };
+
+          const orderWithTotal = order ? { ...order, toplam: computeTotal(order) } : null;
+
+          const computeTime = (o) => {
+            if (!o) return null;
+            return o.time || o.siparisSaati || o.olusturmaTarihi || o.siparisZamani || null;
+          };
 
           return {
             id: m.masaId,
             name: m.masaAdi || `Masa ${m.masaNo || m.masaId}`,
             status: status,
             capacity: m.kapasite || 4,
-            order: m.aktifSiparis || null,
-            time: null
+            order: orderWithTotal,
+            time: computeTime(order)
           };
         });
         setTables(formatliMasalar);
@@ -428,10 +456,38 @@ const verileriYukle = async () => {
         }))
       };
 
-      await orderService.create(siparisData);
+      const createdOrderResponse = await orderService.create(siparisData);
+      const createdOrder = createdOrderResponse?.data || createdOrderResponse;
+
       toast.success('Sipariş başarıyla mutfağa iletildi! 🍳');
-      
-      verileriYukle();
+
+      if (selectedTable) {
+        const previewOrder = {
+          ...createdOrder,
+          siparisUrunleri: createdOrder?.siparisUrunleri || cart.map(item => ({
+            urunId: item.id,
+            urunAdi: item.name,
+            adet: item.quantity,
+            fiyat: item.price ?? item.fiyat ?? 0,
+            detayNot: item.note || ''
+          })),
+          toplam: createdOrder?.toplam ?? cart.reduce((sum, item) => sum + (item.price ?? item.fiyat ?? 0) * (item.quantity ?? item.adet ?? 1), 0),
+          siparisDurumu: createdOrder?.siparisDurumu || 'YENI'
+        };
+
+        const updatedTable = {
+          ...selectedTable,
+          status: 'occupied',
+          order: previewOrder,
+          time: getOrderTimeText(previewOrder)
+        };
+
+        setSelectedTable(updatedTable);
+        setTables(prev => prev.map(t => t.id === updatedTable.id ? updatedTable : t));
+      }
+
+      setFilter('all');
+      await verileriYukle();
       setActiveTab('masa');
       setShowOrderModal(false);
       setCart([]);

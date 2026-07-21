@@ -184,10 +184,10 @@ export const tableService = {
     create: (data) => apiRequest('/Masa', 'POST', data),
     update: (id, data) => apiRequest(`/Masa/${id}`, 'PUT', data),
     delete: (id) => apiRequest(`/Masa/${id}`, 'DELETE'),
-    updateStatus: (id, status) => apiRequest(`/Masa/${id}/durum`, 'PUT', { masaDurumu: status }),
     moveTable: (data) => apiRequest('/Masa/tasi', 'POST', data),
+    // 🔑 DTO ile %100 uyumlu Durum Güncelleme
+    updateStatus: (id, status) => apiRequest(`/Masa/${id}/durum`, 'PUT', { masaNo: `Masa ${id}`, masaDurumu: status })
 };
-
 // ========== REZERVASYON SERVİSİ ==========
 export const reservationService = {
     getAll: () => apiRequest('/Rezervasyon'),
