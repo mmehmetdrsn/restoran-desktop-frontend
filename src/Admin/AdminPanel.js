@@ -60,6 +60,8 @@ import RezervasyonDuzenle from './Bilesenler/Rezervasyon/RezervasyonDuzenle';
 
 import Odeme from './Bilesenler/Finans/Odeme';
 import Kasa from './Bilesenler/Finans/Kasa';
+import Iade from './Bilesenler/Finans/Iade';
+import GunSonu from './Bilesenler/Finans/GunSonu';
 
 import StokDurumu from './Bilesenler/Stok/StokDurumu';
 import MalzemeGiris from './Bilesenler/Stok/MalzemeGiris';
@@ -189,6 +191,8 @@ const AdminPanel = () => {
   // Finans
   const [showOdeme, setShowOdeme] = useState(false);
   const [showKasa, setShowKasa] = useState(false);
+  const [showIade, setShowIade] = useState(false);
+  const [showGunSonu, setShowGunSonu] = useState(false);
   const [odemeler, setOdemeler] = useState([]);
   const [kasaHareketleri, setKasaHareketleri] = useState([]);
   const [finansLoading, setFinansLoading] = useState(false);
@@ -553,7 +557,7 @@ const AdminPanel = () => {
 
   // ============ KASA HAREKETLERİ LİSTELE ============
   const handleKasaHareketleri = async () => {
-    try {
+    try { 
       setFinansLoading(true);
       const response = await cashService.getAll();
       setKasaHareketleri(response.data || []);
@@ -693,8 +697,8 @@ const AdminPanel = () => {
       <p className="text-gray-400 text-sm mb-6">Kasa hareketleri ve finansal işlemler.</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <Buton icon={<FaHistory />} label="Ödeme Geçmişi" onClick={handleOdemeListele} />
-        <Buton icon={<FaCheckDouble />} label="Gün Sonu İşlemleri" onClick={() => toast.warning('⚠️ Gün sonu işlemleri henüz aktif değil.')} />
-        <Buton icon={<FaUndo />} label="Ödeme İade İşlemleri" onClick={() => toast.warning('⚠️ Ödeme iade işlemleri henüz aktif değil.')} />
+        <Buton icon={<FaCheckDouble />} label="Gün Sonu İşlemleri" onClick={() => setShowGunSonu(true)} />
+        <Buton icon={<FaUndo />} label="Ödeme İade İşlemleri" onClick={() => setShowIade(true)} />
         <Buton icon={<FaExchangeAlt />} label="Kasa Hareketleri" onClick={handleKasaHareketleri} />
       </div>
     </div>
@@ -715,161 +719,209 @@ const AdminPanel = () => {
     </div>
   );
 
-  // Sipariş Yönetimi Sayfası
-  const renderOrders = () => {
-    // ✅ Tüm siparişler
-    const tumSiparisler = orders;
+// Sipariş Yönetimi Sayfası
+const renderOrders = () => {
+  // ✅ Tüm siparişler
+  const tumSiparisler = orders;
+  
+  // ✅ Aktif siparişler (IADE hariç)
+  const aktifSiparisler = orders.filter(
+    o => o.siparisDurumu !== 'TAMAMLANDI' && 
+         o.siparisDurumu !== 'IPTAL' && 
+         o.siparisDurumu !== 'ODENDI' &&
+         o.siparisDurumu !== 'IADE'
+  );
+  
+  // ✅ Tamamlanan siparişler
+  const tamamlananSiparisler = orders.filter(
+    o => o.siparisDurumu === 'TAMAMLANDI' || o.siparisDurumu === 'ODENDI'
+  );
+  
+  // ✅ İptal edilen siparişler
+  const iptalSiparisler = orders.filter(
+    o => o.siparisDurumu === 'IPTAL'
+  );
+  
+  // ✅ İade edilen siparişler
+  const iadeSiparisler = orders.filter(
+    o => o.siparisDurumu === 'IADE'
+  );
 
-    // ✅ Aktif siparişleri filtrele
-    const aktifSiparisler = orders.filter(
-      o => o.siparisDurumu !== 'TAMAMLANDI' &&
-        o.siparisDurumu !== 'IPTAL' &&
-        o.siparisDurumu !== 'ODENDI'
-    );
+  // ✅ İptal + İade
+  const iptalIadeSiparisler = orders.filter(
+    o => o.siparisDurumu === 'IPTAL' || o.siparisDurumu === 'IADE'
+  );
 
-    // ✅ Tamamlanan siparişler
-    const tamamlananSiparisler = orders.filter(
-      o => o.siparisDurumu === 'TAMAMLANDI' || o.siparisDurumu === 'ODENDI'
-    );
+  // ✅ Durum renkleri
+  const getDurumRenk = (durum) => {
+    const d = (durum || '').toUpperCase();
+    if (d === 'TAMAMLANDI') return 'bg-green-500/20 text-green-400';
+    if (d === 'ODENDI') return 'bg-purple-500/20 text-purple-400';
+    if (d === 'BEKLEMEDE') return 'bg-yellow-500/20 text-yellow-400';
+    if (d === 'HAZIRLANIYOR') return 'bg-blue-500/20 text-blue-400';
+    if (d === 'HAZIR') return 'bg-cyan-500/20 text-cyan-400';
+    if (d === 'TESLIM EDILDI') return 'bg-indigo-500/20 text-indigo-400';
+    if (d === 'IPTAL') return 'bg-red-500/20 text-red-400';
+    if (d === 'IADE') return 'bg-orange-500/20 text-orange-400';
+    return 'bg-gray-500/20 text-gray-400';
+  };
 
-    // ✅ İptal edilen siparişler
-    const iptalSiparisler = orders.filter(
-      o => o.siparisDurumu === 'IPTAL'
-    );
+  // ✅ Durum iconları
+  const getDurumIcon = (durum) => {
+    const d = (durum || '').toUpperCase();
+    if (d === 'TAMAMLANDI') return '✅';
+    if (d === 'ODENDI') return '💰';
+    if (d === 'BEKLEMEDE') return '⏳';
+    if (d === 'HAZIRLANIYOR') return '👨‍🍳';
+    if (d === 'HAZIR') return '✅';
+    if (d === 'TESLIM EDILDI') return '🚚';
+    if (d === 'IPTAL') return '❌';
+    if (d === 'IADE') return '🔄';
+    return '📋';
+  };
 
-    const getGosterilecekSiparisler = () => {
-      switch (siparisGosterimModu) {
-        case 'active': return aktifSiparisler;
-        case 'completed': return tamamlananSiparisler;
-        case 'cancelled': return iptalSiparisler;
-        default: return tumSiparisler;
-      }
-    };
+  // ✅ Gösterilecek siparişleri seç
+  const getGosterilecekSiparisler = () => {
+    switch(siparisGosterimModu) {
+      case 'active': return aktifSiparisler;
+      case 'completed': return tamamlananSiparisler;
+      case 'cancelled': return iptalSiparisler;
+      case 'iade': return iadeSiparisler;
+      case 'iptal_iade': return iptalIadeSiparisler;
+      default: return tumSiparisler;
+    }
+  };
 
-    const gosterilecekSiparisler = getGosterilecekSiparisler();
+  const gosterilecekSiparisler = getGosterilecekSiparisler();
 
-    return (
-      <div className="bg-black/90 backdrop-blur-sm rounded-2xl p-6 border border-white/10 max-w-6xl mx-auto">
-        <BolumBasligi icon={<FaClipboardListIcon />} title="Sipariş Yönetimi" />
-        <p className="text-gray-400 text-sm mb-6">Aktif siparişler ve sipariş işlemleri.</p>
+  return (
+    <div className="bg-black/90 backdrop-blur-sm rounded-2xl p-6 border border-white/10 max-w-6xl mx-auto">
+      <BolumBasligi icon={<FaClipboardListIcon />} title="Sipariş Yönetimi" />
+      <p className="text-gray-400 text-sm mb-6">Aktif siparişler ve sipariş işlemleri.</p>
+      
+      {/* Butonlar */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+        <Buton 
+          icon={<FaList />} 
+          label={`📋 Tüm Siparişler (${tumSiparisler.length})`}
+          onClick={() => {
+            setSiparisGosterimModu('all');
+            handleSiparisListele();
+          }} 
+        />
+        <Buton 
+          icon={<FaShoppingCart />} 
+          label={`🛒 Aktif (${aktifSiparisler.length})`}
+          onClick={() => {
+            setSiparisGosterimModu('active');
+            handleSiparisListele();
+          }} 
+        />
+        <Buton 
+          icon={<FaUndo />} 
+          label={`🔄 İptal/İade (${iptalIadeSiparisler.length})`}
+          onClick={() => {
+            setSiparisGosterimModu('iptal_iade');
+            handleSiparisListele();
+          }} 
+        />
+        <Buton 
+          icon={<FaEye />} 
+          label="👁️ Sipariş Detay" 
+          onClick={() => setShowSiparisDetay(true)} 
+        />
+      </div>
 
-        {/* Butonlar */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-          <Buton
-            icon={<FaList />}
-            label={`📋 Siparişleri Listele (${tumSiparisler.length})`}
-            onClick={() => {
-              setSiparisGosterimModu('all');
-              handleSiparisListele();
-            }}
-          />
-          <Buton
-            icon={<FaShoppingCart />}
-            label={`🛒 Aktif Siparişler (${aktifSiparisler.length})`}
-            onClick={() => {
-              setSiparisGosterimModu('active');
-              handleSiparisListele();
-            }}
-          />
-          <Buton
-            icon={<FaEye />}
-            label="👁️ Sipariş Detay"
-            onClick={() => setShowSiparisDetay(true)}
-          />
-          <Buton
-            icon={<FaUndo />}
-            label={`↩️ İptal / İade (${iptalSiparisler.length})`}
-            onClick={() => {
-              setSiparisGosterimModu('cancelled');
-              handleSiparisListele();
-            }}
-          />
-        </div>
-
-        {/* ✅ Sipariş Listesi */}
-        {orders.length > 0 ? (
-          <div className="mt-4 border-t border-white/10 pt-4">
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="text-white font-medium text-sm">
-                📋 {siparisGosterimModu === 'all' ? 'Tüm Siparişler' :
+      {/* ✅ Sipariş Listesi */}
+      {orders.length > 0 ? (
+        <div className="mt-4 border-t border-white/10 pt-4">
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="text-white font-medium text-sm">
+              📋 {siparisGosterimModu === 'all' ? 'Tüm Siparişler' :
                   siparisGosterimModu === 'active' ? 'Aktif Siparişler' :
-                    siparisGosterimModu === 'completed' ? 'Tamamlanan Siparişler' :
-                      'İptal Edilen Siparişler'}
-                ({gosterilecekSiparisler.length})
-              </h4>
+                  siparisGosterimModu === 'completed' ? 'Tamamlanan Siparişler' :
+                  siparisGosterimModu === 'cancelled' ? 'İptal Edilen Siparişler' :
+                  siparisGosterimModu === 'iade' ? 'İade Edilen Siparişler' :
+                  'İptal / İade Siparişleri'} 
+              ({gosterilecekSiparisler.length})
+            </h4>
+            <div className="flex gap-3 text-xs text-gray-400">
+              <span>🟡 Aktif: {aktifSiparisler.length}</span>
+              <span>🟢 Tamamlandı: {tamamlananSiparisler.length}</span>
+              <span>🔴 İptal: {iptalSiparisler.length}</span>
+              <span>🔄 İade: {iadeSiparisler.length}</span>
             </div>
-            <div className="space-y-2 max-h-96 overflow-y-auto">
-              {gosterilecekSiparisler.length === 0 ? (
-                <div className="text-center py-8 text-gray-400">
-                  <p>📭 Bu kategoride sipariş bulunmuyor.</p>
-                </div>
-              ) : (
-                gosterilecekSiparisler.map((siparis) => (
-                  <div key={siparis.siparisId} className="bg-white/5 rounded-xl p-4 border border-white/10 hover:bg-white/10 transition-colors">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-white font-medium">Sipariş #{siparis.siparisId}</span>
-                          <span className={`px-2 py-0.5 rounded text-xs ${siparis.siparisDurumu === 'TAMAMLANDI' ? 'bg-green-500/20 text-green-400' :
-                            siparis.siparisDurumu === 'ODENDI' ? 'bg-purple-500/20 text-purple-400' :
-                              siparis.siparisDurumu === 'BEKLEMEDE' ? 'bg-yellow-500/20 text-yellow-400' :
-                                siparis.siparisDurumu === 'HAZIRLANIYOR' ? 'bg-blue-500/20 text-blue-400' :
-                                  siparis.siparisDurumu === 'HAZIR' ? 'bg-cyan-500/20 text-cyan-400' :
-                                    siparis.siparisDurumu === 'TESLIM EDILDI' ? 'bg-indigo-500/20 text-indigo-400' :
-                                      siparis.siparisDurumu === 'IPTAL' ? 'bg-red-500/20 text-red-400' :
-                                        'bg-gray-500/20 text-gray-400'
-                            }`}>
-                            {siparis.siparisDurumu || 'Bilinmiyor'}
-                          </span>
-                        </div>
-                        <p className="text-gray-400 text-sm">
-                          Masa: {siparis.masaNo || 'Paket'} • {siparis.uyeAdi || 'Ziyaretçi'} • {siparis.detaySayisi || 0} ürün
-                        </p>
-                        <p className="text-gray-500 text-xs">
-                          {siparis.siparisTarihi ? new Date(siparis.siparisTarihi).toLocaleString('tr-TR') : '-'}
-                        </p>
+          </div>
+          <div className="space-y-2 max-h-96 overflow-y-auto">
+            {gosterilecekSiparisler.length === 0 ? (
+              <div className="text-center py-8 text-gray-400">
+                <p>📭 Bu kategoride sipariş bulunmuyor.</p>
+              </div>
+            ) : (
+              gosterilecekSiparisler.map((siparis) => (
+                <div key={siparis.siparisId} className="bg-white/5 rounded-xl p-4 border border-white/10 hover:bg-white/10 transition-colors">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-white font-medium">Sipariş #{siparis.siparisId}</span>
+                        <span className={`px-2 py-0.5 rounded text-xs ${getDurumRenk(siparis.siparisDurumu)}`}>
+                          {getDurumIcon(siparis.siparisDurumu)} {siparis.siparisDurumu || 'Bilinmiyor'}
+                        </span>
                       </div>
-                      <div className="text-right">
-                        <p className="text-white font-bold text-lg">₺{siparis.toplamTutar?.toFixed(2) || 0}</p>
-                        <div className="flex gap-2 mt-1 justify-end">
-                          {siparis.siparisDurumu !== 'TAMAMLANDI' &&
-                            siparis.siparisDurumu !== 'IPTAL' &&
-                            siparis.siparisDurumu !== 'ODENDI' && (
-                              <button
-                                onClick={() => handleSiparisTamamla(siparis.siparisId)}
-                                className="px-3 py-1 bg-green-500 hover:bg-green-600 text-white text-xs rounded-lg transition-all"
-                              >
-                                ✅ Tamamla
-                              </button>
-                            )}
-                          {(siparis.siparisDurumu === 'TAMAMLANDI' || siparis.siparisDurumu === 'ODENDI') && (
-                            <span className="px-3 py-1 bg-green-500/20 text-green-400 text-xs rounded-lg">
-                              ✅ Tamamlandı
-                            </span>
-                          )}
-                          {siparis.siparisDurumu === 'IPTAL' && (
-                            <span className="px-3 py-1 bg-red-500/20 text-red-400 text-xs rounded-lg">
-                              ❌ İptal
-                            </span>
-                          )}
-                        </div>
+                      <p className="text-gray-400 text-sm">
+                        Masa: {siparis.masaNo || 'Paket'} • {siparis.uyeAdi || 'Ziyaretçi'} • {siparis.detaySayisi || 0} ürün
+                      </p>
+                      <p className="text-gray-500 text-xs">
+                        {siparis.siparisTarihi ? new Date(siparis.siparisTarihi).toLocaleString('tr-TR') : '-'}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-white font-bold text-lg">₺{siparis.toplamTutar?.toFixed(2) || 0}</p>
+                      <div className="flex gap-2 mt-1 justify-end">
+                        {siparis.siparisDurumu !== 'TAMAMLANDI' && 
+                         siparis.siparisDurumu !== 'IPTAL' && 
+                         siparis.siparisDurumu !== 'ODENDI' &&
+                         siparis.siparisDurumu !== 'IADE' && (
+                          <button
+                            onClick={() => handleSiparisTamamla(siparis.siparisId)}
+                            className="px-3 py-1 bg-green-500 hover:bg-green-600 text-white text-xs rounded-lg transition-all"
+                          >
+                            ✅ Tamamla
+                          </button>
+                        )}
+                        {(siparis.siparisDurumu === 'TAMAMLANDI' || siparis.siparisDurumu === 'ODENDI') && (
+                          <span className="px-3 py-1 bg-green-500/20 text-green-400 text-xs rounded-lg">
+                            ✅ Tamamlandı
+                          </span>
+                        )}
+                        {siparis.siparisDurumu === 'IPTAL' && (
+                          <span className="px-3 py-1 bg-red-500/20 text-red-400 text-xs rounded-lg">
+                            ❌ İptal
+                          </span>
+                        )}
+                        {siparis.siparisDurumu === 'IADE' && (
+                          <span className="px-3 py-1 bg-orange-500/20 text-orange-400 text-xs rounded-lg">
+                            🔄 İade
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
-                ))
-              )}
-            </div>
+                </div>
+              ))
+            )}
           </div>
-        ) : (
-          <div className="text-center py-12 text-gray-400 border-t border-white/10 mt-4 pt-8">
-            <FaShoppingCart className="text-5xl mx-auto mb-4 text-gray-600" />
-            <p>Henüz sipariş yok</p>
-            <p className="text-xs text-gray-500 mt-1">"Siparişleri Listele" butonuna tıklayarak siparişleri görüntüleyin</p>
-          </div>
-        )}
-      </div>
-    );
-  };
+        </div>
+      ) : (
+        <div className="text-center py-12 text-gray-400 border-t border-white/10 mt-4 pt-8">
+          <FaShoppingCart className="text-5xl mx-auto mb-4 text-gray-600" />
+          <p>Henüz sipariş yok</p>
+          <p className="text-xs text-gray-500 mt-1">"Tüm Siparişler" butonuna tıklayarak siparişleri görüntüleyin</p>
+        </div>
+      )}
+    </div>
+  );
+};
 
   // Masa ve Rezervasyon Yönetimi Sayfası
   const renderTables = () => (
@@ -1208,6 +1260,19 @@ const AdminPanel = () => {
         kapat={() => setShowKasa(false)}
         kasaHareketleri={kasaHareketleri}
         loading={finansLoading}
+        onSuccess={handleKasaHareketleri}
+      />
+
+      <GunSonu
+        acik={showGunSonu}
+        kapat={() => setShowGunSonu(false)}
+        onSuccess={fetchAllData}
+      />
+
+      <Iade
+        acik={showIade}
+        kapat={() => setShowIade(false)}
+        onSuccess={fetchAllData}
       />
 
       {/* Stok Modalları */}
