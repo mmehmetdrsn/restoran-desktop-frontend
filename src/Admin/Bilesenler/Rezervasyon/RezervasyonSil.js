@@ -16,17 +16,35 @@ const RezervasyonSil = ({ acik, kapat, onSuccess }) => {
       toast.warning('Lütfen rezervasyon ID girin!');
       return;
     }
-    if (!window.confirm('Bu rezervasyonu silmek istediğinizden emin misiniz?')) return;
+    
+    if (!window.confirm(`Rezervasyon #${rezervasyonId} silmek istediğinizden emin misiniz?`)) {
+      return;
+    }
+    
+    setLoading(true);
     try {
-      setLoading(true);
       await reservationService.delete(parseInt(rezervasyonId));
-      toast.success('✅ Rezervasyon başarıyla silindi!');
+      toast.success(`✅ Rezervasyon #${rezervasyonId} başarıyla silindi!`);
       setRezervasyonId('');
       kapat();
       if (onSuccess) onSuccess();
     } catch (error) {
       console.error('Rezervasyon silinirken hata:', error);
-      toast.error('❌ Rezervasyon silinirken hata oluştu!');
+      
+      if (error.response) {
+        const errorData = error.response.data;
+        if (errorData.mesaj || errorData.message) {
+          toast.error(`❌ ${errorData.mesaj || errorData.message}`);
+        } else if (error.response.status === 400) {
+          toast.error('❌ Bu rezervasyon silinemez! (Onaylanmış veya tamamlanmış olabilir)');
+        } else {
+          toast.error('❌ Rezervasyon silinirken hata oluştu!');
+        }
+      } else if (error.request) {
+        toast.error('❌ Sunucuya bağlanılamıyor!');
+      } else {
+        toast.error('❌ ' + error.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -47,9 +65,12 @@ const RezervasyonSil = ({ acik, kapat, onSuccess }) => {
             <FaTimes size={20} />
           </button>
         </div>
+        
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1.5">Rezervasyon ID</label>
+            <label className="block text-sm font-medium text-gray-300 mb-1.5">
+              Rezervasyon ID <span className="text-red-400">*</span>
+            </label>
             <input
               type="number"
               value={rezervasyonId}
@@ -58,12 +79,32 @@ const RezervasyonSil = ({ acik, kapat, onSuccess }) => {
               placeholder="Örn: 1"
               required
               disabled={loading}
+              min="1"
             />
+            <p className="text-gray-500 text-xs mt-1">
+              ⚠️ Uyarı: Onaylanmış veya tamamlanmış rezervasyonlar silinemez!
+            </p>
           </div>
+          
           <div className="flex gap-3 pt-2">
-            <button type="button" onClick={kapat} className="flex-1 px-4 py-2.5 bg-white/5 hover:bg-white/10 text-gray-300 rounded-lg" disabled={loading}>İptal</button>
-            <button type="submit" disabled={loading} className="flex-1 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
-              {loading ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> Siliniyor...</> : 'Sil'}
+            <button 
+              type="button" 
+              onClick={kapat} 
+              className="flex-1 px-4 py-2.5 bg-white/5 hover:bg-white/10 text-gray-300 rounded-lg transition-all" 
+              disabled={loading}
+            >
+              İptal
+            </button>
+            <button 
+              type="submit" 
+              disabled={loading || !rezervasyonId} 
+              className="flex-1 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {loading ? (
+                <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> Siliniyor...</>
+              ) : (
+                'Sil'
+              )}
             </button>
           </div>
         </form>

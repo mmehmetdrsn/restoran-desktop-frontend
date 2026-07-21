@@ -57,6 +57,7 @@ import MasaDuzenle from './Bilesenler/Masa/MasaDuzenle';
 import RezervasyonEkle from './Bilesenler/Rezervasyon/RezervasyonEkle';
 import RezervasyonSil from './Bilesenler/Rezervasyon/RezervasyonSil';
 import RezervasyonDuzenle from './Bilesenler/Rezervasyon/RezervasyonDuzenle';
+import RezervasyonListele from './Bilesenler/Rezervasyon/RezervasyonListele';  
 
 import Odeme from './Bilesenler/Finans/Odeme';
 import Kasa from './Bilesenler/Finans/Kasa';
@@ -182,10 +183,11 @@ const AdminPanel = () => {
   const [showMasaSil, setShowMasaSil] = useState(false);
   const [showMasaDuzenle, setShowMasaDuzenle] = useState(false);
 
-  // Rezervasyon
+  // ✅ Rezervasyon - showRezervasyonListele EKLENDİ
   const [showRezervasyonEkle, setShowRezervasyonEkle] = useState(false);
   const [showRezervasyonSil, setShowRezervasyonSil] = useState(false);
   const [showRezervasyonDuzenle, setShowRezervasyonDuzenle] = useState(false);
+  const [showRezervasyonListele, setShowRezervasyonListele] = useState(false); // ✅ YENİ
 
   // Finans
   const [showOdeme, setShowOdeme] = useState(false);
@@ -223,176 +225,172 @@ const AdminPanel = () => {
   ];
 
   // ============ DASHBOARD VERİLERİNİ ÇEK ============
-const fetchDashboardData = async () => {
+  const fetchDashboardData = async () => {
     try {
-        setLoading(true);
+      setLoading(true);
 
-        let ciroData = { ciro: 0, siparisSayisi: 0, oncekiGunCiro: 0 };
-        let satanlarData = [];
-        let sonSiparislerData = [];
+      let ciroData = { ciro: 0, siparisSayisi: 0, oncekiGunCiro: 0 };
+      let satanlarData = [];
+      let sonSiparislerData = [];
 
-        // ✅ Günlük ciro
-        try {
-            const ciroRes = await reportService.getGunlukCiro();
-            console.log('📊 Günlük ciro:', ciroRes);
-            if (ciroRes?.data) {
-                ciroData = ciroRes.data;
-            }
-        } catch (error) {
-            console.warn('⚠️ Günlük ciro verisi alınamadı:', error);
+      // Günlük ciro
+      try {
+        const ciroRes = await reportService.getGunlukCiro();
+        console.log('📊 Günlük ciro:', ciroRes);
+        if (ciroRes?.data) {
+          ciroData = ciroRes.data;
         }
+      } catch (error) {
+        console.warn('⚠️ Günlük ciro verisi alınamadı:', error);
+      }
 
-        // ✅ En çok satanlar
-        try {
-            const satanlarRes = await reportService.getEnCokSatanlar(30);
-            console.log('📊 En çok satanlar:', satanlarRes);
-            if (satanlarRes?.data && Array.isArray(satanlarRes.data)) {
-                satanlarData = satanlarRes.data;
-            }
-        } catch (error) {
-            console.warn('⚠️ En çok satanlar verisi alınamadı:', error);
+      // En çok satanlar
+      try {
+        const satanlarRes = await reportService.getEnCokSatanlar(30);
+        console.log('📊 En çok satanlar:', satanlarRes);
+        if (satanlarRes?.data && Array.isArray(satanlarRes.data)) {
+          satanlarData = satanlarRes.data;
         }
+      } catch (error) {
+        console.warn('⚠️ En çok satanlar verisi alınamadı:', error);
+      }
 
-        // ✅ Son siparişler
-        try {
-            const sonSiparislerRes = await reportService.getSonSiparisler(10);
-            console.log('📊 Son siparişler:', sonSiparislerRes);
-            if (sonSiparislerRes?.data && Array.isArray(sonSiparislerRes.data)) {
-                sonSiparislerData = sonSiparislerRes.data;
-            }
-        } catch (error) {
-            console.warn('⚠️ Son siparişler verisi alınamadı:', error);
+      // Son siparişler
+      try {
+        const sonSiparislerRes = await reportService.getSonSiparisler(10);
+        console.log('📊 Son siparişler:', sonSiparislerRes);
+        if (sonSiparislerRes?.data && Array.isArray(sonSiparislerRes.data)) {
+          sonSiparislerData = sonSiparislerRes.data;
         }
+      } catch (error) {
+        console.warn('⚠️ Son siparişler verisi alınamadı:', error);
+      }
 
-        // ✅ Dashboard state'ini güncelle
-        setDashboardData({
-            totalRevenue: ciroData.ciro || 0,
-            totalOrders: ciroData.siparisSayisi || 0,
-            date: ciroData.tarih || new Date().toLocaleDateString('tr-TR'),
-            changePercent: ciroData.oncekiGunCiro > 0
-                ? Math.round(((ciroData.ciro - ciroData.oncekiGunCiro) / ciroData.oncekiGunCiro) * 100)
-                : 0,
-            oncekiGunCiro: ciroData.oncekiGunCiro || 0
-        });
+      // Dashboard state'ini güncelle
+      setDashboardData({
+        totalRevenue: ciroData.ciro || 0,
+        totalOrders: ciroData.siparisSayisi || 0,
+        date: ciroData.tarih || new Date().toLocaleDateString('tr-TR'),
+        changePercent: ciroData.oncekiGunCiro > 0
+          ? Math.round(((ciroData.ciro - ciroData.oncekiGunCiro) / ciroData.oncekiGunCiro) * 100)
+          : 0,
+        oncekiGunCiro: ciroData.oncekiGunCiro || 0
+      });
 
-        // ✅ En çok satanlar
-        if (satanlarData && satanlarData.length > 0) {
-            const products = satanlarData.map((p, index) => ({
-                name: p.urunAdi || p.UrunAdi || p.urunAdi || 'Bilinmiyor',
-                quantity: p.toplamAdet || p.ToplamAdet || 0,
-                revenue: p.toplamCiro || p.ToplamCiro || 0,
-                index: index + 1
-            }));
-            setTopProducts(products);
-        }
+      // En çok satanlar
+      if (satanlarData && satanlarData.length > 0) {
+        const products = satanlarData.map((p, index) => ({
+          name: p.urunAdi || p.UrunAdi || p.urunAdi || 'Bilinmiyor',
+          quantity: p.toplamAdet || p.ToplamAdet || 0,
+          revenue: p.toplamCiro || p.ToplamCiro || 0,
+          index: index + 1
+        }));
+        setTopProducts(products);
+      }
 
-        // ✅ Son siparişler
-        if (sonSiparislerData && sonSiparislerData.length > 0) {
-            setRecentOrders(sonSiparislerData);
-        }
+      // Son siparişler
+      if (sonSiparislerData && sonSiparislerData.length > 0) {
+        setRecentOrders(sonSiparislerData);
+      }
 
-        console.log('✅ Dashboard verileri başarıyla yüklendi!');
+      console.log('✅ Dashboard verileri başarıyla yüklendi!');
     } catch (error) {
-        console.error('Dashboard verileri yüklenirken hata:', error);
-        toast.error('Dashboard verileri yüklenirken hata oluştu!');
+      console.error('Dashboard verileri yüklenirken hata:', error);
+      toast.error('Dashboard verileri yüklenirken hata oluştu!');
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
-};
-// ============ TÜM VERİLERİ ÇEK ============
-const fetchAllData = async () => {
+  };
+
+  // ============ TÜM VERİLERİ ÇEK ============
+  const fetchAllData = async () => {
     try {
-        console.log('🔄 Veriler yükleniyor...');
+      console.log('🔄 Veriler yükleniyor...');
 
-        // Her bir servisi ayrı ayrı çağır
-        // ✅ apiRequest artık { data, status } şeklinde dönüyor, bu yüzden .data okunuyor
-        const productsRes = await productService.getAll().catch(err => {
-            console.warn('⚠️ Ürünler yüklenemedi:', err);
-            return { data: [] };
-        });
+      const productsRes = await productService.getAll().catch(err => {
+        console.warn('⚠️ Ürünler yüklenemedi:', err);
+        return { data: [] };
+      });
 
-        const categoriesRes = await categoryService.getAll().catch(err => {
-            console.warn('⚠️ Kategoriler yüklenemedi:', err);
-            return { data: [] };
-        });
+      const categoriesRes = await categoryService.getAll().catch(err => {
+        console.warn('⚠️ Kategoriler yüklenemedi:', err);
+        return { data: [] };
+      });
 
-        const materialsRes = await materialService.getAll().catch(err => {
-            console.warn('⚠️ Malzemeler yüklenemedi:', err);
-            return { data: [] };
-        });
+      const materialsRes = await materialService.getAll().catch(err => {
+        console.warn('⚠️ Malzemeler yüklenemedi:', err);
+        return { data: [] };
+      });
 
-        const tablesRes = await tableService.getAll().catch(err => {
-            console.warn('⚠️ Masalar yüklenemedi:', err);
-            return { data: [] };
-        });
+      const tablesRes = await tableService.getAll().catch(err => {
+        console.warn('⚠️ Masalar yüklenemedi:', err);
+        return { data: [] };
+      });
 
-        const reservationsRes = await reservationService.getAll().catch(err => {
-            console.warn('⚠️ Rezervasyonlar yüklenemedi:', err);
-            return { data: [] };
-        });
+      const reservationsRes = await reservationService.getAll().catch(err => {
+        console.warn('⚠️ Rezervasyonlar yüklenemedi:', err);
+        return { data: [] };
+      });
 
-        const personnelRes = await personnelService.getAll().catch(err => {
-            console.warn('⚠️ Personeller yüklenemedi:', err);
-            return { data: [] };
-        });
+      const personnelRes = await personnelService.getAll().catch(err => {
+        console.warn('⚠️ Personeller yüklenemedi:', err);
+        return { data: [] };
+      });
 
-        const usersRes = await userService.getAll().catch(err => {
-            console.warn('⚠️ Üyeler yüklenemedi:', err);
-            return { data: [] };
-        });
+      const usersRes = await userService.getAll().catch(err => {
+        console.warn('⚠️ Üyeler yüklenemedi:', err);
+        return { data: [] };
+      });
 
-        const paymentsRes = await paymentService.getAll().catch(err => {
-            console.warn('⚠️ Ödemeler yüklenemedi:', err);
-            return { data: [] };
-        });
+      const paymentsRes = await paymentService.getAll().catch(err => {
+        console.warn('⚠️ Ödemeler yüklenemedi:', err);
+        return { data: [] };
+      });
 
-        const cashRes = await cashService.getAll().catch(err => {
-            console.warn('⚠️ Kasa hareketleri yüklenemedi:', err);
-            return { data: [] };
-        });
+      const cashRes = await cashService.getAll().catch(err => {
+        console.warn('⚠️ Kasa hareketleri yüklenemedi:', err);
+        return { data: [] };
+      });
 
-        // Verileri konsola yazdır
-        console.log('📦 Ürünler:', productsRes);
-        console.log('📦 Kategoriler:', categoriesRes);
-        console.log('📦 Malzemeler:', materialsRes);
-        console.log('📦 Masalar:', tablesRes);
-        console.log('📦 Rezervasyonlar:', reservationsRes);
-        console.log('📦 Personeller:', personnelRes);
-        console.log('📦 Üyeler:', usersRes);
-        console.log('📦 Ödemeler:', paymentsRes);
-        console.log('📦 Kasa:', cashRes);
+      console.log('📦 Ürünler:', productsRes);
+      console.log('📦 Kategoriler:', categoriesRes);
+      console.log('📦 Malzemeler:', materialsRes);
+      console.log('📦 Masalar:', tablesRes);
+      console.log('📦 Rezervasyonlar:', reservationsRes);
+      console.log('📦 Personeller:', personnelRes);
+      console.log('📦 Üyeler:', usersRes);
+      console.log('📦 Ödemeler:', paymentsRes);
+      console.log('📦 Kasa:', cashRes);
 
-        // State'lere ata (.data üzerinden okunuyor)
-        setProducts(Array.isArray(productsRes?.data) ? productsRes.data : []);
-        setCategories(Array.isArray(categoriesRes?.data) ? categoriesRes.data : []);
-        setMaterials(Array.isArray(materialsRes?.data) ? materialsRes.data : []);
-        setTables(Array.isArray(tablesRes?.data) ? tablesRes.data : []);
-        setReservations(Array.isArray(reservationsRes?.data) ? reservationsRes.data : []);
-        setPersonnel(Array.isArray(personnelRes?.data) ? personnelRes.data : []);
-        setUsers(Array.isArray(usersRes?.data) ? usersRes.data : []);
-        setPayments(Array.isArray(paymentsRes?.data) ? paymentsRes.data : []);
-        setCash(Array.isArray(cashRes?.data) ? cashRes.data : []);
+      setProducts(Array.isArray(productsRes?.data) ? productsRes.data : []);
+      setCategories(Array.isArray(categoriesRes?.data) ? categoriesRes.data : []);
+      setMaterials(Array.isArray(materialsRes?.data) ? materialsRes.data : []);
+      setTables(Array.isArray(tablesRes?.data) ? tablesRes.data : []);
+      setReservations(Array.isArray(reservationsRes?.data) ? reservationsRes.data : []);
+      setPersonnel(Array.isArray(personnelRes?.data) ? personnelRes.data : []);
+      setUsers(Array.isArray(usersRes?.data) ? usersRes.data : []);
+      setPayments(Array.isArray(paymentsRes?.data) ? paymentsRes.data : []);
+      setCash(Array.isArray(cashRes?.data) ? cashRes.data : []);
 
-        // Personel listesini güncelle
-        if (Array.isArray(personnelRes?.data) && personnelRes.data.length > 0) {
-            const personeller = personnelRes.data.map(p => ({
-                ...p,
-                rolAdi: p.rolAdi || p.RolAdi || p.rol || p.Rol || 'Bilinmiyor',
-                personelId: p.personelId || p.PersonelId || p.id,
-                personelAdi: p.personelAdi || p.PersonelAdi || p.adi || 'Bilinmiyor',
-                personelSoyadi: p.personelSoyadi || p.PersonelSoyadi || p.soyadi || '',
-                kullaniciAdi: p.kullaniciAdi || p.KullaniciAdi || p.kullaniciAdi || '-'
-            }));
-            setPersonelListesi(personeller);
-        }
+      if (Array.isArray(personnelRes?.data) && personnelRes.data.length > 0) {
+        const personeller = personnelRes.data.map(p => ({
+          ...p,
+          rolAdi: p.rolAdi || p.RolAdi || p.rol || p.Rol || 'Bilinmiyor',
+          personelId: p.personelId || p.PersonelId || p.id,
+          personelAdi: p.personelAdi || p.PersonelAdi || p.adi || 'Bilinmiyor',
+          personelSoyadi: p.personelSoyadi || p.PersonelSoyadi || p.soyadi || '',
+          kullaniciAdi: p.kullaniciAdi || p.KullaniciAdi || p.kullaniciAdi || '-'
+        }));
+        setPersonelListesi(personeller);
+      }
 
-        console.log('✅ Veriler başarıyla yüklendi!');
-        console.log('📊 State güncellemeleri tamamlandı.');
+      console.log('✅ Veriler başarıyla yüklendi!');
+      console.log('📊 State güncellemeleri tamamlandı.');
     } catch (error) {
-        console.error('❌ Veriler yüklenirken hata:', error);
-        toast.error('Veriler yüklenirken hata oluştu!');
+      console.error('❌ Veriler yüklenirken hata:', error);
+      toast.error('Veriler yüklenirken hata oluştu!');
     }
-};
+  };
 
   // ============ DURUM RENKLERİ ============
   const getStatusColor = (status) => {
@@ -472,43 +470,41 @@ const fetchAllData = async () => {
     }
   };
 
-// ============ ÜRÜN LİSTELE ============
-const handleUrunListele = async () => {
-  try {
-    const response = await productService.getAll();
-    const data = response.data || [];
-    
-    console.log('📦 Tüm ürünler:', data);
-    
-    // Her ürünün isActive değerini kontrol et
-    data.forEach((urun, index) => {
-      console.log(`Ürün ${index + 1}: ${urun.urunAdi} - isActive:`, urun.isActive, '| IsActive:', urun.IsActive);
-    });
-    
-    // Pasif ürünleri bul (tüm olası alan adlarıyla)
-    const pasifUrunler = data.filter(u => {
-      const active = u.isActive ?? u.IsActive ?? u.is_active ?? u.IS_ACTIVE;
-      return active === false || active === 0 || active === 'false' || active === '0';
-    });
-    
-    const aktifUrunler = data.filter(u => {
-      const active = u.isActive ?? u.IsActive ?? u.is_active ?? u.IS_ACTIVE;
-      return active === true || active === 1 || active === 'true' || active === '1' || active == null;
-    });
-    
-    console.log('📊 Aktif ürünler:', aktifUrunler.length);
-    console.log('📊 Pasif ürünler:', pasifUrunler.length);
-    console.log('📊 Pasif ürün listesi:', pasifUrunler);
-    
-    setUrunListesi(data);
-    setShowUrunListele(true);
-    
-    toast.info(`📋 ${data.length || 0} ürün (${aktifUrunler.length} aktif, ${pasifUrunler.length} pasif)`);
-  } catch (error) {
-    console.error('Ürünler yüklenirken hata:', error);
-    toast.error('❌ Ürünler yüklenirken hata oluştu!');
-  }
-};
+  // ============ ÜRÜN LİSTELE ============
+  const handleUrunListele = async () => {
+    try {
+      const response = await productService.getAll();
+      const data = response.data || [];
+      
+      console.log('📦 Tüm ürünler:', data);
+      
+      data.forEach((urun, index) => {
+        console.log(`Ürün ${index + 1}: ${urun.urunAdi} - isActive:`, urun.isActive, '| IsActive:', urun.IsActive);
+      });
+      
+      const pasifUrunler = data.filter(u => {
+        const active = u.isActive ?? u.IsActive ?? u.is_active ?? u.IS_ACTIVE;
+        return active === false || active === 0 || active === 'false' || active === '0';
+      });
+      
+      const aktifUrunler = data.filter(u => {
+        const active = u.isActive ?? u.IsActive ?? u.is_active ?? u.IS_ACTIVE;
+        return active === true || active === 1 || active === 'true' || active === '1' || active == null;
+      });
+      
+      console.log('📊 Aktif ürünler:', aktifUrunler.length);
+      console.log('📊 Pasif ürünler:', pasifUrunler.length);
+      console.log('📊 Pasif ürün listesi:', pasifUrunler);
+      
+      setUrunListesi(data);
+      setShowUrunListele(true);
+      
+      toast.info(`📋 ${data.length || 0} ürün (${aktifUrunler.length} aktif, ${pasifUrunler.length} pasif)`);
+    } catch (error) {
+      console.error('Ürünler yüklenirken hata:', error);
+      toast.error('❌ Ürünler yüklenirken hata oluştu!');
+    }
+  };
 
   // ============ ÜYE LİSTELE ============
   const handleUyeListele = async () => {
@@ -659,7 +655,7 @@ const handleUrunListele = async () => {
 
   // ============ KASA HAREKETLERİ LİSTELE ============
   const handleKasaHareketleri = async () => {
-    try { 
+    try {
       setFinansLoading(true);
       const response = await cashService.getAll();
       setKasaHareketleri(response.data || []);
@@ -707,7 +703,21 @@ const handleUrunListele = async () => {
     }
   };
 
-  // ============ SİPARİŞ TAMAMLA (Otomatik Stok Düşümü) ============
+  // ============ REZERVASYON LİSTELE ============
+  const handleRezervasyonListele = async () => {
+    try {
+      const response = await reservationService.getAll();
+      const data = response.data || [];
+      setReservations(data);
+      setShowRezervasyonListele(true);
+      toast.info(`📋 ${data.length} rezervasyon bulundu`);
+    } catch (error) {
+      console.error('Rezervasyonlar yüklenirken hata:', error);
+      toast.error('❌ Rezervasyonlar yüklenirken hata oluştu!');
+    }
+  };
+
+  // ============ SİPARİŞ TAMAMLA ============
   const handleSiparisTamamla = async (siparisId) => {
     if (!window.confirm('Siparişi tamamlamak istediğinize emin misiniz?\n\nBu işlem stokları otomatik düşecektir!')) {
       return;
@@ -821,211 +831,200 @@ const handleUrunListele = async () => {
     </div>
   );
 
-// Sipariş Yönetimi Sayfası
-const renderOrders = () => {
-  // ✅ Tüm siparişler
-  const tumSiparisler = orders;
-  
-  // ✅ Aktif siparişler (IADE hariç)
-  const aktifSiparisler = orders.filter(
-    o => o.siparisDurumu !== 'TAMAMLANDI' && 
-         o.siparisDurumu !== 'IPTAL' && 
-         o.siparisDurumu !== 'ODENDI' &&
-         o.siparisDurumu !== 'IADE'
-  );
-  
-  // ✅ Tamamlanan siparişler
-  const tamamlananSiparisler = orders.filter(
-    o => o.siparisDurumu === 'TAMAMLANDI' || o.siparisDurumu === 'ODENDI'
-  );
-  
-  // ✅ İptal edilen siparişler
-  const iptalSiparisler = orders.filter(
-    o => o.siparisDurumu === 'IPTAL'
-  );
-  
-  // ✅ İade edilen siparişler
-  const iadeSiparisler = orders.filter(
-    o => o.siparisDurumu === 'IADE'
-  );
+  // Sipariş Yönetimi Sayfası
+  const renderOrders = () => {
+    const tumSiparisler = orders;
+    
+    const aktifSiparisler = orders.filter(
+      o => o.siparisDurumu !== 'TAMAMLANDI' && 
+           o.siparisDurumu !== 'IPTAL' && 
+           o.siparisDurumu !== 'ODENDI' &&
+           o.siparisDurumu !== 'IADE'
+    );
+    
+    const tamamlananSiparisler = orders.filter(
+      o => o.siparisDurumu === 'TAMAMLANDI' || o.siparisDurumu === 'ODENDI'
+    );
+    
+    const iptalSiparisler = orders.filter(
+      o => o.siparisDurumu === 'IPTAL'
+    );
+    
+    const iadeSiparisler = orders.filter(
+      o => o.siparisDurumu === 'IADE'
+    );
 
-  // ✅ İptal + İade
-  const iptalIadeSiparisler = orders.filter(
-    o => o.siparisDurumu === 'IPTAL' || o.siparisDurumu === 'IADE'
-  );
+    const iptalIadeSiparisler = orders.filter(
+      o => o.siparisDurumu === 'IPTAL' || o.siparisDurumu === 'IADE'
+    );
 
-  // ✅ Durum renkleri
-  const getDurumRenk = (durum) => {
-    const d = (durum || '').toUpperCase();
-    if (d === 'TAMAMLANDI') return 'bg-green-500/20 text-green-400';
-    if (d === 'ODENDI') return 'bg-purple-500/20 text-purple-400';
-    if (d === 'BEKLEMEDE') return 'bg-yellow-500/20 text-yellow-400';
-    if (d === 'HAZIRLANIYOR') return 'bg-blue-500/20 text-blue-400';
-    if (d === 'HAZIR') return 'bg-cyan-500/20 text-cyan-400';
-    if (d === 'TESLIM EDILDI') return 'bg-indigo-500/20 text-indigo-400';
-    if (d === 'IPTAL') return 'bg-red-500/20 text-red-400';
-    if (d === 'IADE') return 'bg-orange-500/20 text-orange-400';
-    return 'bg-gray-500/20 text-gray-400';
-  };
+    const getDurumRenk = (durum) => {
+      const d = (durum || '').toUpperCase();
+      if (d === 'TAMAMLANDI') return 'bg-green-500/20 text-green-400';
+      if (d === 'ODENDI') return 'bg-purple-500/20 text-purple-400';
+      if (d === 'BEKLEMEDE') return 'bg-yellow-500/20 text-yellow-400';
+      if (d === 'HAZIRLANIYOR') return 'bg-blue-500/20 text-blue-400';
+      if (d === 'HAZIR') return 'bg-cyan-500/20 text-cyan-400';
+      if (d === 'TESLIM EDILDI') return 'bg-indigo-500/20 text-indigo-400';
+      if (d === 'IPTAL') return 'bg-red-500/20 text-red-400';
+      if (d === 'IADE') return 'bg-orange-500/20 text-orange-400';
+      return 'bg-gray-500/20 text-gray-400';
+    };
 
-  // ✅ Durum iconları
-  const getDurumIcon = (durum) => {
-    const d = (durum || '').toUpperCase();
-    if (d === 'TAMAMLANDI') return '✅';
-    if (d === 'ODENDI') return '💰';
-    if (d === 'BEKLEMEDE') return '⏳';
-    if (d === 'HAZIRLANIYOR') return '👨‍🍳';
-    if (d === 'HAZIR') return '✅';
-    if (d === 'TESLIM EDILDI') return '🚚';
-    if (d === 'IPTAL') return '❌';
-    if (d === 'IADE') return '🔄';
-    return '📋';
-  };
+    const getDurumIcon = (durum) => {
+      const d = (durum || '').toUpperCase();
+      if (d === 'TAMAMLANDI') return '✅';
+      if (d === 'ODENDI') return '💰';
+      if (d === 'BEKLEMEDE') return '⏳';
+      if (d === 'HAZIRLANIYOR') return '👨‍🍳';
+      if (d === 'HAZIR') return '✅';
+      if (d === 'TESLIM EDILDI') return '🚚';
+      if (d === 'IPTAL') return '❌';
+      if (d === 'IADE') return '🔄';
+      return '📋';
+    };
 
-  // ✅ Gösterilecek siparişleri seç
-  const getGosterilecekSiparisler = () => {
-    switch(siparisGosterimModu) {
-      case 'active': return aktifSiparisler;
-      case 'completed': return tamamlananSiparisler;
-      case 'cancelled': return iptalSiparisler;
-      case 'iade': return iadeSiparisler;
-      case 'iptal_iade': return iptalIadeSiparisler;
-      default: return tumSiparisler;
-    }
-  };
+    const getGosterilecekSiparisler = () => {
+      switch(siparisGosterimModu) {
+        case 'active': return aktifSiparisler;
+        case 'completed': return tamamlananSiparisler;
+        case 'cancelled': return iptalSiparisler;
+        case 'iade': return iadeSiparisler;
+        case 'iptal_iade': return iptalIadeSiparisler;
+        default: return tumSiparisler;
+      }
+    };
 
-  const gosterilecekSiparisler = getGosterilecekSiparisler();
+    const gosterilecekSiparisler = getGosterilecekSiparisler();
 
-  return (
-    <div className="bg-black/90 backdrop-blur-sm rounded-2xl p-6 border border-white/10 max-w-6xl mx-auto">
-      <BolumBasligi icon={<FaClipboardListIcon />} title="Sipariş Yönetimi" />
-      <p className="text-gray-400 text-sm mb-6">Aktif siparişler ve sipariş işlemleri.</p>
-      
-      {/* Butonlar */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        <Buton 
-          icon={<FaList />} 
-          label={`📋 Tüm Siparişler (${tumSiparisler.length})`}
-          onClick={() => {
-            setSiparisGosterimModu('all');
-            handleSiparisListele();
-          }} 
-        />
-        <Buton 
-          icon={<FaShoppingCart />} 
-          label={`🛒 Aktif (${aktifSiparisler.length})`}
-          onClick={() => {
-            setSiparisGosterimModu('active');
-            handleSiparisListele();
-          }} 
-        />
-        <Buton 
-          icon={<FaUndo />} 
-          label={`🔄 İptal/İade (${iptalIadeSiparisler.length})`}
-          onClick={() => {
-            setSiparisGosterimModu('iptal_iade');
-            handleSiparisListele();
-          }} 
-        />
-        <Buton 
-          icon={<FaEye />} 
-          label="👁️ Sipariş Detay" 
-          onClick={() => setShowSiparisDetay(true)} 
-        />
-      </div>
+    return (
+      <div className="bg-black/90 backdrop-blur-sm rounded-2xl p-6 border border-white/10 max-w-6xl mx-auto">
+        <BolumBasligi icon={<FaClipboardListIcon />} title="Sipariş Yönetimi" />
+        <p className="text-gray-400 text-sm mb-6">Aktif siparişler ve sipariş işlemleri.</p>
+        
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+          <Buton 
+            icon={<FaList />} 
+            label={`📋 Tüm Siparişler (${tumSiparisler.length})`}
+            onClick={() => {
+              setSiparisGosterimModu('all');
+              handleSiparisListele();
+            }} 
+          />
+          <Buton 
+            icon={<FaShoppingCart />} 
+            label={`🛒 Aktif (${aktifSiparisler.length})`}
+            onClick={() => {
+              setSiparisGosterimModu('active');
+              handleSiparisListele();
+            }} 
+          />
+          <Buton 
+            icon={<FaUndo />} 
+            label={`🔄 İptal/İade (${iptalIadeSiparisler.length})`}
+            onClick={() => {
+              setSiparisGosterimModu('iptal_iade');
+              handleSiparisListele();
+            }} 
+          />
+          <Buton 
+            icon={<FaEye />} 
+            label="👁️ Sipariş Detay" 
+            onClick={() => setShowSiparisDetay(true)} 
+          />
+        </div>
 
-      {/* ✅ Sipariş Listesi */}
-      {orders.length > 0 ? (
-        <div className="mt-4 border-t border-white/10 pt-4">
-          <div className="flex items-center justify-between mb-3">
-            <h4 className="text-white font-medium text-sm">
-              📋 {siparisGosterimModu === 'all' ? 'Tüm Siparişler' :
-                  siparisGosterimModu === 'active' ? 'Aktif Siparişler' :
-                  siparisGosterimModu === 'completed' ? 'Tamamlanan Siparişler' :
-                  siparisGosterimModu === 'cancelled' ? 'İptal Edilen Siparişler' :
-                  siparisGosterimModu === 'iade' ? 'İade Edilen Siparişler' :
-                  'İptal / İade Siparişleri'} 
-              ({gosterilecekSiparisler.length})
-            </h4>
-            <div className="flex gap-3 text-xs text-gray-400">
-              <span>🟡 Aktif: {aktifSiparisler.length}</span>
-              <span>🟢 Tamamlandı: {tamamlananSiparisler.length}</span>
-              <span>🔴 İptal: {iptalSiparisler.length}</span>
-              <span>🔄 İade: {iadeSiparisler.length}</span>
-            </div>
-          </div>
-          <div className="space-y-2 max-h-96 overflow-y-auto">
-            {gosterilecekSiparisler.length === 0 ? (
-              <div className="text-center py-8 text-gray-400">
-                <p>📭 Bu kategoride sipariş bulunmuyor.</p>
+        {orders.length > 0 ? (
+          <div className="mt-4 border-t border-white/10 pt-4">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-white font-medium text-sm">
+                📋 {siparisGosterimModu === 'all' ? 'Tüm Siparişler' :
+                    siparisGosterimModu === 'active' ? 'Aktif Siparişler' :
+                    siparisGosterimModu === 'completed' ? 'Tamamlanan Siparişler' :
+                    siparisGosterimModu === 'cancelled' ? 'İptal Edilen Siparişler' :
+                    siparisGosterimModu === 'iade' ? 'İade Edilen Siparişler' :
+                    'İptal / İade Siparişleri'} 
+                ({gosterilecekSiparisler.length})
+              </h4>
+              <div className="flex gap-3 text-xs text-gray-400">
+                <span>🟡 Aktif: {aktifSiparisler.length}</span>
+                <span>🟢 Tamamlandı: {tamamlananSiparisler.length}</span>
+                <span>🔴 İptal: {iptalSiparisler.length}</span>
+                <span>🔄 İade: {iadeSiparisler.length}</span>
               </div>
-            ) : (
-              gosterilecekSiparisler.map((siparis) => (
-                <div key={siparis.siparisId} className="bg-white/5 rounded-xl p-4 border border-white/10 hover:bg-white/10 transition-colors">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-white font-medium">Sipariş #{siparis.siparisId}</span>
-                        <span className={`px-2 py-0.5 rounded text-xs ${getDurumRenk(siparis.siparisDurumu)}`}>
-                          {getDurumIcon(siparis.siparisDurumu)} {siparis.siparisDurumu || 'Bilinmiyor'}
-                        </span>
+            </div>
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {gosterilecekSiparisler.length === 0 ? (
+                <div className="text-center py-8 text-gray-400">
+                  <p>📭 Bu kategoride sipariş bulunmuyor.</p>
+                </div>
+              ) : (
+                gosterilecekSiparisler.map((siparis) => (
+                  <div key={siparis.siparisId} className="bg-white/5 rounded-xl p-4 border border-white/10 hover:bg-white/10 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-white font-medium">Sipariş #{siparis.siparisId}</span>
+                          <span className={`px-2 py-0.5 rounded text-xs ${getDurumRenk(siparis.siparisDurumu)}`}>
+                            {getDurumIcon(siparis.siparisDurumu)} {siparis.siparisDurumu || 'Bilinmiyor'}
+                          </span>
+                        </div>
+                        <p className="text-gray-400 text-sm">
+                          Masa: {siparis.masaNo || 'Paket'} • {siparis.uyeAdi || 'Ziyaretçi'} • {siparis.detaySayisi || 0} ürün
+                        </p>
+                        <p className="text-gray-500 text-xs">
+                          {siparis.siparisTarihi ? new Date(siparis.siparisTarihi).toLocaleString('tr-TR') : '-'}
+                        </p>
                       </div>
-                      <p className="text-gray-400 text-sm">
-                        Masa: {siparis.masaNo || 'Paket'} • {siparis.uyeAdi || 'Ziyaretçi'} • {siparis.detaySayisi || 0} ürün
-                      </p>
-                      <p className="text-gray-500 text-xs">
-                        {siparis.siparisTarihi ? new Date(siparis.siparisTarihi).toLocaleString('tr-TR') : '-'}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-white font-bold text-lg">₺{siparis.toplamTutar?.toFixed(2) || 0}</p>
-                      <div className="flex gap-2 mt-1 justify-end">
-                        {siparis.siparisDurumu !== 'TAMAMLANDI' && 
-                         siparis.siparisDurumu !== 'IPTAL' && 
-                         siparis.siparisDurumu !== 'ODENDI' &&
-                         siparis.siparisDurumu !== 'IADE' && (
-                          <button
-                            onClick={() => handleSiparisTamamla(siparis.siparisId)}
-                            className="px-3 py-1 bg-green-500 hover:bg-green-600 text-white text-xs rounded-lg transition-all"
-                          >
-                            ✅ Tamamla
-                          </button>
-                        )}
-                        {(siparis.siparisDurumu === 'TAMAMLANDI' || siparis.siparisDurumu === 'ODENDI') && (
-                          <span className="px-3 py-1 bg-green-500/20 text-green-400 text-xs rounded-lg">
-                            ✅ Tamamlandı
-                          </span>
-                        )}
-                        {siparis.siparisDurumu === 'IPTAL' && (
-                          <span className="px-3 py-1 bg-red-500/20 text-red-400 text-xs rounded-lg">
-                            ❌ İptal
-                          </span>
-                        )}
-                        {siparis.siparisDurumu === 'IADE' && (
-                          <span className="px-3 py-1 bg-orange-500/20 text-orange-400 text-xs rounded-lg">
-                            🔄 İade
-                          </span>
-                        )}
+                      <div className="text-right">
+                        <p className="text-white font-bold text-lg">₺{siparis.toplamTutar?.toFixed(2) || 0}</p>
+                        <div className="flex gap-2 mt-1 justify-end">
+                          {siparis.siparisDurumu !== 'TAMAMLANDI' && 
+                           siparis.siparisDurumu !== 'IPTAL' && 
+                           siparis.siparisDurumu !== 'ODENDI' &&
+                           siparis.siparisDurumu !== 'IADE' && (
+                            <button
+                              onClick={() => handleSiparisTamamla(siparis.siparisId)}
+                              className="px-3 py-1 bg-green-500 hover:bg-green-600 text-white text-xs rounded-lg transition-all"
+                            >
+                              ✅ Tamamla
+                            </button>
+                          )}
+                          {(siparis.siparisDurumu === 'TAMAMLANDI' || siparis.siparisDurumu === 'ODENDI') && (
+                            <span className="px-3 py-1 bg-green-500/20 text-green-400 text-xs rounded-lg">
+                              ✅ Tamamlandı
+                            </span>
+                          )}
+                          {siparis.siparisDurumu === 'IPTAL' && (
+                            <span className="px-3 py-1 bg-red-500/20 text-red-400 text-xs rounded-lg">
+                              ❌ İptal
+                            </span>
+                          )}
+                          {siparis.siparisDurumu === 'IADE' && (
+                            <span className="px-3 py-1 bg-orange-500/20 text-orange-400 text-xs rounded-lg">
+                              🔄 İade
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))
-            )}
+                ))
+              )}
+            </div>
           </div>
-        </div>
-      ) : (
-        <div className="text-center py-12 text-gray-400 border-t border-white/10 mt-4 pt-8">
-          <FaShoppingCart className="text-5xl mx-auto mb-4 text-gray-600" />
-          <p>Henüz sipariş yok</p>
-          <p className="text-xs text-gray-500 mt-1">"Tüm Siparişler" butonuna tıklayarak siparişleri görüntüleyin</p>
-        </div>
-      )}
-    </div>
-  );
-};
+        ) : (
+          <div className="text-center py-12 text-gray-400 border-t border-white/10 mt-4 pt-8">
+            <FaShoppingCart className="text-5xl mx-auto mb-4 text-gray-600" />
+            <p>Henüz sipariş yok</p>
+            <p className="text-xs text-gray-500 mt-1">"Tüm Siparişler" butonuna tıklayarak siparişleri görüntüleyin</p>
+          </div>
+        )}
+      </div>
+    );
+  };
 
-  // Masa ve Rezervasyon Yönetimi Sayfası
+  // ============ MASA VE REZERVASYON YÖNETİMİ ============
   const renderTables = () => (
     <div className="bg-black/90 backdrop-blur-sm rounded-2xl p-6 border border-white/10 max-w-6xl mx-auto">
       <BolumBasligi icon={<FaTable />} title="Masa ve Rezervasyon Yönetimi" />
@@ -1043,7 +1042,8 @@ const renderOrders = () => {
             <Buton icon={<FaCalendarCheck />} label="Rezervasyon Ekle" onClick={() => setShowRezervasyonEkle(true)} />
             <Buton icon={<FaTrash />} label="Rezervasyon Sil" onClick={() => setShowRezervasyonSil(true)} />
             <Buton icon={<FaEdit />} label="Rezervasyon Düzenle" onClick={() => setShowRezervasyonDuzenle(true)} />
-            <Buton icon={<FaList />} label="Rezervasyon Listele" onClick={() => toast.info(`📋 ${reservations.length} rezervasyon bulunuyor`)} />
+            {/* ✅ Rezervasyon Listele Butonu - handleRezervasyonListele ile çağrılıyor */}
+            <Buton icon={<FaList />} label="Rezervasyon Listele" onClick={handleRezervasyonListele} />
           </div>
         </div>
       </div>
@@ -1333,7 +1333,7 @@ const renderOrders = () => {
         onSuccess={fetchAllData}
       />
 
-      {/* Rezervasyon Modalları */}
+      {/* ✅ Rezervasyon Modalları */}
       <RezervasyonEkle
         acik={showRezervasyonEkle}
         kapat={() => setShowRezervasyonEkle(false)}
@@ -1348,6 +1348,11 @@ const renderOrders = () => {
         acik={showRezervasyonDuzenle}
         kapat={() => setShowRezervasyonDuzenle(false)}
         onSuccess={fetchAllData}
+      />
+      {/* ✅ Rezervasyon Listele Modal - YENİ */}
+      <RezervasyonListele
+        acik={showRezervasyonListele}
+        kapat={() => setShowRezervasyonListele(false)}
       />
 
       {/* Finans Modalları */}

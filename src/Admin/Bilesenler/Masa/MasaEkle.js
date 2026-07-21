@@ -6,6 +6,8 @@ import { tableService } from '../../../api/api';
 
 const MasaEkle = ({ acik, kapat, onSuccess }) => {
   const [masaNo, setMasaNo] = useState('');
+  const [masaDurumu, setMasaDurumu] = useState('BOŞ'); // ✅ Eklendi
+  const [kapasite, setKapasite] = useState(4);         // ✅ Eklendi
   const [loading, setLoading] = useState(false);
 
   if (!acik) return null;
@@ -19,11 +21,16 @@ const MasaEkle = ({ acik, kapat, onSuccess }) => {
 
     setLoading(true);
     try {
+      // ✅ Tüm alanlar gönderiliyor
       await tableService.create({ 
-        masaNo: masaNo.trim() 
+        masaNo: masaNo.trim(),
+        masaDurumu: masaDurumu,
+        kapasite: kapasite
       });
       toast.success(`✅ Masa "${masaNo}" başarıyla eklendi!`);
       setMasaNo('');
+      setMasaDurumu('BOŞ');
+      setKapasite(4);
       kapat();
       if (onSuccess) onSuccess();
     } catch (error) {
@@ -31,8 +38,8 @@ const MasaEkle = ({ acik, kapat, onSuccess }) => {
       
       if (error.response) {
         const errorData = error.response.data;
-        if (errorData.message) {
-          toast.error(`❌ ${errorData.message}`);
+        if (errorData.mesaj || errorData.message) {
+          toast.error(`❌ ${errorData.mesaj || errorData.message}`);
         } else {
           toast.error('❌ Masa eklenirken hata oluştu!');
         }
@@ -74,6 +81,39 @@ const MasaEkle = ({ acik, kapat, onSuccess }) => {
               className="w-full py-2.5 px-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-gray-500 focus:ring-2 focus:ring-white/20 outline-none"
               placeholder="Örn: İÇ-05, DIŞ-03, VIP-01"
               required
+              disabled={loading}
+            />
+          </div>
+
+          {/* ✅ Masa Durumu Eklendi */}
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1.5">
+              Masa Durumu
+            </label>
+            <select
+              value={masaDurumu}
+              onChange={(e) => setMasaDurumu(e.target.value)}
+              className="w-full py-2.5 px-3 bg-white/5 border border-white/10 rounded-lg text-white focus:ring-2 focus:ring-white/20 outline-none"
+              disabled={loading}
+            >
+              <option value="BOŞ">Boş</option>
+              <option value="DOLU">Dolu</option>
+              <option value="REZERVE">Rezerve</option>
+            </select>
+          </div>
+
+          {/* ✅ Kapasite Eklendi */}
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1.5">
+              Kapasite (Kişi Sayısı)
+            </label>
+            <input
+              type="number"
+              value={kapasite}
+              onChange={(e) => setKapasite(parseInt(e.target.value) || 4)}
+              min="1"
+              max="20"
+              className="w-full py-2.5 px-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-gray-500 focus:ring-2 focus:ring-white/20 outline-none"
               disabled={loading}
             />
           </div>
