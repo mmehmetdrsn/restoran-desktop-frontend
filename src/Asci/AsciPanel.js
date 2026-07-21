@@ -1,14 +1,14 @@
 // src/Asci/AsciPanel.js
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  FaSignOutAlt, FaHome, FaBell, FaEnvelope, FaKey,
-  FaTimes, FaBars, FaUtensils, FaClipboardList, 
-  FaCheck, FaTimesCircle, FaClock, FaSpinner,
-  FaPrint, FaSearch, FaFilter, FaEye, FaEdit,
-  FaArrowLeft, FaExclamationTriangle
+  FaSignOutAlt, FaKey,
+  FaTimes, FaBars, FaUtensils,
+  FaCheck, FaSpinner,
+  FaSync
 } from 'react-icons/fa';
 import { toast } from 'react-toastify';
+import { asciAPI, authService } from '../api/api';
 
 // Arka plan resmi
 const backgroundImage = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80';
@@ -22,78 +22,185 @@ const AsciPanel = () => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordLoading, setPasswordLoading] = useState(false);
-  const [orders, setOrders] = useState([
-    { 
-      id: 1, 
-      table: 'Masa 02', 
-      items: ['Adana Kebap', 'Lahmacun', 'Ayran'], 
-      status: 'pending', 
-      time: '14:23',
-      note: 'Acılı olsun',
-      quantity: 3
-    },
-    { 
-      id: 2, 
-      table: 'Masa 05', 
-      items: ['Karışık Izgara', 'Künefe', 'Su'], 
-      status: 'preparing', 
-      time: '14:15',
-      note: 'Izgara iyi pişsin',
-      quantity: 3
-    },
-    { 
-      id: 3, 
-      table: 'Teras 01', 
-      items: ['Balık Tabağı', 'Salata', 'Limonata'], 
-      status: 'ready', 
-      time: '14:02',
-      note: 'Limonlu olsun',
-      quantity: 3
-    },
-    { 
-      id: 4, 
-      table: 'Masa 03', 
-      items: ['Mercimek Çorbası', 'Pizza'], 
-      status: 'pending', 
-      time: '13:48',
-      note: 'Çorba sıcak olsun',
-      quantity: 2
-    }
-  ]);
-
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [updatingOrderId, setUpdatingOrderId] = useState(null);
   const [userData, setUserData] = useState({
     name: 'Aşçı',
     email: 'asci@restoran.com',
-    role: 'asci'
+    role: 'asci',
+    personelId: null
   });
 
-  useEffect(() => {
-    fetchUserData();
-  }, []);
-
-  const fetchUserData = async () => {
+  // ========== KULLANICI BİLGİLERİNİ AL ==========
+  const fetchUserData = useCallback(() => {
     try {
       const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
       if (storedUser) {
         const parsed = JSON.parse(storedUser);
         setUserData({
-          name: parsed.name || 'Aşçı',
+          name: parsed.AdSoyad || parsed.name || 'Aşçı',
           email: parsed.email || 'asci@restoran.com',
-          role: parsed.role || 'asci'
+          role: parsed.Rol || parsed.role || 'asci',
+          personelId: parsed.PersonelId || parsed.personelId || parsed.id
         });
       }
     } catch (error) {
       console.error('Kullanıcı verileri alınamadı:', error);
     }
+  }, []);
+
+  // ========== SİPARİŞ DURUMUNU MAP ET ==========
+  const mapStatus = (backendStatus) => {
+    const status = backendStatus?.toUpperCase() || '';
+    if (status === 'BEKLEMEDE') return 'pending';
+    if (status === 'HAZIRLANIYOR') return 'preparing';
+    if (status === 'HAZIR') return 'ready';
+    return 'pending';
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('user');
-    sessionStorage.removeItem('user');
-    toast.success('Başarıyla çıkış yapıldı!');
-    navigate('/login');
+  // ========== ZAMAN FORMATLA ==========
+  const formatTime = (dateString) => {
+    if (!dateString) return '';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+    } catch {
+      return '';
+    }
   };
 
+  // ========== SİPARİŞLERİ BACKEND'DEN ÇEK ==========
+  const fetchOrders = useCallback(async () => {
+    try {
+      setLoading(true);
+      // 🟢 Sadece BEKLEMEDE ve HAZIRLANIYOR durumlarını getir
+      const response = await asciAPI.getAsciSiparisleri();
+      
+      let data = [];
+      if (response?.data) {
+        data = Array.isArray(response.data) ? response.data : [];
+      } else if (Array.isArray(response)) {
+        data = response;
+      }
+
+      console.log('📦 Gelen siparişler:', data);
+
+      const filteredOrders = data
+        .map(s => ({
+          id: s.siparisId,
+          table: s.masaNo ? `Masa ${s.masaNo}` : 'Paket Servis',
+          items: [],
+          status: mapStatus(s.siparisDurumu),
+          time: formatTime(s.siparisTarihi),
+          note: '',
+          quantity: s.detaySayisi || 0,
+          rawStatus: s.siparisDurumu,
+          customer: s.uyeAdi || 'Ziyaretçi',
+          totalAmount: s.toplamTutar || 0,
+          personelAdi: s.personelAdi || null
+        }));
+
+      setOrders(filteredOrders);
+
+      // Her siparişin detaylarını çek
+      for (const order of filteredOrders) {
+        try {
+          const detailResponse = await asciAPI.getSiparisDetay(order.id);
+          const detailData = detailResponse?.data;
+          if (detailData?.detaylar && Array.isArray(detailData.detaylar)) {
+            setOrders(prev => prev.map(o => 
+              o.id === order.id ? {
+                ...o,
+                items: detailData.detaylar.map(d => d.urunAdi || 'Ürün'),
+                note: detailData.detaylar.find(d => d.detayNot)?.detayNot || '',
+                quantity: detailData.detaylar.length
+              } : o
+            ));
+          }
+        } catch (err) {
+          console.error(`Sipariş #${order.id} detayları alınamadı:`, err);
+        }
+      }
+    } catch (error) {
+      console.error('Siparişler yüklenirken hata:', error);
+      toast.error('❌ Siparişler yüklenirken bir hata oluştu!');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // ========== SİPARİŞ DURUMUNU GÜNCELLE (OTOMATİK KURYE ATAMA İLE) ==========
+  const updateOrderStatus = async (orderId, newStatus) => {
+    // Zaten güncelleniyorsa tekrar tıklanmasın
+    if (updatingOrderId === orderId) return;
+    
+    try {
+      setUpdatingOrderId(orderId);
+      
+      // 🟢 "Hazır" butonuna tıklandığında özel işlem (OTOMATİK KURYE ATAMA)
+      if (newStatus === 'ready') {
+        // 🔥 Siparişi HAZIR yap ve kurye ata
+        const result = await asciAPI.siparisHazirVeKuryeAta(orderId);
+        
+        if (result.success) {
+          // Siparişi listeden kaldır
+          setOrders(prev => prev.filter(o => o.id !== orderId));
+          toast.success(`✅ ${result.message}`);
+        } else {
+          // Kurye bulunamadı, sipariş havuza eklendi
+          setOrders(prev => prev.filter(o => o.id !== orderId));
+          toast.warning(`⚠️ ${result.message}`);
+        }
+        
+        // 🔄 Listeyi yenile
+        setTimeout(() => {
+          fetchOrders();
+        }, 2000);
+        
+        return;
+      }
+      
+      // 🟡 "Hazırlamaya Başla" için normal işlem
+      const statusMap = {
+        'preparing': 'HAZIRLANIYOR'
+      };
+      
+      const backendStatus = statusMap[newStatus];
+      if (!backendStatus) {
+        toast.error('Geçersiz durum!');
+        return;
+      }
+
+      console.log(`🔄 Sipariş #${orderId} durumu güncelleniyor: ${backendStatus}`);
+
+      // Durumu güncelle
+      await asciAPI.updateSiparisDurum(orderId, backendStatus);
+
+      // Local state'i güncelle
+      setOrders(prev => prev.map(order => 
+        order.id === orderId ? { ...order, status: newStatus, rawStatus: backendStatus } : order
+      ));
+
+      toast.success(`✅ Sipariş #${orderId} hazırlanmaya başlandı 🍳`);
+
+      // 🔄 Listeyi yenile
+      setTimeout(() => {
+        fetchOrders();
+      }, 1000);
+      
+    } catch (error) {
+      console.error('Sipariş durumu güncellenirken hata:', error);
+      
+      // Hata mesajını göster
+      const errorMsg = error?.response?.data?.message || error?.message || 'Sipariş durumu güncellenirken bir hata oluştu!';
+      toast.error(`❌ ${errorMsg}`);
+    } finally {
+      setUpdatingOrderId(null);
+    }
+  };
+
+  // ========== ŞİFRE DEĞİŞTİR ==========
   const handlePasswordChange = async (e) => {
     e.preventDefault();
     if (!currentPassword || !newPassword || !confirmPassword) {
@@ -111,39 +218,42 @@ const AsciPanel = () => {
 
     setPasswordLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      toast.success('Şifreniz başarıyla değiştirildi! 🎉');
+      await authService.sifreDegistir({
+        eskiSifre: currentPassword,
+        yeniSifre: newPassword
+      });
+
+      toast.success('✅ Şifreniz başarıyla değiştirildi!');
       setShowPasswordModal(false);
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
+
+      // 3 saniye sonra tekrar giriş yapmasını iste
+      setTimeout(() => {
+        toast.info('Güvenlik için lütfen tekrar giriş yapın.');
+        handleLogout();
+      }, 3000);
     } catch (error) {
-      toast.error('Şifre değiştirilemedi!');
+      console.error('Şifre değiştirme hatası:', error);
+      const errorMsg = error?.response?.data?.message || error?.message || 'Şifre değiştirilemedi!';
+      toast.error(`❌ ${errorMsg}`);
     } finally {
       setPasswordLoading(false);
     }
   };
 
-  // Sipariş durumunu güncelle
-  const updateOrderStatus = (orderId, newStatus) => {
-    setOrders(orders.map(order => 
-      order.id === orderId ? { ...order, status: newStatus } : order
-    ));
-    
-    const statusMessages = {
-      'preparing': 'Hazırlanmaya başlandı',
-      'ready': 'Hazır! Servis edilebilir'
-    };
-    
-    toast.success(`Sipariş ${statusMessages[newStatus] || 'güncellendi'}`);
+  // ========== ÇIKIŞ ==========
+  const handleLogout = () => {
+    localStorage.removeItem('user');
+    sessionStorage.removeItem('user');
+    localStorage.removeItem('token');
+    sessionStorage.removeItem('token');
+    toast.success('👋 Başarıyla çıkış yapıldı!');
+    navigate('/login');
   };
 
-  // Bildirimler
-  const [notifications] = useState([
-    { id: 1, message: 'Masa 02 yeni sipariş verdi', time: '5 dk önce', read: false },
-    { id: 2, message: 'Masa 05 sipariş hazır', time: '10 dk önce', read: false }
-  ]);
-
+  // ========== DURUM RENKLERİ ==========
   const getStatusBadge = (status) => {
     switch(status) {
       case 'pending': 
@@ -157,8 +267,20 @@ const AsciPanel = () => {
     }
   };
 
+  // ========== EFFECT'LER ==========
+  useEffect(() => {
+    fetchUserData();
+    fetchOrders();
+
+    // Her 10 saniyede bir otomatik yenile (daha hızlı tepki için)
+    const interval = setInterval(fetchOrders, 10000);
+    return () => clearInterval(interval);
+  }, [fetchUserData, fetchOrders]);
+
+  // ========== SIDEBAR TOGGLE ==========
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
 
+  // ========== RENDER ==========
   return (
     <div 
       className="min-h-screen relative"
@@ -262,14 +384,12 @@ const AsciPanel = () => {
           <div className="bg-black/80 backdrop-blur-sm border-b border-white/10 sticky top-0 z-30">
             <div className="max-w-7xl mx-auto px-4 py-3">
               <div className="flex items-center justify-end gap-4">
-                <button className="text-gray-400 hover:text-white transition-colors relative">
-                  <FaBell size={18} />
-                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-[8px] text-white flex items-center justify-center">
-                    {notifications.length}
-                  </span>
-                </button>
-                <button className="text-gray-400 hover:text-white transition-colors">
-                  <FaEnvelope size={18} />
+                <button 
+                  onClick={fetchOrders}
+                  className="text-gray-400 hover:text-white transition-colors relative"
+                  title="Yenile"
+                >
+                  <FaSync size={18} className={loading ? 'animate-spin' : ''} />
                 </button>
                 <div className="text-right hidden sm:block">
                   <p className="text-white text-sm font-medium">{userData.name}</p>
@@ -282,94 +402,117 @@ const AsciPanel = () => {
           {/* İçerik */}
           <div className="max-w-7xl mx-auto px-4 py-6">
             {/* Başlık */}
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-6 flex-wrap gap-2">
               <div>
                 <h1 className="text-2xl font-bold text-white">Mutfak Yönetimi</h1>
                 <p className="text-gray-400 text-sm">Gelen siparişleri görüntüleyin ve yönetin</p>
               </div>
-              <div className="flex items-center gap-3">
-                <span className="text-white text-sm">Bekleyen: {orders.filter(o => o.status === 'pending').length}</span>
-                <span className="text-yellow-400 text-sm">|</span>
-                <span className="text-blue-400 text-sm">Hazırlanan: {orders.filter(o => o.status === 'preparing').length}</span>
-                <span className="text-green-400 text-sm">|</span>
-                <span className="text-green-400 text-sm">Hazır: {orders.filter(o => o.status === 'ready').length}</span>
+              <div className="flex items-center gap-3 flex-wrap">
+                <span className="text-white text-sm bg-white/10 px-3 py-1 rounded-lg">
+                  Bekleyen: {orders.filter(o => o.status === 'pending').length}
+                </span>
+                <span className="text-blue-400 text-sm bg-blue-500/10 px-3 py-1 rounded-lg">
+                  Hazırlanan: {orders.filter(o => o.status === 'preparing').length}
+                </span>
               </div>
             </div>
 
-            {/* Sipariş Listesi */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-              {orders.map((order) => {
-                const status = getStatusBadge(order.status);
-                return (
-                  <div key={order.id} className="bg-black/80 backdrop-blur-sm rounded-2xl border border-white/10 p-4 hover:border-white/20 transition-all">
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <h3 className="text-white font-bold text-lg">{order.table}</h3>
-                        <p className="text-gray-400 text-sm">{order.time}</p>
-                      </div>
-                      <span className={`px-3 py-1 rounded-lg text-xs font-medium ${status.bg} ${status.text}`}>
-                        {status.label}
-                      </span>
-                    </div>
-
-                    <div className="space-y-1 mb-3">
-                      {order.items.map((item, idx) => (
-                        <div key={idx} className="flex items-center gap-2 text-gray-300 text-sm">
-                          <span className="text-gray-500">•</span>
-                          <span>{item}</span>
+            {/* Loading State */}
+            {loading && orders.length === 0 ? (
+              <div className="bg-black/80 backdrop-blur-sm rounded-2xl p-12 border border-white/10 flex flex-col items-center justify-center">
+                <FaSpinner className="animate-spin text-yellow-400 text-4xl mb-4" />
+                <p className="text-gray-400">Siparişler yükleniyor...</p>
+              </div>
+            ) : (
+              /* Sipariş Listesi */
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+                {orders.map((order) => {
+                  const status = getStatusBadge(order.status);
+                  const isUpdating = updatingOrderId === order.id;
+                  
+                  return (
+                    <div key={order.id} className="bg-black/80 backdrop-blur-sm rounded-2xl border border-white/10 p-4 hover:border-white/20 transition-all">
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <h3 className="text-white font-bold text-lg">{order.table}</h3>
+                          <p className="text-gray-400 text-sm">{order.time}</p>
+                          <p className="text-gray-500 text-xs mt-1">Müşteri: {order.customer}</p>
+                          {order.personelAdi && (
+                            <p className="text-gray-500 text-xs">Personel: {order.personelAdi}</p>
+                          )}
                         </div>
-                      ))}
-                    </div>
-
-                    {order.note && (
-                      <div className="mb-3 p-2 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
-                        <p className="text-yellow-400 text-xs">
-                          <span className="font-medium">Not:</span> {order.note}
-                        </p>
+                        <span className={`px-3 py-1 rounded-lg text-xs font-medium ${status.bg} ${status.text}`}>
+                          {status.label}
+                        </span>
                       </div>
-                    )}
 
-                    <div className="flex gap-2 mt-3">
-                      {order.status === 'pending' && (
-                        <button
-                          onClick={() => updateOrderStatus(order.id, 'preparing')}
-                          className="flex-1 px-3 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg text-sm transition-all flex items-center justify-center gap-2"
-                        >
-                          <FaSpinner className="animate-spin" size={14} />
-                          Hazırlamaya Başla
-                        </button>
+                      <div className="space-y-1 mb-3">
+                        {order.items && order.items.length > 0 ? (
+                          order.items.map((item, idx) => (
+                            <div key={idx} className="flex items-center gap-2 text-gray-300 text-sm">
+                              <span className="text-gray-500">•</span>
+                              <span>{item}</span>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="text-gray-500 text-sm flex items-center gap-2">
+                            <FaSpinner className="animate-spin" size={12} />
+                            Ürünler yükleniyor...
+                          </div>
+                        )}
+                      </div>
+
+                      {order.note && (
+                        <div className="mb-3 p-2 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
+                          <p className="text-yellow-400 text-xs">
+                            <span className="font-medium">Not:</span> {order.note}
+                          </p>
+                        </div>
                       )}
-                      {order.status === 'preparing' && (
-                        <button
-                          onClick={() => updateOrderStatus(order.id, 'ready')}
-                          className="flex-1 px-3 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg text-sm transition-all flex items-center justify-center gap-2"
-                        >
-                          <FaCheck size={14} />
-                          Hazır
-                        </button>
-                      )}
-                      {order.status === 'ready' && (
-                        <button
-                          className="flex-1 px-3 py-2 bg-gray-500/20 text-gray-400 rounded-lg text-sm cursor-not-allowed flex items-center justify-center gap-2"
-                          disabled
-                        >
-                          <FaCheck size={14} />
-                          Servis Edildi
-                        </button>
-                      )}
+
+                      <div className="flex gap-2 mt-3">
+                        {order.status === 'pending' && (
+                          <button
+                            onClick={() => updateOrderStatus(order.id, 'preparing')}
+                            disabled={isUpdating}
+                            className="flex-1 px-3 py-2 bg-blue-500/20 hover:bg-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed text-blue-400 rounded-lg text-sm transition-all flex items-center justify-center gap-2"
+                          >
+                            {isUpdating ? (
+                              <FaSpinner className="animate-spin" size={14} />
+                            ) : (
+                              <FaSpinner className="animate-spin" size={14} />
+                            )}
+                            Hazırlamaya Başla
+                          </button>
+                        )}
+                        {order.status === 'preparing' && (
+                          <button
+                            onClick={() => updateOrderStatus(order.id, 'ready')}
+                            disabled={isUpdating}
+                            className="flex-1 px-3 py-2 bg-green-500/20 hover:bg-green-500/30 disabled:opacity-50 disabled:cursor-not-allowed text-green-400 rounded-lg text-sm transition-all flex items-center justify-center gap-2"
+                          >
+                            {isUpdating ? (
+                              <FaSpinner className="animate-spin" size={14} />
+                            ) : (
+                              <FaCheck size={14} />
+                            )}
+                            Hazır (Kurye Ata)
+                          </button>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
 
-              {orders.length === 0 && (
-                <div className="col-span-full text-center py-12">
-                  <div className="text-6xl mb-4">🍳</div>
-                  <p className="text-gray-400 text-lg">Henüz sipariş yok</p>
-                  <p className="text-gray-500 text-sm">Yeni siparişler burada görünecek</p>
-                </div>
-              )}
-            </div>
+                {orders.length === 0 && !loading && (
+                  <div className="col-span-full text-center py-12">
+                    <div className="text-6xl mb-4">🍳</div>
+                    <p className="text-gray-400 text-lg">Henüz sipariş yok</p>
+                    <p className="text-gray-500 text-sm">Yeni siparişler burada görünecek</p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Alt Bilgi */}

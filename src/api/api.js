@@ -1,7 +1,7 @@
 // src/api/api.js
 
 // .env dosyasından API URL'sini al
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5141/api';
+const API_BASE_URL = process.env.REACT_APP_API_URL 
 
 console.log('🚀 API Base URL:', API_BASE_URL);
 
@@ -17,6 +17,12 @@ export const apiRequest = async (endpoint, method = 'GET', body = null) => {
         },
     };
 
+    // Token varsa ekle
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    if (token) {
+        options.headers['Authorization'] = `Bearer ${token}`;
+    }
+
     if (body) {
         options.body = JSON.stringify(body);
     }
@@ -28,6 +34,16 @@ export const apiRequest = async (endpoint, method = 'GET', body = null) => {
         if (!response.ok) {
             const errorText = await response.text();
             console.error(`❌ HTTP Hatası: ${response.status} - ${errorText}`);
+            
+            // 401 Unauthorized - Token geçersiz
+            if (response.status === 401) {
+                localStorage.removeItem('token');
+                sessionStorage.removeItem('token');
+                localStorage.removeItem('user');
+                sessionStorage.removeItem('user');
+                window.location.href = '/login';
+            }
+            
             return { data: null, status: response.status, error: errorText };
         }
 
@@ -66,9 +82,77 @@ export const orderService = {
     complete: (id) => apiRequest(`/Siparisler/${id}/tamamla`, 'PUT'),
 };
 
+// ========== AŞÇI SERVİSİ ==========
+export const asciAPI = {
+    // Tüm siparişleri getir
+    getSiparisler: () => apiRequest('/Siparisler'),
+    
+    // Tek sipariş detayını getir
+    getSiparisDetay: (id) => apiRequest(`/Siparisler/${id}`),
+    
+    // Sipariş durumunu güncelle (BEKLEMEDE -> HAZIRLANIYOR -> HAZIR)
+    updateSiparisDurum: (id, durum) => 
+        apiRequest(`/Siparisler/${id}/durum`, 'PUT', { siparisDurumu: durum }),
+    
+    // Sipariş tamamla (stok düşümü için)
+    siparisTamamla: (id) => apiRequest(`/Siparisler/${id}/tamamla`, 'PUT'),
+    
+    // Sadece aşçının ilgilendiği siparişleri getir (BEKLEMEDE, HAZIRLANIYOR)
+    getAsciSiparisleri: async () => {
+        const response = await apiRequest('/Siparisler');
+        if (response.data && Array.isArray(response.data)) {
+            const asciDurumlar = ['BEKLEMEDE', 'HAZIRLANIYOR'];
+            response.data = response.data.filter(s => {
+                const durum = s.siparisDurumu?.toUpperCase() || '';
+                return asciDurumlar.includes(durum);
+            });
+        }
+        return response;
+    },
+    
+    // 🆕 Sipariş hazır olduğunda otomatik kurye ata
+    siparisHazirVeKuryeAta: async (siparisId) => {
+        try {
+            // 1. Siparişi HAZIR yap
+            await asciAPI.updateSiparisDurum(siparisId, 'HAZIR');
+            
+            // 2. Müsait kurye bul
+            const kuryeResponse = await kuryeAPI.getMusaitKuryeler();
+            const musaitKuryeler = kuryeResponse?.data || [];
+            
+            if (musaitKuryeler.length === 0) {
+                return { 
+                    success: false, 
+                    message: 'Müsait kurye bulunamadı! Sipariş havuza eklendi.' 
+                };
+            }
+            
+            // 3. İlk müsait kuryeye ata
+            const secilenKurye = musaitKuryeler[0];
+            await kuryeAPI.siparisKuryeyeAta(siparisId, secilenKurye.personelId);
+            
+            return { 
+                success: true, 
+                message: `Sipariş kurye ${secilenKurye.personelAdi} ${secilenKurye.personelSoyadi}'a atandı!`,
+                kurye: secilenKurye
+            };
+        } catch (error) {
+            console.error('Kurye atama hatası:', error);
+            return { 
+                success: false, 
+                message: 'Kurye atama başarısız! Sipariş havuza eklendi.' 
+            };
+        }
+    },
+    
+    // 🆕 Sipariş bildirimi gönder
+    siparisBildirimGonder: (siparisId, durum) => 
+        apiRequest(`/Siparisler/${siparisId}/bildirim`, 'POST', { durum }),
+};
+
 // ========== ÜYE SERVİSİ ==========
 export const userService = {
-    getAll: () => apiRequest('/Uyeler'),        // ✅ Controller: UyelerController
+    getAll: () => apiRequest('/Uyeler'),
     getById: (id) => apiRequest(`/Uyeler/${id}`),
     create: (data) => apiRequest('/Uyeler', 'POST', data),
     update: (id, data) => apiRequest(`/Uyeler/${id}`, 'PUT', data),
@@ -77,7 +161,7 @@ export const userService = {
 
 // ========== KATEGORİ SERVİSİ ==========
 export const categoryService = {
-    getAll: () => apiRequest('/Kategoriler'),   // ✅ Controller: KategorilerController
+    getAll: () => apiRequest('/Kategoriler'),
     getById: (id) => apiRequest(`/Kategoriler/${id}`),
     create: (data) => apiRequest('/Kategoriler', 'POST', data),
     update: (id, data) => apiRequest(`/Kategoriler/${id}`, 'PUT', data),
@@ -86,7 +170,7 @@ export const categoryService = {
 
 // ========== ÜRÜN SERVİSİ ==========
 export const productService = {
-    getAll: () => apiRequest('/Urunler'),       // ✅ Controller: UrunlerController
+    getAll: () => apiRequest('/Urunler'),
     getById: (id) => apiRequest(`/Urunler/${id}`),
     create: (data) => apiRequest('/Urunler', 'POST', data),
     update: (id, data) => apiRequest(`/Urunler/${id}`, 'PUT', data),
@@ -95,7 +179,7 @@ export const productService = {
 
 // ========== MASA SERVİSİ ==========
 export const tableService = {
-    getAll: () => apiRequest('/Masa'),          // ✅ Controller: MasaController
+    getAll: () => apiRequest('/Masa'),
     getById: (id) => apiRequest(`/Masa/${id}`),
     create: (data) => apiRequest('/Masa', 'POST', data),
     update: (id, data) => apiRequest(`/Masa/${id}`, 'PUT', data),
@@ -106,7 +190,7 @@ export const tableService = {
 
 // ========== REZERVASYON SERVİSİ ==========
 export const reservationService = {
-    getAll: () => apiRequest('/Rezervasyon'),   // ✅ Controller: RezervasyonController
+    getAll: () => apiRequest('/Rezervasyon'),
     getById: (id) => apiRequest(`/Rezervasyon/${id}`),
     create: (data) => apiRequest('/Rezervasyon', 'POST', data),
     update: (id, data) => apiRequest(`/Rezervasyon/${id}`, 'PUT', data),
@@ -116,7 +200,7 @@ export const reservationService = {
 
 // ========== PERSONEL SERVİSİ ==========
 export const personnelService = {
-    getAll: () => apiRequest('/Personel'),      // ✅ Controller: PersonelController
+    getAll: () => apiRequest('/Personel'),
     getById: (id) => apiRequest(`/Personel/${id}`),
     create: (data) => apiRequest('/Personel', 'POST', data),
     update: (id, data) => apiRequest(`/Personel/${id}`, 'PUT', data),
@@ -125,7 +209,7 @@ export const personnelService = {
 
 // ========== ÖDEME SERVİSİ ==========
 export const paymentService = {
-    getAll: () => apiRequest('/Odeme'),         // ✅ Controller: OdemeController
+    getAll: () => apiRequest('/Odeme'),
     getById: (id) => apiRequest(`/Odeme/${id}`),
     create: (data) => apiRequest('/Odeme', 'POST', data),
     update: (id, data) => apiRequest(`/Odeme/${id}`, 'PUT', data),
@@ -134,7 +218,7 @@ export const paymentService = {
 
 // ========== KASA SERVİSİ ==========
 export const cashService = {
-    getAll: () => apiRequest('/Kasa'),          // ✅ Controller: KasaController
+    getAll: () => apiRequest('/Kasa'),
     getById: (id) => apiRequest(`/Kasa/${id}`),
     create: (data) => apiRequest('/Kasa', 'POST', data),
     update: (id, data) => apiRequest(`/Kasa/${id}`, 'PUT', data),
@@ -144,7 +228,7 @@ export const cashService = {
 
 // ========== MALZEME SERVİSİ ==========
 export const materialService = {
-    getAll: () => apiRequest('/Malzemeler'),    // ✅ Controller: MalzemelerController
+    getAll: () => apiRequest('/Malzemeler'),
     getById: (id) => apiRequest(`/Malzemeler/${id}`),
     create: (data) => apiRequest('/Malzemeler', 'POST', data),
     update: (id, data) => apiRequest(`/Malzemeler/${id}`, 'PUT', data),
@@ -169,7 +253,7 @@ export const reportService = {
 
 // ========== STOK HAREKET SERVİSİ ==========
 export const stokHareketService = {
-    getAll: () => apiRequest('/StokHareketleri'),   // ✅ Controller: StokHareketleriController
+    getAll: () => apiRequest('/StokHareketleri'),
     getById: (id) => apiRequest(`/StokHareketleri/${id}`),
     create: (data) => apiRequest('/StokHareketleri/Ekle', 'POST', data),
     update: (id, data) => apiRequest(`/StokHareketleri/${id}`, 'PUT', data),
@@ -178,7 +262,7 @@ export const stokHareketService = {
 
 // ========== REÇETE SERVİSİ ==========
 export const receteService = {
-    getAll: () => apiRequest('/Receteler'),         // ✅ Controller: RecetelerController
+    getAll: () => apiRequest('/Receteler'),
     getByUrun: (urunId) => apiRequest(`/Receteler/urun/${urunId}`),
     create: (data) => apiRequest('/Receteler', 'POST', data),
     update: (id, data) => apiRequest(`/Receteler/${id}`, 'PUT', data),
@@ -187,7 +271,7 @@ export const receteService = {
 
 // ========== İADE SERVİSİ ==========
 export const iadeService = {
-    getAll: () => apiRequest('/Iade'),              // ✅ Controller: IadeController
+    getAll: () => apiRequest('/Iade'),
     getById: (id) => apiRequest(`/Iade/${id}`),
     create: (data) => apiRequest('/Iade', 'POST', data),
     delete: (id) => apiRequest(`/Iade/${id}`, 'DELETE'),
@@ -196,7 +280,7 @@ export const iadeService = {
 
 // ========== PERSONEL İZİN SERVİSİ ==========
 export const personelIzinService = {
-    getAll: () => apiRequest('/PersonelIzin'),      // ✅ Controller: PersonelIzinController
+    getAll: () => apiRequest('/PersonelIzin'),
     getById: (id) => apiRequest(`/PersonelIzin/${id}`),
     getByPersonel: (personelId) => apiRequest(`/PersonelIzin/personel/${personelId}`),
     create: (data) => apiRequest('/PersonelIzin', 'POST', data),
@@ -205,9 +289,10 @@ export const personelIzinService = {
     updateStatus: (id, status) => apiRequest(`/PersonelIzin/${id}/durum`, 'PUT', { izinDurumu: status }),
 };
 
-// ========== KURYE SERVİSİ ==========
+// ========== KURYE SERVİSİ (GÜNCELLENDİ) ==========
 export const kuryeAPI = {
-    getKuryeler: () => apiRequest('/Kurye/kuryeler'),          // ✅ Controller: KuryeController
+    // Mevcut fonksiyonlar
+    getKuryeler: () => apiRequest('/Kurye/kuryeler'),
     getAktifSiparisler: (personelId) => apiRequest(`/Kurye/${personelId}/aktif-siparisler`),
     getHavuzdakiSiparisler: (siparisId) => {
         const params = siparisId ? `?siparisId=${siparisId}` : '';
@@ -216,11 +301,18 @@ export const kuryeAPI = {
     getOnlineSiparis: (siparisId) => apiRequest(`/Kurye/online-siparis/${siparisId}`),
     siparisKabulEt: (data) => apiRequest('/Kurye/siparis-kabul-et', 'POST', data),
     teslimEt: (siparisId, data) => apiRequest(`/Kurye/teslim-et/${siparisId}`, 'PUT', data),
+    
+    // 🆕 YENİ FONKSİYONLAR
+    getMusaitKuryeler: () => apiRequest('/Kurye/musait-kuryeler'),
+    siparisKuryeyeAta: (siparisId, kuryeId) => 
+        apiRequest(`/Kurye/siparis-ata/${siparisId}`, 'POST', { kuryeId }),
+    siparisKabul: (siparisId, kuryeId) => 
+        apiRequest(`/Kurye/siparis-kabul/${siparisId}`, 'POST', { kuryeId }),
 };
 
 // ========== BİLDİRİM SERVİSİ ==========
 export const notificationService = {
-    getAll: () => apiRequest('/Bildirim'),          // ✅ Controller: BildirimController (varsa)
+    getAll: () => apiRequest('/Bildirim'),
     getById: (id) => apiRequest(`/Bildirim/${id}`),
     create: (data) => apiRequest('/Bildirim', 'POST', data),
     update: (id, data) => apiRequest(`/Bildirim/${id}`, 'PUT', data),
@@ -265,6 +357,7 @@ const api = {
     iadeService,
     personelIzinService,
     kuryeAPI,
+    asciAPI,
     notificationService,
     getKategoriler,
     kategoriEkle,
