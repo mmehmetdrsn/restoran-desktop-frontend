@@ -1,4 +1,3 @@
-// src/pages/KuryePanel.js
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -66,9 +65,9 @@ const KuryePanel = () => {
       const data = await kuryeAPI.getAktifSiparisler(personelId);
       
       console.log('📦 Gelen siparişler:', data);
-      console.log('📦 Sipariş sayısı:', data.length);
+      console.log('📦 Sipariş sayısı:', data?.length || 0);
       
-      setActiveOrders(data.map(mapSiparisToOrder));
+      setActiveOrders((data || []).map(mapSiparisToOrder));
     } catch (err) {
       console.error('❌ Hata:', err);
       toast.error('❌ Siparişler yüklenirken bir hata oluştu.');
@@ -81,8 +80,6 @@ const KuryePanel = () => {
   const fetchHistoryOrders = useCallback(async () => {
     if (!personelId) return;
     try {
-      // NOT: Backend'de geçmiş siparişler için henüz endpoint yok.
-      // Şimdilik localStorage'dan okuyalım.
       const savedHistory = localStorage.getItem('historyOrders');
       if (savedHistory) {
         setHistoryOrders(JSON.parse(savedHistory));
@@ -130,50 +127,63 @@ const KuryePanel = () => {
   };
 
   // ========== TESLİMAT ONAYLA ==========
-  const handleDeliveryConfirm = async (order) => {
-    if (!order) return;
-    
-    const confirm = window.confirm(
-      `📦 Sipariş #${order.id}\nMüşteri: ${order.customer}\nTutar: ₺${order.amount}\n\nTeslimatı onaylıyor musunuz?`
-    );
-    
-    if (!confirm) {
-      toast.info('Teslimat onayı iptal edildi.');
-      return;
-    }
+const handleDeliveryConfirm = async (order) => {
+  if (!order) return;
 
-    try {
-      toast.info(`📦 Sipariş #${order.id} teslimat onaylanıyor...`);
-      
-      // Backend'e teslimat bildir
-      await kuryeAPI.teslimEt(order.id);
-      
-      toast.success(`✅ Sipariş #${order.id} teslim edildi!`);
-      
-      // Aktif siparişlerden kaldır
-      const updatedActive = activeOrders.filter(o => o.id !== order.id);
-      setActiveOrders(updatedActive);
-      
-      // Geçmişe ekle
-      const deliveredOrder = { 
-        ...order, 
-        status: 'teslim_edildi',
-        deliveredAt: new Date().toISOString() 
-      };
-      const updatedHistory = [deliveredOrder, ...historyOrders];
-      setHistoryOrders(updatedHistory);
-      
-      // Geçmişi localStorage'a kaydet
-      localStorage.setItem('historyOrders', JSON.stringify(updatedHistory));
-      
-      setTimeout(() => {
-        toast.info(`📱 Müşteriye ${order.customer} teslimat bildirimi gönderildi!`);
-      }, 1000);
-    } catch (err) {
-      console.error('❌ Teslimat hatası:', err);
-      toast.error(`❌ Sipariş #${order.id} teslim edilirken bir hata oluştu.`);
-    }
-  };
+  // 🔒 Kurye kimliği yoksa isteği hiç gönderme
+  if (!personelId) {
+    toast.error('Kurye kimliği bulunamadı, lütfen tekrar giriş yapın.');
+    return;
+  }
+
+  const confirm = window.confirm(
+    `📦 Sipariş #${order.id}\nMüşteri: ${order.customer}\nTutar: ₺${order.amount}\n\nTeslimatı onaylıyor musunuz?`
+  );
+
+  if (!confirm) {
+    toast.info('Teslimat onayı iptal edildi.');
+    return;
+  }
+
+  try {
+    toast.info(`📦 Sipariş #${order.id} teslimat onaylanıyor...`);
+
+    console.log('🔍 teslimEt çağrısı:', {
+      siparisId: order.id,
+      personelId,
+      tip: typeof personelId,
+    });
+
+    await kuryeAPI.teslimEt(order.id, personelId);
+
+    toast.success(`✅ Sipariş #${order.id} teslim edildi!`);
+
+    // Aktif siparişlerden kaldır
+    const updatedActive = activeOrders.filter((o) => o.id !== order.id);
+    setActiveOrders(updatedActive);
+
+    // Geçmişe ekle
+    const deliveredOrder = {
+      ...order,
+      status: 'teslim_edildi',
+      deliveredAt: new Date().toISOString(),
+    };
+    const updatedHistory = [deliveredOrder, ...historyOrders];
+    setHistoryOrders(updatedHistory);
+
+    // Geçmişi localStorage'a kaydet
+    localStorage.setItem('historyOrders', JSON.stringify(updatedHistory));
+
+    if (showOrderModal) setShowOrderModal(false);
+
+    setTimeout(() => {
+      toast.info(`📱 Müşteriye ${order.customer} teslimat bildirimi gönderildi!`);
+    }, 1000);
+  } catch (err) {
+    console.error('❌ Teslimat hatası:', err);
+    toast.error(`❌ Sipariş #${order.id} teslim edilirken bir hata oluştu.`);
+  }
+};
 
   // ========== SİPARİŞ DETAY MODALI ==========
   const OrderDetailModal = ({ order, onClose }) => {
@@ -183,7 +193,7 @@ const KuryePanel = () => {
         <div className="bg-black/90 rounded-2xl border border-white/10 max-w-2xl w-full">
           <div className="p-6 border-b border-white/10 flex items-center justify-between">
             <h3 className="text-white text-xl font-bold">📋 Sipariş #{order.id}</h3>
-            <button onClick={onClose} className="text-gray-400 hover:text-white"><FaTimes /></button>
+            <button onClick={onClose} className="text-gray-400 hover:text-white cursor-pointer"><FaTimes /></button>
           </div>
           <div className="p-6 space-y-4">
             <div className="grid grid-cols-2 gap-4">

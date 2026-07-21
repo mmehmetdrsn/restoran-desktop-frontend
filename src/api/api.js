@@ -9,7 +9,7 @@ console.log('🚀 API Base URL:', API_BASE_URL);
 export const apiRequest = async (endpoint, method = 'GET', body = null) => {
     const url = `${API_BASE_URL}${endpoint}`;
     console.log(`📡 ${method} ${url}`);
-    
+
     const options = {
         method,
         headers: {
@@ -24,12 +24,12 @@ export const apiRequest = async (endpoint, method = 'GET', body = null) => {
     try {
         const response = await fetch(url, options);
         console.log(`📡 Response Status: ${response.status}`);
-        
+
         if (!response.ok) {
             const errorText = await response.text();
             throw new Error(`HTTP Hatası: ${response.status} - ${errorText}`);
         }
-        
+
         const data = await response.json();
         return data;
     } catch (error) {
@@ -42,24 +42,28 @@ export const apiRequest = async (endpoint, method = 'GET', body = null) => {
 export const kuryeAPI = {
     // Tüm kuryeleri listele
     getKuryeler: () => apiRequest('/Kurye/listele'),
-    
+
     // Kuryenin aktif siparişlerini getir
-    getAktifSiparisler: (personelId) => 
-        apiRequest(`/Kurye/${personelId}/aktif-siparisler`),
-    
+    getAktifSiparisler: (personelId) =>
+        apiRequest(`/Kurye/${Number(personelId)}/aktif-siparisler`),
+
     // Siparişi kuryeye ata
-    siparisAta: (siparisId, personelId) => 
-        apiRequest('/Kurye/siparis-ata', 'POST', { siparisId, personelId }),
-    
-    // Siparişi teslim et
-    teslimEt: (siparisId) => 
-        apiRequest(`/Kurye/teslim-et/${siparisId}`, 'PUT'),
+    siparisAta: (siparisId, personelId) =>
+        apiRequest('/Kurye/siparis-ata', 'POST', {
+            siparisId: Number(siparisId),
+            personelId: Number(personelId),
+        }),
+
+    // Siparişi teslim et (personelId ve siparisId body'de Number olarak gönderilir)
+    teslimEt: (siparisId, personelId) =>
+        apiRequest(`/Kurye/teslim-et/${Number(siparisId)}`, 'PUT', {
+            siparisId: Number(siparisId),
+            personelId: Number(personelId),
+        }),
 };
 
 // ========== DİĞER API FONKSİYONLARI (Mevcut olanlar) ==========
-// Not: Burada mevcut olan diğer export'ları da ekleyin
 
-// Örnek - Mevcut fonksiyonlarınız varsa onları da ekleyin
 export const authService = {
     login: (data) => apiRequest('/Auth/login', 'POST', data),
     register: (data) => apiRequest('/Auth/register', 'POST', data),
@@ -104,8 +108,8 @@ export const tableService = {
     update: (id, data) => apiRequest(`/Masa/${id}`, 'PUT', data),
     delete: (id) => apiRequest(`/Masa/${id}`, 'DELETE'),
     moveTable: (data) => apiRequest('/Masa/tasi', 'POST', data),
-    // 🔑 DTO ile %100 uyumlu Durum Güncelleme
-    updateStatus: (id, status) => apiRequest(`/Masa/${id}/durum`, 'PUT', { masaNo: `Masa ${id}`, masaDurumu: status })
+    updateStatus: (id, status) =>
+        apiRequest(`/Masa/${id}/durum`, 'PUT', { masaNo: `Masa ${id}`, masaDurumu: status }),
 };
 
 export const reservationService = {
