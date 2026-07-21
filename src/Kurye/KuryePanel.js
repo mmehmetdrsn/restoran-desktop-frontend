@@ -62,7 +62,8 @@ const KuryePanel = () => {
       setLoading(true);
       console.log('📦 Siparişler çekiliyor...');
       
-      const data = await kuryeAPI.getAktifSiparisler(personelId);
+      const response = await kuryeAPI.getAktifSiparisler(personelId);
+      const data = response?.data;
       
       console.log('📦 Gelen siparişler:', data);
       console.log('📦 Sipariş sayısı:', data?.length || 0);
