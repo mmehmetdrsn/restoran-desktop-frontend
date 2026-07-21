@@ -30,6 +30,7 @@ import HesapIslemleri from './pages/HesapIslemleri';
 import MasaTasiModal from './modals/MasaTasiModal';
 import IadeModal from './modals/IadeModal';
 import SifreModal from './modals/SifreModal';
+import MasaDurumuModal from './modals/MasaDurumuModal';
 
 const backgroundImage = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80';
 
@@ -90,24 +91,31 @@ const GarsonPanel = () => {
     fetchUserData();
     verileriYukle();
   }, []);
-
-  const verileriYukle = async () => {
+const verileriYukle = async () => {
     setLoading(true);
     try {
       const masalarRes = await tableService.getAll();
       const masalarData = masalarRes?.data || masalarRes;
 
       if (Array.isArray(masalarData)) {
-        const formatliMasalar = masalarData.map(m => ({
-          id: m.masaId,
-          name: m.masaAdi || `Masa ${m.masaNo || m.masaId}`,
-          status: m.masaDurumu?.toLowerCase() === 'dolu' ? 'occupied' : 
-                  m.masaDurumu?.toLowerCase() === 'rezerve' ? 'reserved' :
-                  m.masaDurumu?.toLowerCase() === 'arızalı' || m.masaDurumu?.toLowerCase() === 'arizali' ? 'broken' : 'empty',
-          capacity: m.kapasite || 4,
-          order: m.aktifSiparis || null,
-          time: null
-        }));
+        const formatliMasalar = masalarData.map(m => {
+          const durum = m.masaDurumu?.toUpperCase() || '';
+          let status = 'empty';
+          
+          if (durum === 'DOLU') status = 'occupied';
+          else if (durum === 'REZERVE') status = 'reserved';
+          else if (durum === 'ARIZALI' || durum === 'KULLANIM DIŞI') status = 'broken';
+          else status = 'empty';
+
+          return {
+            id: m.masaId,
+            name: m.masaAdi || `Masa ${m.masaNo || m.masaId}`,
+            status: status,
+            capacity: m.kapasite || 4,
+            order: m.aktifSiparis || null,
+            time: null
+          };
+        });
         setTables(formatliMasalar);
       }
 
@@ -891,27 +899,15 @@ const GarsonPanel = () => {
         processRefund={processRefund}
       />
 
-      {showStatusModal && selectedStatusTable && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <div className="bg-black/95 backdrop-blur-sm rounded-2xl border border-white/10 shadow-2xl max-w-md w-full p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h2 className="text-white font-bold text-xl">Masa Durumu Değiştir</h2>
-                <p className="text-gray-400 text-sm">{selectedStatusTable.name}</p>
-              </div>
-              <button onClick={() => setShowStatusModal(false)} className="text-gray-400 hover:text-white">
-                <FaTimes size={20} />
-              </button>
-            </div>
-            <div className="space-y-4">
-              <button onClick={() => handleSaveStatus('empty')} className="w-full py-3 rounded-xl bg-green-500/20 hover:bg-green-500/30 text-green-200">Boş Yap</button>
-              <button onClick={() => handleSaveStatus('occupied')} className="w-full py-3 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-200">Dolu Yap</button>
-              <button onClick={() => handleSaveStatus('reserved')} className="w-full py-3 rounded-xl bg-orange-500/20 hover:bg-orange-500/30 text-orange-200">Rezerve Yap</button>
-              <button onClick={() => handleSaveStatus('broken')} className="w-full py-3 rounded-xl bg-gray-500/20 hover:bg-gray-500/30 text-gray-200">Arızalı Yap</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <MasaDurumuModal
+        showStatusModal={showStatusModal}
+        onClose={() => {
+          setShowStatusModal(false);
+          setSelectedStatusTable(null);
+        }}
+        selectedTable={selectedStatusTable}
+        verileriYukle={verileriYukle}
+      />
 
       <SifreModal
         showPasswordModal={showPasswordModal}
