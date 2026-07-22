@@ -8,6 +8,7 @@ import AdminPanel from './Admin/AdminPanel';
 import GarsonPanel from './Garson/GarsonPanel';
 import AsciPanel from './Asci/AsciPanel';
 import KuryePanel from './Kurye/KuryePanel';
+import SiparisTakip from './components/SiparisTakip'; // 👈 1. SignalR Bileşeni Eklendi
 
 // ============ PROTECTED ROUTE ============
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -27,11 +28,18 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 };
 
 function App() {
+  // 👈 2. Giriş yapan kullanıcının ID'sini çekiyoruz
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const activeUyeId = user.uyeId || user.id || user.userId;
+
   return (
     <BrowserRouter>
+      {/* 🚀 3. Giriş yapılmışsa arka planda SignalR Canlı Bildirim Dinleyicisi Çalışır */}
+      {activeUyeId && <SiparisTakip uyeId={activeUyeId} />}
+
       <ToastContainer 
         position="top-right"
-        autoClose={3000}
+        autoClose={4000}
         hideProgressBar={false}
         newestOnTop={false}
         closeOnClick
