@@ -321,6 +321,34 @@ export const reportService = {
         const params = adet ? `?adet=${adet}` : '';
         return apiRequest(`/Rapor/son-siparisler${params}`);
     },
+
+    getGunlukSatis: (tarih) => {
+        const params = tarih ? `?tarih=${tarih}` : '';
+        return apiRequest(`/Rapor/gunluk-satis${params}`);
+    },
+
+    getUrunSatis: (gun) => {
+        const params = gun ? `?gun=${gun}` : '';
+        return apiRequest(`/Rapor/urun-satis${params}`);
+    },
+
+    getRezervasyonRaporu: (baslangic, bitis) => {
+        let params = '';
+        if (baslangic) params += `?baslangic=${baslangic}`;
+        if (bitis) params += `${params ? '&' : '?'}bitis=${bitis}`;
+        return apiRequest(`/Rapor/rezervasyon-raporu${params}`);
+    },
+    getGelirIstatistikleri: (yil) => {
+        const params = yil ? `?yil=${yil}` : '';
+        return apiRequest(`/Rapor/gelir-istatistikleri${params}`);
+    },
+    getDashboardOzet: () => {
+        return apiRequest('/Rapor/dashboard-ozet');
+    },
+    getKategoriSatis: (gun) => {
+        const params = gun ? `?gun=${gun}` : '';
+        return apiRequest(`/Rapor/kategori-satis${params}`);
+    }
 };
 
 // ========== STOK HAREKET SERVİSİ ==========

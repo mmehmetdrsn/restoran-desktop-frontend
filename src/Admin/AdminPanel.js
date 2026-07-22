@@ -29,6 +29,19 @@ import BolumBasligi from './Bilesenler/Ortak/BolumBasligi';
 import Sifre from './Bilesenler/Ortak/Sifre';
 import Dashboard from './Bilesenler/Dashboard/Dashboard';
 
+// Buton Dosyalari
+import PersonelButonlari from './Bilesenler/Personel/PersonelButonlari';
+import UrunButonlari from './Bilesenler/Urun/UrunButonlari';
+import KategoriButonlari from './Bilesenler/Kategori/KategoriButonlari';
+import UyeButonlari from './Bilesenler/Uye/UyeButonlari';
+import FinansButonlari from './Bilesenler/Finans/FinansButonlari';
+import StokButonlari from './Bilesenler/Stok/StokButonlari';
+import MasaButonlari from './Bilesenler/Masa/MasaButonlari';
+import RezervasyonButonlari from './Bilesenler/Rezervasyon/RezervasyonButonlari';
+import SiparisButonlari from './Bilesenler/Siparis/SiparisButonlari';
+import Raporlar from './Bilesenler/Raporlar/Raporlar';
+
+// Modal Dosyalari
 import PersonelEkle from './Bilesenler/Personel/PersonelEkle';
 import PersonelSil from './Bilesenler/Personel/PersonelSil';
 import PersonelDuzenle from './Bilesenler/Personel/PersonelDuzenle';
@@ -57,7 +70,7 @@ import MasaDuzenle from './Bilesenler/Masa/MasaDuzenle';
 import RezervasyonEkle from './Bilesenler/Rezervasyon/RezervasyonEkle';
 import RezervasyonSil from './Bilesenler/Rezervasyon/RezervasyonSil';
 import RezervasyonDuzenle from './Bilesenler/Rezervasyon/RezervasyonDuzenle';
-import RezervasyonListele from './Bilesenler/Rezervasyon/RezervasyonListele';  
+import RezervasyonListele from './Bilesenler/Rezervasyon/RezervasyonListele';
 
 import Odeme from './Bilesenler/Finans/Odeme';
 import Kasa from './Bilesenler/Finans/Kasa';
@@ -83,7 +96,7 @@ const AdminPanel = () => {
   const [siparisGosterimModu, setSiparisGosterimModu] = useState('all');
   const [showSiparisDetay, setShowSiparisDetay] = useState(false);
 
-  // ============ VERİ STATE'LERİ ============
+  // Veri State'leri
   const [orders, setOrders] = useState([]);
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -97,7 +110,7 @@ const AdminPanel = () => {
   const [personelListesi, setPersonelListesi] = useState([]);
   const [urunListesi, setUrunListesi] = useState([]);
 
-  // ============ DASHBOARD STATE'LERİ ============
+  // Dashboard State'leri
   const [dashboardData, setDashboardData] = useState({
     totalRevenue: 0,
     totalOrders: 0,
@@ -108,7 +121,7 @@ const AdminPanel = () => {
   const [topProducts, setTopProducts] = useState([]);
   const [recentOrders, setRecentOrders] = useState([]);
 
-  // ============ MODAL STATE'LERİ ============
+  // Modal State'leri
   // Personel
   const [showPersonelEkle, setShowPersonelEkle] = useState(false);
   const [showPersonelSil, setShowPersonelSil] = useState(false);
@@ -126,7 +139,7 @@ const AdminPanel = () => {
     Maas: ''
   });
 
-  // Ürün
+  // Urun
   const [showUrunEkle, setShowUrunEkle] = useState(false);
   const [showUrunSil, setShowUrunSil] = useState(false);
   const [showUrunDuzenle, setShowUrunDuzenle] = useState(false);
@@ -142,7 +155,7 @@ const AdminPanel = () => {
   const [duzenlenecekUrunAciklama, setDuzenlenecekUrunAciklama] = useState('');
   const [urunAciklama, setUrunAciklama] = useState('');
 
-  // Üye
+  // Uye
   const [showUyeEkle, setShowUyeEkle] = useState(false);
   const [showUyeSil, setShowUyeSil] = useState(false);
   const [showUyeDuzenle, setShowUyeDuzenle] = useState(false);
@@ -183,11 +196,11 @@ const AdminPanel = () => {
   const [showMasaSil, setShowMasaSil] = useState(false);
   const [showMasaDuzenle, setShowMasaDuzenle] = useState(false);
 
-  // ✅ Rezervasyon - showRezervasyonListele EKLENDİ
+  // Rezervasyon
   const [showRezervasyonEkle, setShowRezervasyonEkle] = useState(false);
   const [showRezervasyonSil, setShowRezervasyonSil] = useState(false);
   const [showRezervasyonDuzenle, setShowRezervasyonDuzenle] = useState(false);
-  const [showRezervasyonListele, setShowRezervasyonListele] = useState(false); // ✅ YENİ
+  const [showRezervasyonListele, setShowRezervasyonListele] = useState(false);
 
   // Finans
   const [showOdeme, setShowOdeme] = useState(false);
@@ -205,7 +218,7 @@ const AdminPanel = () => {
   const [stokLoading, setStokLoading] = useState(false);
   const [showStokHareket, setShowStokHareket] = useState(false);
 
-  // ============ KULLANICI BİLGİLERİ ============
+  // Kullanici Bilgileri
   const [userData, setUserData] = useState({
     name: 'Admin',
     email: 'admin@restoran.com',
@@ -213,18 +226,18 @@ const AdminPanel = () => {
   });
 
   const menuItems = [
-    { id: 'dashboard', icon: <FaHome />, title: 'Genel Bakış' },
-    { id: 'product_menu', icon: <FaUtensils />, title: 'Ürün ve Menü Yönetimi' },
-    { id: 'members', icon: <FaUsers />, title: 'Üye Yönetimi' },
-    { id: 'finance', icon: <FaMoneyBillWave />, title: 'Finans ve Kasa Yönetimi' },
-    { id: 'stock', icon: <FaBoxes />, title: 'Depo / Stok Yönetimi' },
-    { id: 'orders', icon: <FaClipboardListIcon />, title: 'Sipariş Yönetimi' },
-    { id: 'tables', icon: <FaTable />, title: 'Masa ve Rezervasyon Yönetimi' },
-    { id: 'personnel', icon: <FaUserCog />, title: 'Personel Yönetimi' },
-    { id: 'reports', icon: <FaChartBar />, title: 'Raporlar ve İstatistikler' }
+    { id: 'dashboard', icon: <FaHome />, title: 'Genel Bakis' },
+    { id: 'product_menu', icon: <FaUtensils />, title: 'Urun ve Menu Yonetimi' },
+    { id: 'members', icon: <FaUsers />, title: 'Uye Yonetimi' },
+    { id: 'finance', icon: <FaMoneyBillWave />, title: 'Finans ve Kasa Yonetimi' },
+    { id: 'stock', icon: <FaBoxes />, title: 'Depo / Stok Yonetimi' },
+    { id: 'orders', icon: <FaClipboardListIcon />, title: 'Siparis Yonetimi' },
+    { id: 'tables', icon: <FaTable />, title: 'Masa ve Rezervasyon Yonetimi' },
+    { id: 'personnel', icon: <FaUserCog />, title: 'Personel Yonetimi' },
+    { id: 'reports', icon: <FaChartBar />, title: 'Raporlar ve Istatistikler' }
   ];
 
-  // ============ DASHBOARD VERİLERİNİ ÇEK ============
+  // Dashboard Verilerini Cek
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
@@ -233,40 +246,36 @@ const AdminPanel = () => {
       let satanlarData = [];
       let sonSiparislerData = [];
 
-      // Günlük ciro
       try {
         const ciroRes = await reportService.getGunlukCiro();
-        console.log('📊 Günlük ciro:', ciroRes);
+        console.log('Gunluk ciro:', ciroRes);
         if (ciroRes?.data) {
           ciroData = ciroRes.data;
         }
       } catch (error) {
-        console.warn('⚠️ Günlük ciro verisi alınamadı:', error);
+        console.warn('Gunluk ciro verisi alinamadi:', error);
       }
 
-      // En çok satanlar
       try {
         const satanlarRes = await reportService.getEnCokSatanlar(30);
-        console.log('📊 En çok satanlar:', satanlarRes);
+        console.log('En cok satanlar:', satanlarRes);
         if (satanlarRes?.data && Array.isArray(satanlarRes.data)) {
           satanlarData = satanlarRes.data;
         }
       } catch (error) {
-        console.warn('⚠️ En çok satanlar verisi alınamadı:', error);
+        console.warn('En cok satanlar verisi alinamadi:', error);
       }
 
-      // Son siparişler
       try {
         const sonSiparislerRes = await reportService.getSonSiparisler(10);
-        console.log('📊 Son siparişler:', sonSiparislerRes);
+        console.log('Son siparisler:', sonSiparislerRes);
         if (sonSiparislerRes?.data && Array.isArray(sonSiparislerRes.data)) {
           sonSiparislerData = sonSiparislerRes.data;
         }
       } catch (error) {
-        console.warn('⚠️ Son siparişler verisi alınamadı:', error);
+        console.warn('Son siparisler verisi alinamadi:', error);
       }
 
-      // Dashboard state'ini güncelle
       setDashboardData({
         totalRevenue: ciroData.ciro || 0,
         totalOrders: ciroData.siparisSayisi || 0,
@@ -277,7 +286,6 @@ const AdminPanel = () => {
         oncekiGunCiro: ciroData.oncekiGunCiro || 0
       });
 
-      // En çok satanlar
       if (satanlarData && satanlarData.length > 0) {
         const products = satanlarData.map((p, index) => ({
           name: p.urunAdi || p.UrunAdi || p.urunAdi || 'Bilinmiyor',
@@ -288,79 +296,78 @@ const AdminPanel = () => {
         setTopProducts(products);
       }
 
-      // Son siparişler
       if (sonSiparislerData && sonSiparislerData.length > 0) {
         setRecentOrders(sonSiparislerData);
       }
 
-      console.log('✅ Dashboard verileri başarıyla yüklendi!');
+      console.log('Dashboard verileri basariyla yüklendi!');
     } catch (error) {
       console.error('Dashboard verileri yüklenirken hata:', error);
-      toast.error('Dashboard verileri yüklenirken hata oluştu!');
+      toast.error('Dashboard verileri yüklenirken hata olustu!');
     } finally {
       setLoading(false);
     }
   };
 
-  // ============ TÜM VERİLERİ ÇEK ============
+  // Tum Verileri Cek
   const fetchAllData = async () => {
     try {
-      console.log('🔄 Veriler yükleniyor...');
+      console.log('Veriler yükleniyor...');
 
       const productsRes = await productService.getAll().catch(err => {
-        console.warn('⚠️ Ürünler yüklenemedi:', err);
+        console.warn('Urunler yüklenemedi:', err);
         return { data: [] };
       });
 
       const categoriesRes = await categoryService.getAll().catch(err => {
-        console.warn('⚠️ Kategoriler yüklenemedi:', err);
+        console.warn('Kategoriler yüklenemedi:', err);
         return { data: [] };
       });
 
       const materialsRes = await materialService.getAll().catch(err => {
-        console.warn('⚠️ Malzemeler yüklenemedi:', err);
+        console.warn('Malzemeler yüklenemedi:', err);
         return { data: [] };
       });
 
       const tablesRes = await tableService.getAll().catch(err => {
-        console.warn('⚠️ Masalar yüklenemedi:', err);
+        console.warn('Masalar yüklenemedi:', err);
         return { data: [] };
       });
 
       const reservationsRes = await reservationService.getAll().catch(err => {
-        console.warn('⚠️ Rezervasyonlar yüklenemedi:', err);
+        console.warn('Rezervasyonlar yüklenemedi:', err);
         return { data: [] };
       });
 
       const personnelRes = await personnelService.getAll().catch(err => {
-        console.warn('⚠️ Personeller yüklenemedi:', err);
+        console.warn('Personeller yüklenemedi:', err);
         return { data: [] };
       });
 
       const usersRes = await userService.getAll().catch(err => {
-        console.warn('⚠️ Üyeler yüklenemedi:', err);
+        console.warn('Uyeler yüklenemedi:', err);
         return { data: [] };
       });
 
       const paymentsRes = await paymentService.getAll().catch(err => {
-        console.warn('⚠️ Ödemeler yüklenemedi:', err);
+        console.warn('Odemeler yüklenemedi:', err);
         return { data: [] };
       });
 
       const cashRes = await cashService.getAll().catch(err => {
-        console.warn('⚠️ Kasa hareketleri yüklenemedi:', err);
+        console.warn('Kasa hareketleri yüklenemedi:', err);
         return { data: [] };
       });
 
-      console.log('📦 Ürünler:', productsRes);
-      console.log('📦 Kategoriler:', categoriesRes);
-      console.log('📦 Malzemeler:', materialsRes);
-      console.log('📦 Masalar:', tablesRes);
-      console.log('📦 Rezervasyonlar:', reservationsRes);
-      console.log('📦 Personeller:', personnelRes);
-      console.log('📦 Üyeler:', usersRes);
-      console.log('📦 Ödemeler:', paymentsRes);
-      console.log('📦 Kasa:', cashRes);
+      console.log('Urunler:', productsRes);
+      console.log('Kategoriler:', categoriesRes);
+      console.log('Malzemeler:', materialsRes);
+      console.log('Masalar:', tablesRes);
+      console.log('Rezervasyonlar:', reservationsRes);
+      console.log('Personeller:', personnelRes);
+      console.log('Uyeler:', usersRes);
+      console.log('Odemeler:', paymentsRes);
+      console.log('Kasa:', cashRes);
 
       setProducts(Array.isArray(productsRes?.data) ? productsRes.data : []);
       setCategories(Array.isArray(categoriesRes?.data) ? categoriesRes.data : []);
@@ -384,28 +391,28 @@ const AdminPanel = () => {
         setPersonelListesi(personeller);
       }
 
-      console.log('✅ Veriler başarıyla yüklendi!');
-      console.log('📊 State güncellemeleri tamamlandı.');
+      console.log('Veriler basariyla yüklendi!');
+      console.log('State güncellemeleri tamamlandi.');
     } catch (error) {
-      console.error('❌ Veriler yüklenirken hata:', error);
-      toast.error('Veriler yüklenirken hata oluştu!');
+      console.error('Veriler yüklenirken hata:', error);
+      toast.error('Veriler yüklenirken hata olustu!');
     }
   };
 
-  // ============ DURUM RENKLERİ ============
+  // Durum Renkleri
   const getStatusColor = (status) => {
     switch (status) {
-      case 'Tamamlandı': return 'bg-green-500/20 text-green-400';
-      case 'Hazırlanıyor': return 'bg-yellow-500/20 text-yellow-400';
+      case 'Tamamlandi': return 'bg-green-500/20 text-green-400';
+      case 'Hazirlaniyor': return 'bg-yellow-500/20 text-yellow-400';
       case 'Bekliyor': return 'bg-orange-500/20 text-orange-400';
       case 'Teslim Edildi': return 'bg-blue-500/20 text-blue-400';
-      case 'İptal': return 'bg-red-500/20 text-red-400';
-      case 'Ödendi': return 'bg-purple-500/20 text-purple-400';
+      case 'Iptal': return 'bg-red-500/20 text-red-400';
+      case 'Odendi': return 'bg-purple-500/20 text-purple-400';
       default: return 'bg-gray-500/20 text-gray-400';
     }
   };
 
-  // ============ KULLANICI BİLGİLERİ ============
+  // Kullanici Bilgileri
   const fetchUserData = async () => {
     try {
       const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
@@ -418,11 +425,11 @@ const AdminPanel = () => {
         });
       }
     } catch (error) {
-      console.error('Kullanıcı verileri alınamadı:', error);
+      console.error('Kullanici verileri alinamadi:', error);
     }
   };
 
-  // ============ USE EFFECT ============
+  // Use Effect
   useEffect(() => {
     const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
     if (!storedUser) {
@@ -434,14 +441,14 @@ const AdminPanel = () => {
     fetchUserData();
   }, [navigate]);
 
-  // ============ ÇIKIŞ ============
+  // Cikis
   const handleLogout = async () => {
     try {
       localStorage.removeItem('token');
       localStorage.removeItem('refreshToken');
       localStorage.removeItem('user');
       sessionStorage.removeItem('user');
-      toast.success('Başarıyla çıkış yapıldı!');
+      toast.success('Basariyla cikis yapildi!');
       navigate('/login');
     } catch (err) {
       localStorage.removeItem('user');
@@ -449,7 +456,7 @@ const AdminPanel = () => {
     }
   };
 
-  // ============ PERSONEL LİSTELE ============
+  // Personel Listele
   const handlePersonelListele = async () => {
     try {
       const response = await personnelService.getAll();
@@ -466,20 +473,20 @@ const AdminPanel = () => {
       setShowPersonelListele(true);
     } catch (error) {
       console.error('Personeller yüklenirken hata:', error);
-      toast.error('❌ Personeller yüklenirken hata oluştu!');
+      toast.error('Personeller yüklenirken hata olustu!');
     }
   };
 
-  // ============ ÜRÜN LİSTELE ============
+  // Urun Listele
   const handleUrunListele = async () => {
     try {
       const response = await productService.getAll();
       const data = response.data || [];
       
-      console.log('📦 Tüm ürünler:', data);
+      console.log('Tüm ürünler:', data);
       
       data.forEach((urun, index) => {
-        console.log(`Ürün ${index + 1}: ${urun.urunAdi} - isActive:`, urun.isActive, '| IsActive:', urun.IsActive);
+        console.log(`Urun ${index + 1}: ${urun.urunAdi} - isActive:`, urun.isActive, '| IsActive:', urun.IsActive);
       });
       
       const pasifUrunler = data.filter(u => {
@@ -492,41 +499,41 @@ const AdminPanel = () => {
         return active === true || active === 1 || active === 'true' || active === '1' || active == null;
       });
       
-      console.log('📊 Aktif ürünler:', aktifUrunler.length);
-      console.log('📊 Pasif ürünler:', pasifUrunler.length);
-      console.log('📊 Pasif ürün listesi:', pasifUrunler);
+      console.log('Aktif ürünler:', aktifUrunler.length);
+      console.log('Pasif ürünler:', pasifUrunler.length);
+      console.log('Pasif ürün listesi:', pasifUrunler);
       
       setUrunListesi(data);
       setShowUrunListele(true);
       
-      toast.info(`📋 ${data.length || 0} ürün (${aktifUrunler.length} aktif, ${pasifUrunler.length} pasif)`);
+      toast.info(`${data.length || 0} ürün (${aktifUrunler.length} aktif, ${pasifUrunler.length} pasif)`);
     } catch (error) {
-      console.error('Ürünler yüklenirken hata:', error);
-      toast.error('❌ Ürünler yüklenirken hata oluştu!');
+      console.error('Urunler yüklenirken hata:', error);
+      toast.error('Urunler yüklenirken hata olustu!');
     }
   };
 
-  // ============ ÜYE LİSTELE ============
+  // Uye Listele
   const handleUyeListele = async () => {
     try {
       setUyeLoading(true);
       const response = await userService.getAll();
       setUyeListesi(response.data || []);
       setShowUyeListele(true);
-      toast.info(`📋 ${response.data?.length || 0} üye bulundu`);
+      toast.info(`${response.data?.length || 0} üye bulundu`);
     } catch (error) {
-      console.error('Üyeler yüklenirken hata:', error);
-      toast.error('❌ Üyeler yüklenirken hata oluştu!');
+      console.error('Uyeler yüklenirken hata:', error);
+      toast.error('Uyeler yüklenirken hata olustu!');
     } finally {
       setUyeLoading(false);
     }
   };
 
-  // ============ ÜYE EKLE ============
+  // Uye Ekle
   const handleUyeEkleSubmit = async (e) => {
     e.preventDefault();
     if (!yeniUye.uyeAdi || !yeniUye.uyeSoyadi || !yeniUye.uyeEmail) {
-      toast.warning('Lütfen tüm zorunlu alanları doldurun!');
+      toast.warning('Lutfen tüm zorunlu alanlari doldurun!');
       return;
     }
 
@@ -543,7 +550,7 @@ const AdminPanel = () => {
         acikAdres: yeniUye.acikAdres || null,
         teslimatBolgesindeMi: yeniUye.teslimatBolgesindeMi || false
       });
-      toast.success('✅ Üye başarıyla eklendi!');
+      toast.success('Uye basariyla eklendi!');
       setYeniUye({
         uyeAdi: '',
         uyeSoyadi: '',
@@ -558,42 +565,42 @@ const AdminPanel = () => {
       setShowUyeEkle(false);
       await handleUyeListele();
     } catch (error) {
-      console.error('Üye eklenirken hata:', error);
-      toast.error('❌ Üye eklenirken hata oluştu!');
+      console.error('Uye eklenirken hata:', error);
+      toast.error('Uye eklenirken hata olustu!');
     } finally {
       setUyeLoading(false);
     }
   };
 
-  // ============ ÜYE SİL ============
+  // Uye Sil
   const handleUyeSilSubmit = async (e) => {
     e.preventDefault();
     if (!silinecekUyeId) {
-      toast.warning('Lütfen üye ID girin!');
+      toast.warning('Lutfen uye ID girin!');
       return;
     }
-    if (!window.confirm('Bu üyeyi silmek istediğinizden emin misiniz?')) return;
+    if (!window.confirm('Bu uyeyi silmek istediginizden emin misiniz?')) return;
 
     try {
       setUyeLoading(true);
       await userService.delete(parseInt(silinecekUyeId));
-      toast.success('✅ Üye başarıyla silindi!');
+      toast.success('Uye basariyla silindi!');
       setSilinecekUyeId('');
       setShowUyeSil(false);
       await handleUyeListele();
     } catch (error) {
-      console.error('Üye silinirken hata:', error);
-      toast.error('❌ Üye silinirken hata oluştu!');
+      console.error('Uye silinirken hata:', error);
+      toast.error('Uye silinirken hata olustu!');
     } finally {
       setUyeLoading(false);
     }
   };
 
-  // ============ ÜYE DÜZENLE ============
+  // Uye Duzenle
   const handleUyeDuzenleSubmit = async (e) => {
     e.preventDefault();
     if (!duzenlenecekUyeId || !duzenlenecekUyeAdi || !duzenlenecekUyeSoyadi || !duzenlenecekUyeEmail) {
-      toast.warning('Lütfen tüm alanları doldurun!');
+      toast.warning('Lutfen tüm alanlari doldurun!');
       return;
     }
 
@@ -609,7 +616,7 @@ const AdminPanel = () => {
         acikAdres: duzenlenecekUyeAdres || null,
         teslimatBolgesindeMi: false
       });
-      toast.success('✅ Üye başarıyla güncellendi!');
+      toast.success('Uye basariyla güncellendi!');
       setDuzenlenecekUyeId('');
       setDuzenlenecekUyeAdi('');
       setDuzenlenecekUyeSoyadi('');
@@ -619,14 +626,14 @@ const AdminPanel = () => {
       setShowUyeDuzenle(false);
       await handleUyeListele();
     } catch (error) {
-      console.error('Üye güncellenirken hata:', error);
-      toast.error('❌ Üye güncellenirken hata oluştu!');
+      console.error('Uye güncellenirken hata:', error);
+      toast.error('Uye güncellenirken hata olustu!');
     } finally {
       setUyeLoading(false);
     }
   };
 
-  // ============ KATEGORİ LİSTELE ============
+  // Kategori Listele
   const handleKategoriListele = async () => {
     try {
       const response = await categoryService.getAll();
@@ -634,11 +641,11 @@ const AdminPanel = () => {
       setShowKategoriListele(true);
     } catch (error) {
       console.error('Kategoriler yüklenirken hata:', error);
-      toast.error('❌ Kategoriler yüklenirken hata oluştu!');
+      toast.error('Kategoriler yüklenirken hata olustu!');
     }
   };
 
-  // ============ ÖDEME LİSTELE ============
+  // Odeme Listele
   const handleOdemeListele = async () => {
     try {
       setFinansLoading(true);
@@ -646,14 +653,14 @@ const AdminPanel = () => {
       setOdemeler(response.data || []);
       setShowOdeme(true);
     } catch (error) {
-      console.error('Ödemeler yüklenirken hata:', error);
-      toast.error('❌ Ödemeler yüklenirken hata oluştu!');
+      console.error('Odemeler yüklenirken hata:', error);
+      toast.error('Odemeler yüklenirken hata olustu!');
     } finally {
       setFinansLoading(false);
     }
   };
 
-  // ============ KASA HAREKETLERİ LİSTELE ============
+  // Kasa Hareketleri Listele
   const handleKasaHareketleri = async () => {
     try {
       setFinansLoading(true);
@@ -662,29 +669,29 @@ const AdminPanel = () => {
       setShowKasa(true);
     } catch (error) {
       console.error('Kasa hareketleri yüklenirken hata:', error);
-      toast.error('❌ Kasa hareketleri yüklenirken hata oluştu!');
+      toast.error('Kasa hareketleri yüklenirken hata olustu!');
     } finally {
       setFinansLoading(false);
     }
   };
 
-  // ============ STOK DURUMU LİSTELE ============
+  // Stok Durumu Listele
   const handleStokDurumu = async () => {
     try {
       setStokLoading(true);
       const response = await materialService.getAll();
       setMaterials(response.data || []);
       setShowStokDurumu(true);
-      toast.info(`📦 ${response.data?.length || 0} malzeme bulundu`);
+      toast.info(`${response.data?.length || 0} malzeme bulundu`);
     } catch (error) {
       console.error('Stok durumu yüklenirken hata:', error);
-      toast.error('❌ Stok durumu yüklenirken hata oluştu!');
+      toast.error('Stok durumu yüklenirken hata olustu!');
     } finally {
       setStokLoading(false);
     }
   };
 
-  // ============ SİPARİŞLERİ LİSTELE ============
+  // Siparisleri Listele
   const handleSiparisListele = async () => {
     try {
       const response = await orderService.getAll();
@@ -696,30 +703,30 @@ const AdminPanel = () => {
           o.siparisDurumu !== 'ODENDI'
       ).length || 0;
 
-      toast.info(`📋 ${aktif} aktif sipariş bulundu (Toplam: ${response.data?.length || 0})`);
+      toast.info(`${aktif} aktif siparis bulundu (Toplam: ${response.data?.length || 0})`);
     } catch (error) {
-      console.error('Siparişler yüklenirken hata:', error);
-      toast.error('❌ Siparişler yüklenirken hata oluştu!');
+      console.error('Siparisler yüklenirken hata:', error);
+      toast.error('Siparisler yüklenirken hata olustu!');
     }
   };
 
-  // ============ REZERVASYON LİSTELE ============
+  // Rezervasyon Listele
   const handleRezervasyonListele = async () => {
     try {
       const response = await reservationService.getAll();
       const data = response.data || [];
       setReservations(data);
       setShowRezervasyonListele(true);
-      toast.info(`📋 ${data.length} rezervasyon bulundu`);
+      toast.info(`${data.length} rezervasyon bulundu`);
     } catch (error) {
       console.error('Rezervasyonlar yüklenirken hata:', error);
-      toast.error('❌ Rezervasyonlar yüklenirken hata oluştu!');
+      toast.error('Rezervasyonlar yüklenirken hata olustu!');
     }
   };
 
-  // ============ SİPARİŞ TAMAMLA ============
+  // Siparis Tamamla
   const handleSiparisTamamla = async (siparisId) => {
-    if (!window.confirm('Siparişi tamamlamak istediğinize emin misiniz?\n\nBu işlem stokları otomatik düşecektir!')) {
+    if (!window.confirm('Siparisi tamamlamak istediginize emin misiniz?\n\nBu islem stoklari otomatik dusecektir!')) {
       return;
     }
 
@@ -730,343 +737,153 @@ const AdminPanel = () => {
         { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
       );
 
-      toast.success(`✅ Sipariş #${siparisId} tamamlandı ve stoklar güncellendi!`);
+      toast.success(`Siparis #${siparisId} tamamlandi ve stoklar güncellendi!`);
       handleSiparisListele();
     } catch (error) {
-      console.error('Sipariş tamamlama hatası:', error);
+      console.error('Siparis tamamlama hatasi:', error);
 
       if (error.response?.data?.Hatalar) {
         const hatalar = error.response.data.Hatalar.join('\n');
-        toast.error(`❌ ${hatalar}`);
+        toast.error(`${hatalar}`);
       } else if (error.response?.data?.Mesaj) {
-        toast.error(`❌ ${error.response.data.Mesaj}`);
+        toast.error(`${error.response.data.Mesaj}`);
       } else {
-        toast.error('❌ Sipariş tamamlanırken hata oluştu!');
+        toast.error('Siparis tamamlanirken hata olustu!');
       }
     }
   };
 
-  // ============ RENDER FONKSİYONLARI ===========
+  // ============ RENDER FONKSIYONLARI ============
 
-  // Personel Yönetimi Sayfası
-  const renderPersonnel = () => (
-    <div className="bg-black/90 backdrop-blur-sm rounded-2xl p-6 border border-white/10 max-w-6xl mx-auto">
-      <BolumBasligi icon={<FaUserCog />} title="Personel Yönetimi" />
-      <p className="text-gray-400 text-sm mb-6">Personel işlemleri ve yetki yönetimi.</p>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        <Buton icon={<FaUserPlus />} label="Personel Ekle" onClick={() => setShowPersonelEkle(true)} />
-        <Buton icon={<FaUserEdit />} label="Personel Düzenle" onClick={() => setShowPersonelDuzenle(true)} />
-        <Buton icon={<FaUserMinus />} label="Personel Sil" onClick={() => setShowPersonelSil(true)} />
-        <Buton icon={<FaList />} label="Personel Listele" onClick={handlePersonelListele} />
-        <Buton icon={<FaShieldAlt />} label="Rol / Yetki Yönetimi" onClick={() => toast.warning('⚠️ Rol/yetki yönetimi henüz aktif değil.')} />
-        <Buton icon={<FaUmbrella />} label="İzin Yönetimi" onClick={() => toast.warning('⚠️ İzin yönetimi henüz aktif değil.')} />
-      </div>
-    </div>
-  );
+  // Personel Yonetimi Sayfasi
+  const renderPersonnel = () => {
+    return <PersonelButonlari 
+      setShowPersonelEkle={setShowPersonelEkle}
+      setShowPersonelDuzenle={setShowPersonelDuzenle}
+      setShowPersonelSil={setShowPersonelSil}
+      handlePersonelListele={handlePersonelListele}
+    />;
+  };
 
-  // Ürün ve Menü Yönetimi Sayfası
-  const renderProductMenu = () => (
-    <div className="bg-black/90 backdrop-blur-sm rounded-2xl p-6 border border-white/10 max-w-6xl mx-auto">
-      <BolumBasligi icon={<FaUtensils />} title="Ürün ve Menü Yönetimi" />
-      <p className="text-gray-400 text-sm mb-6">Ürün ve menü işlemlerinizi buradan yönetin.</p>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        <Buton icon={<FaPlus />} label="Ürün Ekle" onClick={() => { setUrunAciklama(''); setShowUrunEkle(true); }} />
-        <Buton icon={<FaTrash />} label="Ürün Sil" onClick={() => setShowUrunSil(true)} />
-        <Buton icon={<FaEdit />} label="Ürün Düzenle" onClick={() => setShowUrunDuzenle(true)} />
-        <Buton icon={<FaList />} label="Ürün Listele" onClick={handleUrunListele} />
-      </div>
-      <div className="mt-4 pt-4 border-t border-white/10">
-        <p className="text-gray-400 text-xs mb-3">Kategori İşlemleri</p>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <Buton icon={<FaPlusCircle />} label="Kategori Ekle" onClick={() => setShowKategoriEkle(true)} />
-          <Buton icon={<FaTrash />} label="Kategori Sil" onClick={() => setShowKategoriSil(true)} />
-          <Buton icon={<FaEdit />} label="Kategori Düzenle" onClick={() => setShowKategoriDuzenle(true)} />
-          <Buton icon={<FaList />} label="Kategori Listele" onClick={handleKategoriListele} />
-        </div>
-      </div>
-    </div>
-  );
+  // Urun ve Menu Yonetimi Sayfasi
+  const renderProductMenu = () => {
+    return <UrunButonlari 
+      setShowUrunEkle={setShowUrunEkle}
+      setShowUrunSil={setShowUrunSil}
+      setShowUrunDuzenle={setShowUrunDuzenle}
+      handleUrunListele={handleUrunListele}
+    />;
+  };
 
-  // Üye Yönetimi Sayfası
-  const renderMembers = () => (
-    <div className="bg-black/90 backdrop-blur-sm rounded-2xl p-6 border border-white/10 max-w-6xl mx-auto">
-      <BolumBasligi icon={<FaUsers />} title="Üye Yönetimi" />
-      <p className="text-gray-400 text-sm mb-6">Personel ve müşteri üye işlemlerini yönetin.</p>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        <Buton icon={<FaUserPlus />} label="Üye Ekle" onClick={() => setShowUyeEkle(true)} />
-        <Buton icon={<FaUserMinus />} label="Üye Sil" onClick={() => setShowUyeSil(true)} />
-        <Buton icon={<FaUserEdit />} label="Üye Düzenle" onClick={() => setShowUyeDuzenle(true)} />
-        <Buton icon={<FaList />} label="Üye Listele" onClick={handleUyeListele} />
-        <Buton icon={<FaEye />} label="Üye Detay" onClick={() => setShowUyeDetay(true)} />
-      </div>
-    </div>
-  );
+  // Kategori Yonetimi Sayfasi
+  const renderKategori = () => {
+    return <KategoriButonlari 
+      setShowKategoriEkle={setShowKategoriEkle}
+      setShowKategoriSil={setShowKategoriSil}
+      setShowKategoriDuzenle={setShowKategoriDuzenle}
+      handleKategoriListele={handleKategoriListele}
+    />;
+  };
 
-  // Finans ve Kasa Yönetimi Sayfası
-  const renderFinance = () => (
-    <div className="bg-black/90 backdrop-blur-sm rounded-2xl p-6 border border-white/10 max-w-6xl mx-auto">
-      <BolumBasligi icon={<FaMoneyBillWave />} title="Finans ve Kasa Yönetimi" />
-      <p className="text-gray-400 text-sm mb-6">Kasa hareketleri ve finansal işlemler.</p>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        <Buton icon={<FaHistory />} label="Ödeme Geçmişi" onClick={handleOdemeListele} />
-        <Buton icon={<FaCheckDouble />} label="Gün Sonu İşlemleri" onClick={() => setShowGunSonu(true)} />
-        <Buton icon={<FaUndo />} label="Ödeme İade İşlemleri" onClick={() => setShowIade(true)} />
-        <Buton icon={<FaExchangeAlt />} label="Kasa Hareketleri" onClick={handleKasaHareketleri} />
-      </div>
-    </div>
-  );
+  // Uye Yonetimi Sayfasi
+  const renderMembers = () => {
+    return <UyeButonlari 
+      setShowUyeEkle={setShowUyeEkle}
+      setShowUyeSil={setShowUyeSil}
+      setShowUyeDuzenle={setShowUyeDuzenle}
+      handleUyeListele={handleUyeListele}
+      setShowUyeDetay={setShowUyeDetay}
+    />;
+  };
 
-  // Depo / Stok Yönetimi Sayfası
-  const renderStock = () => (
-    <div className="bg-black/90 backdrop-blur-sm rounded-2xl p-6 border border-white/10 max-w-6xl mx-auto">
-      <BolumBasligi icon={<FaBoxes />} title="Depo / Stok Yönetimi" />
-      <p className="text-gray-400 text-sm mb-6">Stok seviyeleri ve malzeme işlemleri.</p>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        <Buton icon={<FaWarehouse />} label="Güncel Stok Durumları" onClick={handleStokDurumu} />
-        <Buton icon={<FaPlusCircle />} label="Malzeme Giriş" onClick={() => setShowMalzemeGiris(true)} />
-        <Buton icon={<FaMinusCircle />} label="Malzeme Çıkış" onClick={() => setShowMalzemeCikis(true)} />
-        <Buton icon={<FaHistory />} label="Stok Hareketleri" onClick={() => setShowStokHareket(true)} />
-        <Buton icon={<FaClipboardListIcon />} label="Eksik Malzeme Talebi" onClick={() => toast.warning('⚠️ Malzeme sipariş işlemi henüz aktif değil.')} />
-      </div>
-    </div>
-  );
+  // Finans ve Kasa Yonetimi Sayfasi
+  const renderFinance = () => {
+    return <FinansButonlari 
+      handleOdemeListele={handleOdemeListele}
+      setShowGunSonu={setShowGunSonu}
+      setShowIade={setShowIade}
+      handleKasaHareketleri={handleKasaHareketleri}
+    />;
+  };
 
-  // Sipariş Yönetimi Sayfası
+  // Depo / Stok Yonetimi Sayfasi
+  const renderStock = () => {
+    return <StokButonlari 
+      handleStokDurumu={handleStokDurumu}
+      setShowMalzemeGiris={setShowMalzemeGiris}
+      setShowMalzemeCikis={setShowMalzemeCikis}
+      setShowStokHareket={setShowStokHareket}
+    />;
+  };
+
+  // Masa Yonetimi Sayfasi
+  const renderMasa = () => {
+    return <MasaButonlari 
+      tables={tables}
+      setShowMasaEkle={setShowMasaEkle}
+      setShowMasaSil={setShowMasaSil}
+      setShowMasaDuzenle={setShowMasaDuzenle}
+    />;
+  };
+
+  // Rezervasyon Yonetimi Sayfasi
+  const renderRezervasyon = () => {
+    return <RezervasyonButonlari 
+      setShowRezervasyonEkle={setShowRezervasyonEkle}
+      setShowRezervasyonSil={setShowRezervasyonSil}
+      setShowRezervasyonDuzenle={setShowRezervasyonDuzenle}
+      handleRezervasyonListele={handleRezervasyonListele}
+    />;
+  };
+
+  // Masa ve Rezervasyon Yonetimi Sayfasi (Birlikte)
+  const renderTables = () => {
+    return (
+      <div className="space-y-6">
+        <MasaButonlari 
+          tables={tables}
+          setShowMasaEkle={setShowMasaEkle}
+          setShowMasaSil={setShowMasaSil}
+          setShowMasaDuzenle={setShowMasaDuzenle}
+        />
+        <RezervasyonButonlari 
+          setShowRezervasyonEkle={setShowRezervasyonEkle}
+          setShowRezervasyonSil={setShowRezervasyonSil}
+          setShowRezervasyonDuzenle={setShowRezervasyonDuzenle}
+          handleRezervasyonListele={handleRezervasyonListele}
+        />
+      </div>
+    );
+  };
+
+  // Siparis Yonetimi Sayfasi
   const renderOrders = () => {
     const tumSiparisler = orders;
-    
     const aktifSiparisler = orders.filter(
       o => o.siparisDurumu !== 'TAMAMLANDI' && 
            o.siparisDurumu !== 'IPTAL' && 
            o.siparisDurumu !== 'ODENDI' &&
            o.siparisDurumu !== 'IADE'
     );
-    
-    const tamamlananSiparisler = orders.filter(
-      o => o.siparisDurumu === 'TAMAMLANDI' || o.siparisDurumu === 'ODENDI'
-    );
-    
-    const iptalSiparisler = orders.filter(
-      o => o.siparisDurumu === 'IPTAL'
-    );
-    
-    const iadeSiparisler = orders.filter(
-      o => o.siparisDurumu === 'IADE'
-    );
-
     const iptalIadeSiparisler = orders.filter(
       o => o.siparisDurumu === 'IPTAL' || o.siparisDurumu === 'IADE'
     );
 
-    const getDurumRenk = (durum) => {
-      const d = (durum || '').toUpperCase();
-      if (d === 'TAMAMLANDI') return 'bg-green-500/20 text-green-400';
-      if (d === 'ODENDI') return 'bg-purple-500/20 text-purple-400';
-      if (d === 'BEKLEMEDE') return 'bg-yellow-500/20 text-yellow-400';
-      if (d === 'HAZIRLANIYOR') return 'bg-blue-500/20 text-blue-400';
-      if (d === 'HAZIR') return 'bg-cyan-500/20 text-cyan-400';
-      if (d === 'TESLIM EDILDI') return 'bg-indigo-500/20 text-indigo-400';
-      if (d === 'IPTAL') return 'bg-red-500/20 text-red-400';
-      if (d === 'IADE') return 'bg-orange-500/20 text-orange-400';
-      return 'bg-gray-500/20 text-gray-400';
-    };
-
-    const getDurumIcon = (durum) => {
-      const d = (durum || '').toUpperCase();
-      if (d === 'TAMAMLANDI') return '✅';
-      if (d === 'ODENDI') return '💰';
-      if (d === 'BEKLEMEDE') return '⏳';
-      if (d === 'HAZIRLANIYOR') return '👨‍🍳';
-      if (d === 'HAZIR') return '✅';
-      if (d === 'TESLIM EDILDI') return '🚚';
-      if (d === 'IPTAL') return '❌';
-      if (d === 'IADE') return '🔄';
-      return '📋';
-    };
-
-    const getGosterilecekSiparisler = () => {
-      switch(siparisGosterimModu) {
-        case 'active': return aktifSiparisler;
-        case 'completed': return tamamlananSiparisler;
-        case 'cancelled': return iptalSiparisler;
-        case 'iade': return iadeSiparisler;
-        case 'iptal_iade': return iptalIadeSiparisler;
-        default: return tumSiparisler;
-      }
-    };
-
-    const gosterilecekSiparisler = getGosterilecekSiparisler();
-
-    return (
-      <div className="bg-black/90 backdrop-blur-sm rounded-2xl p-6 border border-white/10 max-w-6xl mx-auto">
-        <BolumBasligi icon={<FaClipboardListIcon />} title="Sipariş Yönetimi" />
-        <p className="text-gray-400 text-sm mb-6">Aktif siparişler ve sipariş işlemleri.</p>
-        
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-          <Buton 
-            icon={<FaList />} 
-            label={`📋 Tüm Siparişler (${tumSiparisler.length})`}
-            onClick={() => {
-              setSiparisGosterimModu('all');
-              handleSiparisListele();
-            }} 
-          />
-          <Buton 
-            icon={<FaShoppingCart />} 
-            label={`🛒 Aktif (${aktifSiparisler.length})`}
-            onClick={() => {
-              setSiparisGosterimModu('active');
-              handleSiparisListele();
-            }} 
-          />
-          <Buton 
-            icon={<FaUndo />} 
-            label={`🔄 İptal/İade (${iptalIadeSiparisler.length})`}
-            onClick={() => {
-              setSiparisGosterimModu('iptal_iade');
-              handleSiparisListele();
-            }} 
-          />
-          <Buton 
-            icon={<FaEye />} 
-            label="👁️ Sipariş Detay" 
-            onClick={() => setShowSiparisDetay(true)} 
-          />
-        </div>
-
-        {orders.length > 0 ? (
-          <div className="mt-4 border-t border-white/10 pt-4">
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="text-white font-medium text-sm">
-                📋 {siparisGosterimModu === 'all' ? 'Tüm Siparişler' :
-                    siparisGosterimModu === 'active' ? 'Aktif Siparişler' :
-                    siparisGosterimModu === 'completed' ? 'Tamamlanan Siparişler' :
-                    siparisGosterimModu === 'cancelled' ? 'İptal Edilen Siparişler' :
-                    siparisGosterimModu === 'iade' ? 'İade Edilen Siparişler' :
-                    'İptal / İade Siparişleri'} 
-                ({gosterilecekSiparisler.length})
-              </h4>
-              <div className="flex gap-3 text-xs text-gray-400">
-                <span>🟡 Aktif: {aktifSiparisler.length}</span>
-                <span>🟢 Tamamlandı: {tamamlananSiparisler.length}</span>
-                <span>🔴 İptal: {iptalSiparisler.length}</span>
-                <span>🔄 İade: {iadeSiparisler.length}</span>
-              </div>
-            </div>
-            <div className="space-y-2 max-h-96 overflow-y-auto">
-              {gosterilecekSiparisler.length === 0 ? (
-                <div className="text-center py-8 text-gray-400">
-                  <p>📭 Bu kategoride sipariş bulunmuyor.</p>
-                </div>
-              ) : (
-                gosterilecekSiparisler.map((siparis) => (
-                  <div key={siparis.siparisId} className="bg-white/5 rounded-xl p-4 border border-white/10 hover:bg-white/10 transition-colors">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-white font-medium">Sipariş #{siparis.siparisId}</span>
-                          <span className={`px-2 py-0.5 rounded text-xs ${getDurumRenk(siparis.siparisDurumu)}`}>
-                            {getDurumIcon(siparis.siparisDurumu)} {siparis.siparisDurumu || 'Bilinmiyor'}
-                          </span>
-                        </div>
-                        <p className="text-gray-400 text-sm">
-                          Masa: {siparis.masaNo || 'Paket'} • {siparis.uyeAdi || 'Ziyaretçi'} • {siparis.detaySayisi || 0} ürün
-                        </p>
-                        <p className="text-gray-500 text-xs">
-                          {siparis.siparisTarihi ? new Date(siparis.siparisTarihi).toLocaleString('tr-TR') : '-'}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-white font-bold text-lg">₺{siparis.toplamTutar?.toFixed(2) || 0}</p>
-                        <div className="flex gap-2 mt-1 justify-end">
-                          {siparis.siparisDurumu !== 'TAMAMLANDI' && 
-                           siparis.siparisDurumu !== 'IPTAL' && 
-                           siparis.siparisDurumu !== 'ODENDI' &&
-                           siparis.siparisDurumu !== 'IADE' && (
-                            <button
-                              onClick={() => handleSiparisTamamla(siparis.siparisId)}
-                              className="px-3 py-1 bg-green-500 hover:bg-green-600 text-white text-xs rounded-lg transition-all"
-                            >
-                              ✅ Tamamla
-                            </button>
-                          )}
-                          {(siparis.siparisDurumu === 'TAMAMLANDI' || siparis.siparisDurumu === 'ODENDI') && (
-                            <span className="px-3 py-1 bg-green-500/20 text-green-400 text-xs rounded-lg">
-                              ✅ Tamamlandı
-                            </span>
-                          )}
-                          {siparis.siparisDurumu === 'IPTAL' && (
-                            <span className="px-3 py-1 bg-red-500/20 text-red-400 text-xs rounded-lg">
-                              ❌ İptal
-                            </span>
-                          )}
-                          {siparis.siparisDurumu === 'IADE' && (
-                            <span className="px-3 py-1 bg-orange-500/20 text-orange-400 text-xs rounded-lg">
-                              🔄 İade
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        ) : (
-          <div className="text-center py-12 text-gray-400 border-t border-white/10 mt-4 pt-8">
-            <FaShoppingCart className="text-5xl mx-auto mb-4 text-gray-600" />
-            <p>Henüz sipariş yok</p>
-            <p className="text-xs text-gray-500 mt-1">"Tüm Siparişler" butonuna tıklayarak siparişleri görüntüleyin</p>
-          </div>
-        )}
-      </div>
-    );
+    return <SiparisButonlari 
+      tumSiparisler={tumSiparisler}
+      aktifSiparisler={aktifSiparisler}
+      iptalIadeSiparisler={iptalIadeSiparisler}
+      siparisGosterimModu={siparisGosterimModu}
+      setSiparisGosterimModu={setSiparisGosterimModu}
+      handleSiparisListele={handleSiparisListele}
+      setShowSiparisDetay={setShowSiparisDetay}
+    />;
   };
 
-  // ============ MASA VE REZERVASYON YÖNETİMİ ============
-  const renderTables = () => (
-    <div className="bg-black/90 backdrop-blur-sm rounded-2xl p-6 border border-white/10 max-w-6xl mx-auto">
-      <BolumBasligi icon={<FaTable />} title="Masa ve Rezervasyon Yönetimi" />
-      <p className="text-gray-400 text-sm mb-6">Masa ve rezervasyon işlemlerini yönetin.</p>
-      <div className="space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          <Buton icon={<FaPlus />} label="Masa Ekle" onClick={() => setShowMasaEkle(true)} />
-          <Buton icon={<FaTrash />} label="Masa Sil" onClick={() => setShowMasaSil(true)} />
-          <Buton icon={<FaEdit />} label="Masa Düzenle" onClick={() => setShowMasaDuzenle(true)} />
-          <Buton icon={<FaChair />} label="Masa Planı" onClick={() => toast.info(`🪑 ${tables.length} masa bulunuyor`)} />
-        </div>
-        <div className="pt-4 border-t border-white/10">
-          <p className="text-gray-400 text-xs mb-3">Rezervasyon İşlemleri</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <Buton icon={<FaCalendarCheck />} label="Rezervasyon Ekle" onClick={() => setShowRezervasyonEkle(true)} />
-            <Buton icon={<FaTrash />} label="Rezervasyon Sil" onClick={() => setShowRezervasyonSil(true)} />
-            <Buton icon={<FaEdit />} label="Rezervasyon Düzenle" onClick={() => setShowRezervasyonDuzenle(true)} />
-            {/* ✅ Rezervasyon Listele Butonu - handleRezervasyonListele ile çağrılıyor */}
-            <Buton icon={<FaList />} label="Rezervasyon Listele" onClick={handleRezervasyonListele} />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  // Raporlar Sayfası
-  const renderReports = () => (
-    <div className="bg-black/90 backdrop-blur-sm rounded-2xl p-6 border border-white/10 max-w-6xl mx-auto">
-      <BolumBasligi icon={<FaChartBar />} title="Raporlar ve İstatistikler" />
-      <p className="text-gray-400 text-sm mb-6">İşletmenizin tüm rapor ve istatistiklerine buradan ulaşın.</p>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Buton icon={<FaChartLine />} label="Günlük Satış Raporları" onClick={() => toast.info('📊 Günlük satış raporu yükleniyor...')} />
-        <Buton icon={<FaPizzaSlice />} label="Ürün Satış Raporu" />
-        <Buton icon={<FaCalendarCheck />} label="Rezervasyon Raporu" />
-        <Buton icon={<FaMoneyBillWave />} label="Gelir İstatistikleri" />
-      </div>
-      <div className="mt-6 p-8 bg-white/5 rounded-xl border border-white/5 text-center">
-        <p className="text-gray-500 text-sm">📊 Raporlar burada görüntülenecek</p>
-        <p className="text-gray-600 text-xs mt-1">Backend entegrasyonu için hazır</p>
-      </div>
-    </div>
-  );
+  // Raporlar Sayfasi
+  const renderReports = () => {
+    return <Raporlar />;
+  };
 
   // ============ RENDER CONTENT ============
   const renderContent = () => {
@@ -1083,14 +900,53 @@ const AdminPanel = () => {
             setSelectedMenu('product_menu');
           }}
         />;
-      case 'product_menu': return renderProductMenu();
-      case 'members': return renderMembers();
-      case 'finance': return renderFinance();
-      case 'stock': return renderStock();
-      case 'orders': return renderOrders();
-      case 'tables': return renderTables();
-      case 'personnel': return renderPersonnel();
-      case 'reports': return renderReports();
+      case 'product_menu': 
+        return (
+          <div className="space-y-6">
+            <UrunButonlari 
+              setShowUrunEkle={setShowUrunEkle}
+              setShowUrunSil={setShowUrunSil}
+              setShowUrunDuzenle={setShowUrunDuzenle}
+              handleUrunListele={handleUrunListele}
+            />
+            <KategoriButonlari 
+              setShowKategoriEkle={setShowKategoriEkle}
+              setShowKategoriSil={setShowKategoriSil}
+              setShowKategoriDuzenle={setShowKategoriDuzenle}
+              handleKategoriListele={handleKategoriListele}
+            />
+          </div>
+        );
+      case 'members': 
+        return <UyeButonlari 
+          setShowUyeEkle={setShowUyeEkle}
+          setShowUyeSil={setShowUyeSil}
+          setShowUyeDuzenle={setShowUyeDuzenle}
+          handleUyeListele={handleUyeListele}
+          setShowUyeDetay={setShowUyeDetay}
+        />;
+      case 'finance': 
+        return <FinansButonlari 
+          handleOdemeListele={handleOdemeListele}
+          setShowGunSonu={setShowGunSonu}
+          setShowIade={setShowIade}
+          handleKasaHareketleri={handleKasaHareketleri}
+        />;
+      case 'stock': 
+        return <StokButonlari 
+          handleStokDurumu={handleStokDurumu}
+          setShowMalzemeGiris={setShowMalzemeGiris}
+          setShowMalzemeCikis={setShowMalzemeCikis}
+          setShowStokHareket={setShowStokHareket}
+        />;
+      case 'orders': 
+        return renderOrders();
+      case 'tables': 
+        return renderTables();
+      case 'personnel': 
+        return renderPersonnel();
+      case 'reports': 
+        return renderReports();
       default:
         return <Dashboard
           loading={loading}
@@ -1156,7 +1012,7 @@ const AdminPanel = () => {
                   className="flex items-center gap-2 px-3 py-1.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-all text-sm"
                 >
                   <FaKey size={14} />
-                  <span className="hidden sm:inline">Şifre Değiştir</span>
+                  <span className="hidden sm:inline">Sifre Degistir</span>
                 </button>
                 <button className="text-gray-400 hover:text-white transition-colors relative">
                   <FaBell size={18} />
@@ -1186,7 +1042,7 @@ const AdminPanel = () => {
         kapat={() => setShowPasswordModal(false)}
       />
 
-      {/* Personel Modalları */}
+      {/* Personel Modallari */}
       <PersonelEkle
         acik={showPersonelEkle}
         kapat={() => setShowPersonelEkle(false)}
@@ -1212,7 +1068,7 @@ const AdminPanel = () => {
         personeller={personelListesi}
       />
 
-      {/* Ürün Modalları */}
+      {/* Urun Modallari */}
       <UrunEkle
         acik={showUrunEkle}
         kapat={() => setShowUrunEkle(false)}
@@ -1258,7 +1114,7 @@ const AdminPanel = () => {
         urunler={urunListesi}
       />
 
-      {/* ÜYE MODALLARI */}
+      {/* Uye Modallari */}
       <UyeEkle
         acik={showUyeEkle}
         kapat={() => setShowUyeEkle(false)}
@@ -1290,7 +1146,7 @@ const AdminPanel = () => {
         kapat={() => setShowUyeDetay(false)}
       />
 
-      {/* Kategori Modalları */}
+      {/* Kategori Modallari */}
       <KategoriEkle
         acik={showKategoriEkle}
         kapat={() => setShowKategoriEkle(false)}
@@ -1317,7 +1173,7 @@ const AdminPanel = () => {
         onKategoriSil={fetchAllData}
       />
 
-      {/* Masa Modalları */}
+      {/* Masa Modallari */}
       <MasaEkle
         acik={showMasaEkle}
         kapat={() => setShowMasaEkle(false)}
@@ -1334,7 +1190,7 @@ const AdminPanel = () => {
         onSuccess={fetchAllData}
       />
 
-      {/* ✅ Rezervasyon Modalları */}
+      {/* Rezervasyon Modallari */}
       <RezervasyonEkle
         acik={showRezervasyonEkle}
         kapat={() => setShowRezervasyonEkle(false)}
@@ -1350,13 +1206,12 @@ const AdminPanel = () => {
         kapat={() => setShowRezervasyonDuzenle(false)}
         onSuccess={fetchAllData}
       />
-      {/* ✅ Rezervasyon Listele Modal - YENİ */}
       <RezervasyonListele
         acik={showRezervasyonListele}
         kapat={() => setShowRezervasyonListele(false)}
       />
 
-      {/* Finans Modalları */}
+      {/* Finans Modallari */}
       <Odeme
         acik={showOdeme}
         kapat={() => setShowOdeme(false)}
@@ -1383,7 +1238,7 @@ const AdminPanel = () => {
         onSuccess={fetchAllData}
       />
 
-      {/* Stok Modalları */}
+      {/* Stok Modallari */}
       <StokDurumu
         acik={showStokDurumu}
         kapat={() => setShowStokDurumu(false)}
@@ -1408,7 +1263,7 @@ const AdminPanel = () => {
         kapat={() => setShowStokHareket(false)}
       />
 
-      {/* Sipariş Detay Modal */}
+      {/* Siparis Detay Modal */}
       <SiparisDetay
         acik={showSiparisDetay}
         kapat={() => setShowSiparisDetay(false)}
