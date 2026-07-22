@@ -39,7 +39,7 @@ import StokButonlari from './Bilesenler/Stok/StokButonlari';
 import MasaButonlari from './Bilesenler/Masa/MasaButonlari';
 import RezervasyonButonlari from './Bilesenler/Rezervasyon/RezervasyonButonlari';
 import SiparisButonlari from './Bilesenler/Siparis/SiparisButonlari';
-import Raporlar from './Bilesenler/Raporlar/Rapor';
+import RaporlarButonlari from './Bilesenler/Raporlar/RaporButonlari';
 
 // Modal Dosyalari
 import PersonelEkle from './Bilesenler/Personel/PersonelEkle';
@@ -83,6 +83,7 @@ import MalzemeCikis from './Bilesenler/Stok/MalzemeCikis';
 import StokHareketleri from './Bilesenler/Stok/StokHareketleri';
 
 import SiparisDetay from './Bilesenler/Siparis/SiparisDetay';
+import Rapor from './Bilesenler/Raporlar/Rapor';
 
 const backgroundImage = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80';
 
@@ -775,16 +776,6 @@ const AdminPanel = () => {
     />;
   };
 
-  // Kategori Yonetimi Sayfasi
-  const renderKategori = () => {
-    return <KategoriButonlari 
-      setShowKategoriEkle={setShowKategoriEkle}
-      setShowKategoriSil={setShowKategoriSil}
-      setShowKategoriDuzenle={setShowKategoriDuzenle}
-      handleKategoriListele={handleKategoriListele}
-    />;
-  };
-
   // Uye Yonetimi Sayfasi
   const renderMembers = () => {
     return <UyeButonlari 
@@ -882,7 +873,7 @@ const AdminPanel = () => {
 
   // Raporlar Sayfasi
   const renderReports = () => {
-    return <Raporlar />;
+    return <Rapor/>;
   };
 
   // ============ RENDER CONTENT ============

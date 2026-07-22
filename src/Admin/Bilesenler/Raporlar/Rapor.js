@@ -1,295 +1,290 @@
-import React, { useState, useEffect } from 'react';
-import { FaChartBar } from 'react-icons/fa';
+import React, { useState } from 'react';
+import { FaChartLine, FaPizzaSlice, FaCalendarCheck, FaMoneyBillWave, FaTimes, FaChartBar } from 'react-icons/fa';
+import Buton from '../Ortak/Buton';
+import BolumBasligi from '../Ortak/BolumBasligi';
 import { toast } from 'react-toastify';
 import { reportService } from '../../../api/api';
 
-const Raporlar = () => {
-  const [raporLoading, setRaporLoading] = useState(false);
-  const [gunlukSatis, setGunlukSatis] = useState([]);
-  const [urunSatis, setUrunSatis] = useState([]);
-  const [rezervasyonRaporu, setRezervasyonRaporu] = useState([]);
-  const [kategoriSatis, setKategoriSatis] = useState([]);
-  const [dashboardOzet, setDashboardOzet] = useState(null);
+const RaporButonlari = () => {
+  const [modalAcik, setModalAcik] = useState(false);
+  const [modalBaslik, setModalBaslik] = useState('');
+  const [raporData, setRaporData] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [seciliTarih, setSeciliTarih] = useState(new Date().toISOString().split('T')[0]);
   const [seciliGun, setSeciliGun] = useState(30);
   const [seciliYil, setSeciliYil] = useState(new Date().getFullYear());
 
-  // Gunluk satis raporu
+  // Gunluk Satis Raporu
   const fetchGunlukSatis = async () => {
-    setRaporLoading(true);
+    setModalBaslik('Gunluk Satis Raporu');
+    setLoading(true);
+    setModalAcik(true);
     try {
       const response = await reportService.getGunlukSatis(seciliTarih);
       console.log('Gunluk satis:', response);
-      setGunlukSatis(response.data?.siparisler || []);
-      toast.success(`${response.data?.siparisler?.length || 0} siparis bulundu`);
+      setRaporData(response.data?.siparisler || []);
+      if (response.data?.siparisler?.length === 0) {
+        toast.info('Bu tarihte siparis bulunamadi');
+      }
     } catch (error) {
       console.error('Gunluk satis raporu hatasi:', error);
       toast.error('Gunluk satis raporu alinamadi!');
+      setModalAcik(false);
     } finally {
-      setRaporLoading(false);
+      setLoading(false);
     }
   };
 
-  // Urun satis raporu
+  // Urun Satis Raporu
   const fetchUrunSatis = async () => {
-    setRaporLoading(true);
+    setModalBaslik('Urun Satis Raporu');
+    setLoading(true);
+    setModalAcik(true);
     try {
       const response = await reportService.getUrunSatis(seciliGun);
       console.log('Urun satis:', response);
-      setUrunSatis(response.data?.data || []);
-      toast.success(`${response.data?.data?.length || 0} urun bulundu`);
+      setRaporData(response.data?.data || []);
+      if (response.data?.data?.length === 0) {
+        toast.info('Urun satis verisi bulunamadi');
+      }
     } catch (error) {
       console.error('Urun satis raporu hatasi:', error);
       toast.error('Urun satis raporu alinamadi!');
+      setModalAcik(false);
     } finally {
-      setRaporLoading(false);
+      setLoading(false);
     }
   };
 
-  // Rezervasyon raporu
+  // Rezervasyon Raporu
   const fetchRezervasyonRaporu = async () => {
-    setRaporLoading(true);
+    setModalBaslik('Rezervasyon Raporu');
+    setLoading(true);
+    setModalAcik(true);
     try {
       const response = await reportService.getRezervasyonRaporu();
       console.log('Rezervasyon raporu:', response);
-      setRezervasyonRaporu(response.data?.data || []);
-      toast.success(`${response.data?.data?.length || 0} gun verisi bulundu`);
+      setRaporData(response.data?.data || []);
+      if (response.data?.data?.length === 0) {
+        toast.info('Rezervasyon verisi bulunamadi');
+      }
     } catch (error) {
       console.error('Rezervasyon raporu hatasi:', error);
       toast.error('Rezervasyon raporu alinamadi!');
+      setModalAcik(false);
     } finally {
-      setRaporLoading(false);
+      setLoading(false);
     }
   };
 
-  // Gelir istatistikleri
+  // Gelir Istatistikleri - DÜZELTİLDİ
   const fetchGelirIstatistikleri = async () => {
-    setRaporLoading(true);
+    setModalBaslik('Gelir Istatistikleri');
+    setLoading(true);
+    setModalAcik(true);
     try {
       const response = await reportService.getGelirIstatistikleri(seciliYil);
       console.log('Gelir istatistikleri:', response);
-      toast.success(`${response.data?.Data?.length || 0} ay verisi bulundu`);
+
+      let veri = [];
+      if (response.data?.data) {
+        veri = response.data.data;
+      } else if (response.data?.Data) {
+        veri = response.data.Data;
+      } else if (Array.isArray(response.data)) {
+        veri = response.data;
+      }
+
+      console.log('Gelir istatistikleri islenmis veri:', veri);
+      setRaporData(veri);
+
+      if (veri.length === 0) {
+        toast.info(`${seciliYil} yili icin gelir verisi bulunamadi`);
+      } else {
+        toast.success(`${veri.length} ay verisi bulundu`);
+      }
     } catch (error) {
       console.error('Gelir istatistikleri hatasi:', error);
       toast.error('Gelir istatistikleri alinamadi!');
+      setModalAcik(false);
     } finally {
-      setRaporLoading(false);
+      setLoading(false);
     }
   };
 
-  // Kategori satis
-  const fetchKategoriSatis = async () => {
-    setRaporLoading(true);
+  // Modal Kapat
+  const modalKapat = () => {
+    setModalAcik(false);
+    setRaporData([]);
+  };
+
+  // Tarih formatlama
+  const formatDate = (dateString) => {
+    if (!dateString) return '-';
     try {
-      const response = await reportService.getKategoriSatis(seciliGun);
-      console.log('Kategori satis:', response);
-      setKategoriSatis(response.data || []);
-      toast.success(`${response.data?.length || 0} kategori bulundu`);
-    } catch (error) {
-      console.error('Kategori satis hatasi:', error);
-      toast.error('Kategori satis raporu alinamadi!');
-    } finally {
-      setRaporLoading(false);
+      const date = new Date(dateString);
+      return date.toLocaleDateString('tr-TR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch {
+      return dateString;
     }
   };
 
-  // Dashboard ozet
-  const fetchDashboardOzet = async () => {
-    try {
-      const response = await reportService.getDashboardOzet();
-      console.log('Dashboard ozet:', response);
-      setDashboardOzet(response.data);
-    } catch (error) {
-      console.error('Dashboard ozet hatasi:', error);
-    }
-  };
-
-  // Tum raporlari getir
-  const fetchAllReports = () => {
-    fetchDashboardOzet();
-    fetchGunlukSatis();
-    fetchUrunSatis();
-    fetchRezervasyonRaporu();
-    fetchGelirIstatistikleri();
-    fetchKategoriSatis();
-  };
-
-  // Ilk yuklemede raporlari getir
-  useEffect(() => {
-    fetchAllReports();
-  }, []);
+  // Filtreler componenti
+  const Filtreler = () => (
+    <div className="bg-white/5 rounded-xl p-4 border border-white/10 flex flex-wrap gap-4 items-center">
+      <div>
+        <label className="text-gray-400 text-xs block mb-1">Tarih</label>
+        <input
+          type="date"
+          value={seciliTarih}
+          onChange={(e) => setSeciliTarih(e.target.value)}
+          className="py-1.5 px-3 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:ring-2 focus:ring-white/20 outline-none"
+        />
+      </div>
+      <div>
+        <label className="text-gray-400 text-xs block mb-1">Gun Sayisi</label>
+        <select
+          value={seciliGun}
+          onChange={(e) => setSeciliGun(parseInt(e.target.value))}
+          className="py-1.5 px-3 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:ring-2 focus:ring-white/20 outline-none"
+        >
+          <option value="7">7 Gun</option>
+          <option value="15">15 Gun</option>
+          <option value="30">30 Gun</option>
+          <option value="60">60 Gun</option>
+          <option value="90">90 Gun</option>
+        </select>
+      </div>
+      <div>
+        <label className="text-gray-400 text-xs block mb-1">Yil</label>
+        <select
+          value={seciliYil}
+          onChange={(e) => setSeciliYil(parseInt(e.target.value))}
+          className="py-1.5 px-3 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:ring-2 focus:ring-white/20 outline-none"
+        >
+          {[2023, 2024, 2025, 2026, 2027].map(y => (
+            <option key={y} value={y}>{y}</option>
+          ))}
+        </select>
+      </div>
+    </div>
+  );
 
   return (
-    <div className="space-y-6">
-      {/* Filtreler */}
-      <div className="bg-white/5 rounded-xl p-4 border border-white/10 flex flex-wrap gap-4 items-center">
-        <div>
-          <label className="text-gray-400 text-xs block mb-1">Tarih</label>
-          <input
-            type="date"
-            value={seciliTarih}
-            onChange={(e) => setSeciliTarih(e.target.value)}
-            className="py-1.5 px-3 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:ring-2 focus:ring-white/20 outline-none"
+    <>
+      {/* Butonlar */}
+      <div className="bg-black/90 backdrop-blur-sm rounded-2xl p-6 border border-white/10 max-w-6xl mx-auto">
+        <BolumBasligi icon={<FaChartBar />} title="Raporlar ve Istatistikler" />
+        <p className="text-gray-400 text-sm mb-6">Rapor butonlarina tiklayarak detayli raporlari goruntuleyin.</p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <Buton
+            icon={<FaChartLine />}
+            label="Gunluk Satis Raporlari"
+            onClick={fetchGunlukSatis}
+          />
+          <Buton
+            icon={<FaPizzaSlice />}
+            label="Urun Satis Raporu"
+            onClick={fetchUrunSatis}
+          />
+          <Buton
+            icon={<FaCalendarCheck />}
+            label="Rezervasyon Raporu"
+            onClick={fetchRezervasyonRaporu}
+          />
+          <Buton
+            icon={<FaMoneyBillWave />}
+            label="Gelir Istatistikleri"
+            onClick={fetchGelirIstatistikleri}
           />
         </div>
-        <div>
-          <label className="text-gray-400 text-xs block mb-1">Gun Sayisi</label>
-          <select
-            value={seciliGun}
-            onChange={(e) => setSeciliGun(parseInt(e.target.value))}
-            className="py-1.5 px-3 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:ring-2 focus:ring-white/20 outline-none"
-          >
-            <option value="7">7 Gun</option>
-            <option value="15">15 Gun</option>
-            <option value="30">30 Gun</option>
-            <option value="60">60 Gun</option>
-            <option value="90">90 Gun</option>
-          </select>
-        </div>
-        <div>
-          <label className="text-gray-400 text-xs block mb-1">Yil</label>
-          <select
-            value={seciliYil}
-            onChange={(e) => setSeciliYil(parseInt(e.target.value))}
-            className="py-1.5 px-3 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:ring-2 focus:ring-white/20 outline-none"
-          >
-            {[2023, 2024, 2025, 2026, 2027].map(y => (
-              <option key={y} value={y}>{y}</option>
-            ))}
-          </select>
-        </div>
-        <button
-          onClick={fetchAllReports}
-          disabled={raporLoading}
-          className="py-1.5 px-4 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm transition-all disabled:opacity-50"
-        >
-          {raporLoading ? 'Yukleniyor...' : 'Tumunu Yenile'}
-        </button>
       </div>
 
-      {/* Dashboard Ozet Kartlari */}
-      {dashboardOzet && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <div className="bg-white/5 rounded-xl p-4 border border-white/10 text-center">
-            <p className="text-gray-400 text-xs">Bugun Ciro</p>
-            <p className="text-green-400 font-bold text-xl">₺{dashboardOzet.bugunCiro?.toFixed(2) || 0}</p>
-            <p className={`text-xs ${dashboardOzet.degisimYuzdesi >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-              {dashboardOzet.degisimYuzdesi >= 0 ? '↑' : '↓'} {Math.abs(dashboardOzet.degisimYuzdesi)}%
-            </p>
-          </div>
-          <div className="bg-white/5 rounded-xl p-4 border border-white/10 text-center">
-            <p className="text-gray-400 text-xs">Aktif Siparis</p>
-            <p className="text-yellow-400 font-bold text-xl">{dashboardOzet.aktifSiparis}</p>
-          </div>
-          <div className="bg-white/5 rounded-xl p-4 border border-white/10 text-center">
-            <p className="text-gray-400 text-xs">Bugun Siparis</p>
-            <p className="text-blue-400 font-bold text-xl">{dashboardOzet.bugunSiparis}</p>
-          </div>
-          <div className="bg-white/5 rounded-xl p-4 border border-white/10 text-center">
-            <p className="text-gray-400 text-xs">Ay Ciro</p>
-            <p className="text-purple-400 font-bold text-xl">₺{dashboardOzet.ayCiro?.toFixed(2) || 0}</p>
+      {/* Rapor Modal */}
+      {modalAcik && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="bg-black/95 backdrop-blur-sm rounded-2xl border border-white/10 shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+
+            {/* Modal Baslik */}
+            <div className="flex items-center justify-between p-4 border-b border-white/10 flex-shrink-0">
+              <div>
+                <h2 className="text-white font-bold text-lg">{modalBaslik}</h2>
+                <p className="text-gray-400 text-xs">{raporData.length} kayit bulundu</p>
+              </div>
+              <button onClick={modalKapat} className="text-gray-400 hover:text-white">
+                <FaTimes size={20} />
+              </button>
+            </div>
+
+            {/* Filtreler */}
+            <div className="p-4 border-b border-white/10 flex-shrink-0">
+              <Filtreler />
+            </div>
+
+            {/* Rapor Icerigi */}
+            <div className="flex-1 overflow-y-auto p-4">
+              {loading ? (
+                <div className="flex items-center justify-center h-64">
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="animate-spin inline-block w-8 h-8 border-4 border-blue-500/30 border-t-blue-500 rounded-full"></div>
+                    <p className="text-gray-400">Rapor yukleniyor...</p>
+                  </div>
+                </div>
+              ) : raporData.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-64 text-gray-400">
+                  <p className="text-lg">Veri bulunamadi</p>
+                  <p className="text-sm text-gray-500">Filtreleri degistirerek tekrar deneyin</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-white/10 text-gray-400 text-left">
+                        {Object.keys(raporData[0] || {}).map((key) => (
+                          <th key={key} className="pb-3 font-medium px-2 capitalize">
+                            {key.replace(/([A-Z])/g, ' $1').trim()}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {raporData.map((item, index) => (
+                        <tr key={index} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                          {Object.values(item).map((value, idx) => (
+                            <td key={idx} className="py-3 px-2 text-gray-300">
+                              {typeof value === 'boolean' ? (value ? 'Evet' : 'Hayir') :
+                                value instanceof Date ? formatDate(value) :
+                                  typeof value === 'object' ? JSON.stringify(value) :
+                                    value || '-'}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 border-t border-white/10 flex justify-between items-center flex-shrink-0">
+              <span className="text-gray-400 text-xs">Toplam {raporData.length} kayit</span>
+              <button onClick={modalKapat} className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm transition-all">
+                Kapat
+              </button>
+            </div>
           </div>
         </div>
       )}
-
-      {/* Rapor Verileri */}
-      {raporLoading ? (
-        <div className="text-center py-12">
-          <div className="animate-spin inline-block w-8 h-8 border-4 border-blue-500/30 border-t-blue-500 rounded-full"></div>
-          <p className="text-gray-400 mt-3">Raporlar yukleniyor...</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Gunluk Satis */}
-          <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-            <h4 className="text-white font-medium text-sm mb-3 flex items-center gap-2">
-              <FaChartLine className="text-green-400" /> Gunluk Satislar
-            </h4>
-            {gunlukSatis.length > 0 ? (
-              <div className="space-y-2 max-h-60 overflow-y-auto">
-                {gunlukSatis.map((item, index) => (
-                  <div key={index} className="flex justify-between items-center p-2 bg-white/5 rounded-lg hover:bg-white/10 transition-colors">
-                    <span className="text-gray-300 text-sm">#{item.siparisId}</span>
-                    <span className="text-white font-medium">₺{item.toplamTutar?.toFixed(2)}</span>
-                    <span className={`px-2 py-0.5 rounded text-xs ${
-                      item.siparisDurumu === 'TAMAMLANDI' ? 'bg-green-500/20 text-green-400' :
-                      item.siparisDurumu === 'BEKLEMEDE' ? 'bg-yellow-500/20 text-yellow-400' :
-                      'bg-gray-500/20 text-gray-400'
-                    }`}>
-                      {item.siparisDurumu}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-gray-500 text-sm text-center py-4">Bu tarihte siparis yok</p>
-            )}
-          </div>
-
-          {/* Urun Satis */}
-          <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-            <h4 className="text-white font-medium text-sm mb-3 flex items-center gap-2">
-              <FaPizzaSlice className="text-orange-400" /> En Cok Satan Urunler
-            </h4>
-            {urunSatis.length > 0 ? (
-              <div className="space-y-2 max-h-60 overflow-y-auto">
-                {urunSatis.map((item, index) => (
-                  <div key={index} className="flex justify-between items-center p-2 bg-white/5 rounded-lg hover:bg-white/10 transition-colors">
-                    <span className="text-gray-300 text-sm">{index+1}. {item.urunAdi}</span>
-                    <span className="text-white">{item.toplamAdet} adet</span>
-                    <span className="text-yellow-400 text-sm">₺{item.toplamCiro?.toFixed(2)}</span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-gray-500 text-sm text-center py-4">Urun satis verisi yok</p>
-            )}
-          </div>
-
-          {/* Rezervasyon Raporu */}
-          <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-            <h4 className="text-white font-medium text-sm mb-3 flex items-center gap-2">
-              <FaCalendarCheck className="text-blue-400" /> Rezervasyonlar
-            </h4>
-            {rezervasyonRaporu.length > 0 ? (
-              <div className="space-y-2 max-h-60 overflow-y-auto">
-                {rezervasyonRaporu.map((item, index) => (
-                  <div key={index} className="flex justify-between items-center p-2 bg-white/5 rounded-lg hover:bg-white/10 transition-colors">
-                    <span className="text-gray-300 text-sm">{item.tarih}</span>
-                    <span className="text-white">Toplam: {item.toplamRezervasyon}</span>
-                    <span className="text-green-400 text-xs">{item.onaylanan}</span>
-                    <span className="text-red-400 text-xs">{item.iptalEdilen}</span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-gray-500 text-sm text-center py-4">Rezervasyon verisi yok</p>
-            )}
-          </div>
-
-          {/* Kategori Satis */}
-          <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-            <h4 className="text-white font-medium text-sm mb-3 flex items-center gap-2">
-              <FaUtensils className="text-purple-400" /> Kategori Bazli Satis
-            </h4>
-            {kategoriSatis.length > 0 ? (
-              <div className="space-y-2 max-h-60 overflow-y-auto">
-                {kategoriSatis.map((item, index) => (
-                  <div key={index} className="flex justify-between items-center p-2 bg-white/5 rounded-lg hover:bg-white/10 transition-colors">
-                    <span className="text-gray-300 text-sm">{item.kategoriAdi}</span>
-                    <span className="text-white">{item.toplamAdet} adet</span>
-                    <span className="text-yellow-400 text-sm">₺{item.toplamCiro?.toFixed(2)}</span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-gray-500 text-sm text-center py-4">Kategori verisi yok</p>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
+    </>
   );
 };
 
-export default Raporlar;
+export default RaporButonlari;

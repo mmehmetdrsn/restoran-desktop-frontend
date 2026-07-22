@@ -1,10 +1,9 @@
-// src/Admin/components/Kategori/KategoriListele.js
 import React, { useState } from 'react';
-import { FaTimes, FaTrash, FaChevronDown, FaChevronRight, FaUtensils } from 'react-icons/fa';
+import { FaTimes, FaChevronDown, FaChevronRight, FaUtensils } from 'react-icons/fa';
 import { toast } from 'react-toastify';
-import { categoryService, productService } from '../../../api/api';
+import { productService } from '../../../api/api';
 
-const KategoriListele = ({ acik, kapat, kategoriler, onKategoriSil }) => {
+const KategoriListele = ({ acik, kapat, kategoriler }) => {
   const [genisletilmisKategoriler, setGenisletilmisKategoriler] = useState({});
   const [kategoriUrunleri, setKategoriUrunleri] = useState({});
   const [yukleniyor, setYukleniyor] = useState({});
@@ -25,35 +24,17 @@ const KategoriListele = ({ acik, kapat, kategoriler, onKategoriSil }) => {
     try {
       setYukleniyor(prev => ({ ...prev, [kategoriId]: true }));
       
-      // Tüm ürünleri getir
       const response = await productService.getAll();
       const tumUrunler = response.data || [];
       
-      console.log('📦 Tüm ürünler:', tumUrunler);
-      console.log('🔍 Aranan kategori ID:', kategoriId);
-      
-      // Backend'deki alan adlarına göre filtreleme yap
       const kategoriUrunleri = tumUrunler.filter(urun => {
-        // Farklı alan adlarını kontrol et
         const urunKategoriId = urun.kategoriId || urun.kategoriID || urun.KategoriId || urun.kategori_id;
-        const urunKategori = urun.kategori || urun.Kategori || urun.kategoriAdi;
         
-        // ID ile eşleşme kontrolü
         if (urunKategoriId && Number(urunKategoriId) === Number(kategoriId)) {
           return true;
         }
-        // İsim ile eşleşme kontrolü (kategori adıyla)
-        if (urunKategori) {
-          const kategori = kategoriler.find(k => (k.kategoriId || k.id) === kategoriId);
-          const kategoriAdi = kategori?.kategoriAdi || kategori?.name || '';
-          if (urunKategori.toLowerCase() === kategoriAdi.toLowerCase()) {
-            return true;
-          }
-        }
         return false;
       });
-      
-      console.log(`✅ Kategori ${kategoriId} için ${kategoriUrunleri.length} ürün bulundu:`, kategoriUrunleri);
       
       setKategoriUrunleri(prev => ({
         ...prev,
@@ -67,20 +48,9 @@ const KategoriListele = ({ acik, kapat, kategoriler, onKategoriSil }) => {
       
     } catch (error) {
       console.error('Ürünler yüklenirken hata:', error);
-      toast.error('❌ Ürünler yüklenirken hata oluştu!');
+      toast.error('Ürünler yüklenirken hata olustu!');
     } finally {
       setYukleniyor(prev => ({ ...prev, [kategoriId]: false }));
-    }
-  };
-
-  const handleSil = async (id) => {
-    if (!window.confirm('Bu kategoriyi silmek istediğinize emin misiniz?')) return;
-    try {
-      await categoryService.delete(id);
-      toast.success('✅ Kategori silindi.');
-      if (onKategoriSil) onKategoriSil();
-    } catch (err) {
-      toast.error('Kategori silinirken hata oluştu!');
     }
   };
 
@@ -89,7 +59,7 @@ const KategoriListele = ({ acik, kapat, kategoriler, onKategoriSil }) => {
       <div className="bg-black/95 backdrop-blur-sm rounded-2xl border border-white/10 shadow-2xl max-w-2xl w-full max-h-[85vh] overflow-hidden flex flex-col">
         <div className="flex items-center justify-between p-4 border-b border-white/10">
           <div>
-            <h2 className="text-white font-bold text-lg">📋 Kategori Listesi</h2>
+            <h2 className="text-white font-bold text-lg">Kategori Listesi</h2>
             <p className="text-gray-400 text-xs">Toplam {kategoriler.length} kategori</p>
           </div>
           <button onClick={kapat} className="text-gray-400 hover:text-white">
@@ -99,7 +69,7 @@ const KategoriListele = ({ acik, kapat, kategoriler, onKategoriSil }) => {
         
         <div className="flex-1 overflow-y-auto p-4">
           {kategoriler.length === 0 ? (
-            <p className="text-gray-400 text-center py-8">Henüz kategori eklenmemiş</p>
+            <p className="text-gray-400 text-center py-8">Henüz kategori eklenmemis</p>
           ) : (
             <div className="space-y-3">
               {kategoriler.map((kategori) => {
@@ -108,8 +78,6 @@ const KategoriListele = ({ acik, kapat, kategoriler, onKategoriSil }) => {
                 const acikMi = genisletilmisKategoriler[kategoriId];
                 const urunler = kategoriUrunleri[kategoriId] || [];
                 const yukleniyorMu = yukleniyor[kategoriId];
-                
-                console.log(`📂 Kategori: ${kategoriAdi} (ID: ${kategoriId}) - ${urunler.length} ürün`);
                 
                 return (
                   <div key={kategoriId} className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
@@ -132,15 +100,6 @@ const KategoriListele = ({ acik, kapat, kategoriler, onKategoriSil }) => {
                           {urunler.length > 0 && `${urunler.length} ürün`}
                           {yukleniyorMu && '...'}
                         </span>
-                        <button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleSil(kategoriId);
-                          }} 
-                          className="text-red-400 hover:text-red-300 transition-colors"
-                        >
-                          <FaTrash />
-                        </button>
                       </div>
                     </div>
                     
@@ -150,7 +109,7 @@ const KategoriListele = ({ acik, kapat, kategoriler, onKategoriSil }) => {
                         {yukleniyorMu ? (
                           <div className="text-center py-4 text-gray-400 text-sm">
                             <div className="animate-spin inline-block w-4 h-4 border-2 border-gray-400 border-t-white rounded-full mr-2"></div>
-                            Ürünler yükleniyor...
+                            Urunler yukleniyor...
                           </div>
                         ) : urunler.length === 0 ? (
                           <p className="text-center py-4 text-gray-500 text-sm">
