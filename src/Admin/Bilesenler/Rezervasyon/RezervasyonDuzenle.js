@@ -11,6 +11,7 @@ const RezervasyonDuzenle = ({ acik, kapat, onSuccess }) => {
   const [rezervasyonBulundu, setRezervasyonBulundu] = useState(false);
   const [masaListesi, setMasaListesi] = useState([]);
   const [masalarYukleniyor, setMasalarYukleniyor] = useState(false);
+  const [mevcutTarihSaat, setMevcutTarihSaat] = useState(''); // ✅ Mevcut tarih/saat'i sakla
   
   const [formData, setFormData] = useState({
     masaId: '',
@@ -36,6 +37,7 @@ const RezervasyonDuzenle = ({ acik, kapat, onSuccess }) => {
   useEffect(() => {
     if (!acik) {
       setRezervasyonId('');
+      setMevcutTarihSaat('');
       setFormData({
         masaId: '',
         musteriAdi: '',
@@ -90,7 +92,7 @@ const RezervasyonDuzenle = ({ acik, kapat, onSuccess }) => {
     }
   };
 
-  // ✅ DÜZELTİLDİ: Rezervasyon ara
+  // ✅ Rezervasyon ara
   const handleRezervasyonAra = async (e) => {
     e.preventDefault();
     if (!rezervasyonId) {
@@ -105,16 +107,13 @@ const RezervasyonDuzenle = ({ acik, kapat, onSuccess }) => {
       const response = await reservationService.getById(parseInt(rezervasyonId));
       console.log('📋 Ham API yanıtı:', response);
       
-      // ✅ response.data içindeki veriyi al
       let data = response;
       
-      // Eğer response.data varsa ve obje ise, onu kullan
       if (response && typeof response === 'object' && response.data) {
         data = response.data;
         console.log('📋 Data içindeki veri:', data);
       }
       
-      // Eğer data bir dizi ise ilk elemanı al
       if (Array.isArray(data) && data.length > 0) {
         data = data[0];
       }
@@ -122,7 +121,12 @@ const RezervasyonDuzenle = ({ acik, kapat, onSuccess }) => {
       console.log('📋 İşlenmiş rezervasyon verisi:', data);
       
       if (data && data.rezervasyonId) {
-        // ✅ Tarih ve saat bilgisini ayır
+        // ✅ Mevcut tarih/saat'i sakla
+        if (data.tarihSaat) {
+          setMevcutTarihSaat(data.tarihSaat);
+        }
+        
+        // Tarih ve saat bilgisini ayır
         let tarih = '';
         let saat = '';
         if (data.tarihSaat) {
@@ -131,7 +135,7 @@ const RezervasyonDuzenle = ({ acik, kapat, onSuccess }) => {
           saat = dateParts[1] ? dateParts[1].substring(0, 5) : '';
         }
         
-        // ✅ Forma verileri doldur
+        // Forma verileri doldur
         setFormData({
           masaId: data.masaId || '',
           musteriAdi: data.musteriAdi || '',
@@ -164,96 +168,126 @@ const RezervasyonDuzenle = ({ acik, kapat, onSuccess }) => {
     }
   };
 
-  const handleSubmit = async (e) => {
-  e.preventDefault();
-  
-  if (!rezervasyonId) {
-    toast.warning('Lütfen rezervasyon ID girin!');
-    return;
-  }
-
-  if (!formData.masaId) {
-    toast.warning('Lütfen masa seçin!');
-    return;
-  }
-
-  if (!formData.musteriAdi || formData.musteriAdi.trim() === '') {
-    toast.warning('Lütfen müşteri adını girin!');
-    return;
-  }
-
-  if (!formData.tarih || !formData.saat) {
-    toast.warning('Lütfen tarih ve saat seçin!');
-    return;
-  }
-
-  // ✅ KİŞİ SAYISI - Number'a çevir ve kontrol et
-  const kisiSayisi = Number(formData.kisiSayisi);
-  if (isNaN(kisiSayisi) || kisiSayisi < 1) {
-    toast.warning('Lütfen geçerli bir kişi sayısı girin! (1-20)');
-    return;
-  }
-
-  setLoading(true);
-  try {
-    const tarihSaat = `${formData.tarih}T${formData.saat}:00`;
-    
-    // ✅ TÜM ALANLARI DOĞRU TİPLE GÖNDER
-    const data = {
-      masaId: Number(formData.masaId),  // ✅ Number
-      musteriAdi: formData.musteriAdi.trim(),
-      musteriSoyadi: formData.musteriSoyadi.trim() || null,
-      telefon: formData.telefon.trim() || null,
-      kisiSayisi: kisiSayisi,  // ✅ Number
-      tarihSaat: tarihSaat,
-      aciklama: formData.aciklama.trim() || null,
-      rezervasyonTipi: formData.rezervasyonTipi,
-      durum: 'BEKLEMEDE'
-    };
-
-    console.log('📤 Güncellenen veri (JSON):', JSON.stringify(data, null, 2));
-    console.log('📤 KisiSayisi tipi:', typeof data.kisiSayisi, 'değer:', data.kisiSayisi);
-
-    const response = await reservationService.update(parseInt(rezervasyonId), data);
-    console.log('📥 Güncelleme yanıtı:', response);
-    
-    toast.success(`✅ Rezervasyon #${rezervasyonId} başarıyla güncellendi!`);
-    
-    setRezervasyonId('');
-    setFormData({
-      masaId: '',
-      musteriAdi: '',
-      musteriSoyadi: '',
-      telefon: '',
-      kisiSayisi: 2,
-      tarih: '',
-      saat: '',
-      aciklama: '',
-      rezervasyonTipi: 'WEB'
-    });
-    setRezervasyonBulundu(false);
-    kapat();
-    if (onSuccess) onSuccess();
-  } catch (error) {
-    console.error('❌ Rezervasyon güncellenirken hata:', error);
-    
-    if (error.response) {
-      const errorData = error.response.data;
-      console.error('❌ Hata detayı:', errorData);
-      if (errorData.mesaj || errorData.message) {
-        toast.error(`❌ ${errorData.mesaj || errorData.message}`);
-      } else {
-        toast.error('❌ Rezervasyon güncellenirken bir hata oluştu!');
-      }
-    } else if (error.request) {
-      toast.error('❌ Sunucuya bağlanılamıyor!');
-    } else {
-      toast.error('❌ ' + error.message);
+  // ✅ Tarih kontrolü - Geçmiş tarih mi?
+  const isTarihGecmis = (tarih, saat) => {
+    if (!tarih || !saat) return false;
+    try {
+      const tarihSaat = new Date(`${tarih}T${saat}:00`);
+      const now = new Date();
+      return tarihSaat < now;
+    } catch {
+      return false;
     }
-  } finally {
-    setLoading(false);
-  }
-};
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!rezervasyonId) {
+      toast.warning('Lütfen rezervasyon ID girin!');
+      return;
+    }
+
+    if (!formData.masaId) {
+      toast.warning('Lütfen masa seçin!');
+      return;
+    }
+
+    if (!formData.musteriAdi || formData.musteriAdi.trim() === '') {
+      toast.warning('Lütfen müşteri adını girin!');
+      return;
+    }
+
+    if (!formData.tarih || !formData.saat) {
+      toast.warning('Lütfen tarih ve saat seçin!');
+      return;
+    }
+
+    // ✅ KİŞİ SAYISI KONTROLÜ
+    const kisiSayisi = Number(formData.kisiSayisi);
+    if (isNaN(kisiSayisi) || kisiSayisi < 1) {
+      toast.warning('Lütfen geçerli bir kişi sayısı girin! (1-20)');
+      return;
+    }
+
+    // ✅ GEÇMİŞ TARİH KONTROLÜ - Kullanıcıya uyarı göster
+    if (isTarihGecmis(formData.tarih, formData.saat)) {
+      // ✅ Özel hata mesajı - Kullanıcıya açıklama
+      toast.error('❌ Geçmiş bir tarihe güncelleme yapılamaz!');
+      toast.warning('⚠️ Lütfen bugün veya ileri bir tarih seçin.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const tarihSaat = `${formData.tarih}T${formData.saat}:00`;
+      
+      const data = {
+        masaId: Number(formData.masaId),
+        musteriAdi: formData.musteriAdi.trim(),
+        musteriSoyadi: formData.musteriSoyadi.trim() || null,
+        telefon: formData.telefon.trim() || null,
+        kisiSayisi: kisiSayisi,
+        tarihSaat: tarihSaat,
+        aciklama: formData.aciklama.trim() || null,
+        rezervasyonTipi: formData.rezervasyonTipi,
+        durum: 'BEKLEMEDE'
+      };
+
+      console.log('📤 Güncellenen veri:', JSON.stringify(data, null, 2));
+      console.log('📤 KisiSayisi tipi:', typeof data.kisiSayisi, 'değer:', data.kisiSayisi);
+
+      const response = await reservationService.update(parseInt(rezervasyonId), data);
+      console.log('📥 Güncelleme yanıtı:', response);
+      
+      toast.success(`✅ Rezervasyon #${rezervasyonId} başarıyla güncellendi!`);
+      
+      setRezervasyonId('');
+      setMevcutTarihSaat('');
+      setFormData({
+        masaId: '',
+        musteriAdi: '',
+        musteriSoyadi: '',
+        telefon: '',
+        kisiSayisi: 2,
+        tarih: '',
+        saat: '',
+        aciklama: '',
+        rezervasyonTipi: 'WEB'
+      });
+      setRezervasyonBulundu(false);
+      kapat();
+      if (onSuccess) onSuccess();
+    } catch (error) {
+      console.error('❌ Rezervasyon güncellenirken hata:', error);
+      
+      if (error.response) {
+        const errorData = error.response.data;
+        console.error('❌ Hata detayı:', errorData);
+        
+        // ✅ Backend'den gelen hata mesajını daha anlaşılır hale getir
+        if (errorData.mesaj || errorData.message) {
+          const hataMesaji = errorData.mesaj || errorData.message;
+          
+          // ✅ "Geçmiş tarih" hatası özel mesajı
+          if (hataMesaji.includes('Geçmiş') || hataMesaji.includes('geçmiş')) {
+            toast.error('❌ Geçmiş bir tarihe güncelleme yapılamaz!');
+            toast.warning('⚠️ Lütfen bugün veya ileri bir tarih seçin.');
+          } else {
+            toast.error(`❌ ${hataMesaji}`);
+          }
+        } else {
+          toast.error('❌ Rezervasyon güncellenirken bir hata oluştu!');
+        }
+      } else if (error.request) {
+        toast.error('❌ Sunucuya bağlanılamıyor!');
+      } else {
+        toast.error('❌ ' + error.message);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
@@ -300,6 +334,12 @@ const RezervasyonDuzenle = ({ acik, kapat, onSuccess }) => {
             {rezervasyonBulundu && (
               <p className="text-green-400 text-xs mt-2 flex items-center gap-1">
                 <FaCalendarCheck className="text-green-400" /> Rezervasyon bulundu! Bilgileri düzenleyebilirsiniz.
+              </p>
+            )}
+            {/* ✅ Geçmiş tarih uyarısı */}
+            {rezervasyonBulundu && mevcutTarihSaat && (
+              <p className="text-yellow-400 text-xs mt-2 flex items-center gap-1">
+                ⚠️ Mevcut rezervasyon tarihi: {new Date(mevcutTarihSaat).toLocaleString('tr-TR')}
               </p>
             )}
           </div>
@@ -428,10 +468,19 @@ const RezervasyonDuzenle = ({ acik, kapat, onSuccess }) => {
                     type="date"
                     value={formData.tarih}
                     onChange={(e) => setFormData({...formData, tarih: e.target.value})}
-                    className="w-full py-2.5 px-3 bg-white/5 border border-white/10 rounded-lg text-white focus:ring-2 focus:ring-white/20 outline-none"
+                    className={`w-full py-2.5 px-3 bg-white/5 border rounded-lg text-white focus:ring-2 focus:ring-white/20 outline-none ${
+                      isTarihGecmis(formData.tarih, formData.saat) && rezervasyonBulundu
+                        ? 'border-red-500/50'
+                        : 'border-white/10'
+                    }`}
                     required
                     disabled={!rezervasyonBulundu || loading}
                   />
+                  {isTarihGecmis(formData.tarih, formData.saat) && rezervasyonBulundu && (
+                    <p className="text-red-400 text-xs mt-1 flex items-center gap-1">
+                      ⚠️ Bu tarih geçmiş! Lütfen ileri bir tarih seçin.
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1.5">
@@ -441,7 +490,11 @@ const RezervasyonDuzenle = ({ acik, kapat, onSuccess }) => {
                     type="time"
                     value={formData.saat}
                     onChange={(e) => setFormData({...formData, saat: e.target.value})}
-                    className="w-full py-2.5 px-3 bg-white/5 border border-white/10 rounded-lg text-white focus:ring-2 focus:ring-white/20 outline-none"
+                    className={`w-full py-2.5 px-3 bg-white/5 border rounded-lg text-white focus:ring-2 focus:ring-white/20 outline-none ${
+                      isTarihGecmis(formData.tarih, formData.saat) && rezervasyonBulundu
+                        ? 'border-red-500/50'
+                        : 'border-white/10'
+                    }`}
                     required
                     disabled={!rezervasyonBulundu || loading}
                   />
@@ -466,15 +519,24 @@ const RezervasyonDuzenle = ({ acik, kapat, onSuccess }) => {
           </div>
 
           {rezervasyonBulundu && (
-            <div className="bg-green-500/10 rounded-xl p-3 border border-green-500/20 flex items-center gap-3">
-              <FaCalendarCheck className="text-green-400 text-lg" />
+            <div className={`rounded-xl p-3 border flex items-center gap-3 ${
+              isTarihGecmis(formData.tarih, formData.saat)
+                ? 'bg-red-500/10 border-red-500/20'
+                : 'bg-green-500/10 border-green-500/20'
+            }`}>
+              <FaCalendarCheck className={isTarihGecmis(formData.tarih, formData.saat) ? 'text-red-400' : 'text-green-400'} />
               <div>
-                <p className="text-green-400 text-sm font-medium">Rezervasyon #{rezervasyonId} düzenleniyor</p>
+                <p className={isTarihGecmis(formData.tarih, formData.saat) ? 'text-red-400 text-sm font-medium' : 'text-green-400 text-sm font-medium'}>
+                  Rezervasyon #{rezervasyonId} düzenleniyor
+                </p>
                 <p className="text-gray-400 text-xs">
                   Müşteri: <span className="text-white">{formData.musteriAdi}</span> • 
                   Tarih: <span className="text-white">{formData.tarih}</span> • 
                   Saat: <span className="text-white">{formData.saat}</span>
                 </p>
+                {isTarihGecmis(formData.tarih, formData.saat) && (
+                  <p className="text-red-400 text-xs mt-1">⚠️ Geçmiş tarih! Güncelleme yapılamaz.</p>
+                )}
               </div>
             </div>
           )}
@@ -491,13 +553,17 @@ const RezervasyonDuzenle = ({ acik, kapat, onSuccess }) => {
             </button>
             <button 
               type="submit" 
-              disabled={!rezervasyonBulundu || loading} 
-              className="flex-1 px-4 py-2.5 bg-yellow-500 hover:bg-yellow-600 text-black font-semibold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              disabled={!rezervasyonBulundu || loading || isTarihGecmis(formData.tarih, formData.saat)} 
+              className={`flex-1 px-4 py-2.5 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${
+                isTarihGecmis(formData.tarih, formData.saat) && rezervasyonBulundu
+                  ? 'bg-gray-500 text-gray-300'
+                  : 'bg-yellow-500 hover:bg-yellow-600 text-black font-semibold'
+              }`}
             >
               {loading ? (
                 <><span className="inline-block w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin"></span> Güncelleniyor...</>
               ) : (
-                'Güncelle'
+                isTarihGecmis(formData.tarih, formData.saat) && rezervasyonBulundu ? '❌ Güncellenemez' : 'Güncelle'
               )}
             </button>
           </div>

@@ -1,9 +1,9 @@
 // src/Admin/Bilesenler/Siparis/SiparisDetay.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   FaTimes, FaShoppingCart, FaUser, FaTable, FaMoneyBillWave, 
   FaCalendarAlt, FaClipboardList, FaBox, FaInfoCircle,
-  FaCheckCircle, FaClock, FaUtensils, FaReceipt
+  FaCheckCircle, FaClock, FaUtensils,FaExchangeAlt, FaReceipt, FaSearch
 } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import { orderService } from '../../../api/api';
@@ -12,6 +12,8 @@ const SiparisDetay = ({ acik, kapat }) => {
   const [siparisId, setSiparisId] = useState('');
   const [siparis, setSiparis] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [araniyor, setAraniyor] = useState(false);
+  const [siparisBulundu, setSiparisBulundu] = useState(false);
 
   if (!acik) return null;
 
@@ -23,7 +25,9 @@ const SiparisDetay = ({ acik, kapat }) => {
     }
 
     setLoading(true);
+    setAraniyor(true);
     setSiparis(null);
+    setSiparisBulundu(false);
 
     try {
       const response = await orderService.getById(parseInt(siparisId));
@@ -33,15 +37,19 @@ const SiparisDetay = ({ acik, kapat }) => {
       
       if (data && data.siparisId) {
         setSiparis(data);
+        setSiparisBulundu(true);
         toast.success('✅ Sipariş bulundu!');
       } else {
         toast.error('❌ Sipariş bulunamadı!');
+        setSiparisBulundu(false);
       }
     } catch (error) {
       console.error('Sipariş detay alınırken hata:', error);
       toast.error('❌ Sipariş bulunamadı!');
+      setSiparisBulundu(false);
     } finally {
       setLoading(false);
+      setAraniyor(false);
     }
   };
 
@@ -66,6 +74,7 @@ const SiparisDetay = ({ acik, kapat }) => {
     if (d === 'HAZIR') return 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30';
     if (d === 'TESLIM EDILDI') return 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30';
     if (d === 'IPTAL') return 'bg-red-500/20 text-red-400 border-red-500/30';
+    if (d == 'IADE') return 'bg-orange-500/20 text-orange-400 border-orange-500/30';
     return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
   };
 
@@ -78,6 +87,7 @@ const SiparisDetay = ({ acik, kapat }) => {
     if (d === 'HAZIR') return <FaCheckCircle className="text-cyan-400" />;
     if (d === 'TESLIM EDILDI') return <FaBox className="text-indigo-400" />;
     if (d === 'IPTAL') return <FaTimes className="text-red-400" />;
+    if (d === 'IADE') return <FaExchangeAlt className="text-orange-400" />;
     return <FaInfoCircle className="text-gray-400" />;
   };
 
@@ -100,30 +110,40 @@ const SiparisDetay = ({ acik, kapat }) => {
 
         <div className="flex-1 overflow-y-auto p-4">
           {/* Arama Formu */}
-          <form onSubmit={handleAra} className="mb-6">
-            <div className="flex gap-3">
+          <div className="bg-white/5 rounded-xl p-4 border border-white/10 mb-6">
+            <form onSubmit={handleAra} className="flex gap-3">
               <input
                 type="number"
                 value={siparisId}
-                onChange={(e) => setSiparisId(e.target.value)}
+                onChange={(e) => {
+                  setSiparisId(e.target.value);
+                  setSiparis(null);
+                  setSiparisBulundu(false);  // ✅ YENİ
+                }}
                 className="flex-1 py-2.5 px-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-gray-500 focus:ring-2 focus:ring-white/20 outline-none"
-                placeholder="Sipariş ID girin (Örn: 1, 2, 3...)"
+                placeholder="Sipariş ID girin (Örn: 1)"
                 required
                 disabled={loading}
               />
               <button
                 type="submit"
-                disabled={loading}
-                className="px-6 py-2.5 bg-white hover:bg-gray-200 text-black font-semibold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-all"
+                disabled={loading || !siparisId}
+                className="px-4 py-2.5 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-all"
               >
-                {loading ? (
-                  <><div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin"></div> Aranıyor...</>
+                {araniyor ? (  // ✅ YENİ
+                  <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> Aranıyor...</>
                 ) : (
-                  '🔍 Ara'
+                  <><FaSearch /> Ara</>
                 )}
               </button>
-            </div>
-          </form>
+            </form>
+            {/* ✅ Başarılı arama mesajı - YENİ */}
+            {siparisBulundu && (
+              <p className="text-green-400 text-xs mt-2 flex items-center gap-1">
+                <FaCheckCircle className="text-green-400" /> Sipariş bulundu! Detaylar aşağıda.
+              </p>
+            )}
+          </div>
 
           {siparis ? (
             <div className="space-y-4">

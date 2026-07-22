@@ -1,6 +1,6 @@
 // src/Admin/Bilesenler/Rezervasyon/RezervasyonListele.js
 import React, { useState, useEffect } from 'react';
-import { FaList, FaSearch, FaTimes, FaEdit, FaTrash, FaCheck, FaTimesCircle, FaClock } from 'react-icons/fa';
+import { FaList, FaSearch, FaTimes, FaCheck, FaTimesCircle, FaClock } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import { reservationService } from '../../../api/api';
 
@@ -12,7 +12,6 @@ const RezervasyonListele = ({ acik, kapat }) => {
   const [filterDurum, setFilterDurum] = useState('TUMU');
   const [filterTarih, setFilterTarih] = useState('');
 
-  // ✅ useEffect'ler her zaman çağrılır
   useEffect(() => {
     if (acik) {
       fetchRezervasyonlar();
@@ -115,7 +114,6 @@ const RezervasyonListele = ({ acik, kapat }) => {
     }
   };
 
-  // ✅ Modal kapalıysa hiçbir şey render etme
   if (!acik) return null;
 
   return (
@@ -195,7 +193,7 @@ const RezervasyonListele = ({ acik, kapat }) => {
           </button>
         </div>
 
-        {/* Tablo */}
+        {/* Tablo - İşlemler sütunu KALDIRILDI */}
         <div className="flex-1 overflow-auto p-4">
           {loading ? (
             <div className="flex items-center justify-center h-64">
@@ -222,7 +220,7 @@ const RezervasyonListele = ({ acik, kapat }) => {
                     <th className="pb-3 font-medium">Kişi</th>
                     <th className="pb-3 font-medium">Tarih/Saat</th>
                     <th className="pb-3 font-medium">Durum</th>
-                    <th className="pb-3 font-medium text-center">İşlemler</th>
+                    {/* ❌ İŞLEMLER SÜTUNU KALDIRILDI */}
                   </tr>
                 </thead>
                 <tbody>
@@ -253,41 +251,7 @@ const RezervasyonListele = ({ acik, kapat }) => {
                       <td className="py-3">
                         {getDurumBadge(rezervasyon.durum)}
                       </td>
-                      <td className="py-3 text-center">
-                        <div className="flex items-center justify-center gap-2">
-                          <button
-                            onClick={() => {
-                              if (window.openRezervasyonDuzenle) {
-                                window.openRezervasyonDuzenle(rezervasyon.rezervasyonId);
-                              }
-                            }}
-                            className="p-1.5 text-yellow-400 hover:bg-yellow-400/10 rounded transition-colors"
-                            title="Düzenle"
-                          >
-                            <FaEdit size={14} />
-                          </button>
-                          <button
-                            onClick={() => {
-                              if (window.confirm(`#${rezervasyon.rezervasyonId} rezervasyonunu silmek istediğinizden emin misiniz?`)) {
-                                reservationService.delete(rezervasyon.rezervasyonId)
-                                  .then(() => {
-                                    toast.success(`✅ Rezervasyon #${rezervasyon.rezervasyonId} silindi!`);
-                                    fetchRezervasyonlar();
-                                  })
-                                  .catch((error) => {
-                                    console.error('Silme hatası:', error);
-                                    const msg = error.response?.data?.mesaj || error.response?.data?.message || 'Silme hatası!';
-                                    toast.error(`❌ ${msg}`);
-                                  });
-                              }
-                            }}
-                            className="p-1.5 text-red-400 hover:bg-red-400/10 rounded transition-colors"
-                            title="Sil"
-                          >
-                            <FaTrash size={14} />
-                          </button>
-                        </div>
-                      </td>
+                      {/* ❌ İŞLEMLER SÜTUNU KALDIRILDI */}
                     </tr>
                   ))}
                 </tbody>

@@ -1283,6 +1283,7 @@ const AdminPanel = () => {
         kapat={() => setShowUyeListele(false)}
         uyeler={uyeListesi}
         loading={uyeLoading}
+        onSuccess={handleUyeListele}
       />
       <UyeDetay
         acik={showUyeDetay}

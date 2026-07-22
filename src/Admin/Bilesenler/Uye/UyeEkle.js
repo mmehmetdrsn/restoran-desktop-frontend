@@ -28,6 +28,7 @@ const UyeEkle = ({ acik, kapat, onSuccess, yeniUye, setYeniUye, loading, setLoad
     
     setLoading(true);
     try {
+      // ✅ Backend'in beklediği format (PascalCase)
       const data = {
         uyeAdi: yeniUye.uyeAdi.trim(),
         uyeSoyadi: yeniUye.uyeSoyadi.trim(),
@@ -35,14 +36,15 @@ const UyeEkle = ({ acik, kapat, onSuccess, yeniUye, setYeniUye, loading, setLoad
         uyeSifre: yeniUye.uyeSifre,
         uyeTelefon: yeniUye.uyeTelefon || null,
         cinsiyet: yeniUye.cinsiyet || null,
-        // ✅ Adres bilgileri - Veritabanındaki sütun adlarına göre
         adresTipi: yeniUye.adresTipi || null,
         acikAdres: yeniUye.acikAdres || null,
+        teslimatBolgesindeMi: yeniUye.teslimatBolgesindeMi || false
       };
       
       console.log('📤 Gönderilen veri:', data);
       
-      await userService.create(data);
+      const response = await userService.create(data);
+      console.log('📥 Gelen yanıt:', response);
       
       toast.success('✅ Üye başarıyla eklendi!');
       setYeniUye({
@@ -54,6 +56,7 @@ const UyeEkle = ({ acik, kapat, onSuccess, yeniUye, setYeniUye, loading, setLoad
         cinsiyet: '',
         adresTipi: '',
         acikAdres: '',
+        teslimatBolgesindeMi: false
       });
       kapat();
       if (onSuccess) onSuccess();
@@ -62,11 +65,17 @@ const UyeEkle = ({ acik, kapat, onSuccess, yeniUye, setYeniUye, loading, setLoad
       
       if (error.response) {
         const errorData = error.response.data;
-        if (errorData.errors) {
+        console.error('❌ Hata detayı:', errorData);
+        
+        if (typeof errorData === 'string') {
+          toast.error(`❌ ${errorData}`);
+        } else if (errorData.errors) {
           const errorMessages = Object.values(errorData.errors).flat().join('\n');
           toast.error(`❌ ${errorMessages}`);
         } else if (errorData.title) {
           toast.error(`❌ ${errorData.title}`);
+        } else if (errorData.mesaj || errorData.message) {
+          toast.error(`❌ ${errorData.mesaj || errorData.message}`);
         } else {
           toast.error('❌ Üye eklenirken bir hata oluştu!');
         }
@@ -179,9 +188,9 @@ const UyeEkle = ({ acik, kapat, onSuccess, yeniUye, setYeniUye, loading, setLoad
             </div>
           </div>
 
-          {/* ✅ Adres Bilgileri */}
+          {/* Adres Bilgileri */}
           <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-            <h3 className="text-white font-medium text-sm mb-3"> Adres Bilgileri</h3>
+            <h3 className="text-white font-medium text-sm mb-3">📍 Adres Bilgileri</h3>
             
             <div className="space-y-3">
               <div>
@@ -211,7 +220,19 @@ const UyeEkle = ({ acik, kapat, onSuccess, yeniUye, setYeniUye, loading, setLoad
                 />
               </div>
 
-            
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="teslimatBolgesi"
+                  checked={yeniUye.teslimatBolgesindeMi || false}
+                  onChange={(e) => setYeniUye({...yeniUye, teslimatBolgesindeMi: e.target.checked})}
+                  className="w-4 h-4 rounded border-white/10 bg-white/5 text-blue-500 focus:ring-2 focus:ring-white/20"
+                  disabled={loading}
+                />
+                <label htmlFor="teslimatBolgesi" className="text-sm text-gray-300">
+                  Teslimat Bölgesinde mi?
+                </label>
+              </div>
             </div>
           </div>
 
