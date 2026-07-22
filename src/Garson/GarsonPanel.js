@@ -136,14 +136,15 @@ const GarsonPanel = () => {
             return o.time || o.siparisSaati || o.olusturmaTarihi || o.siparisZamani || null;
           };
 
-          return {
-            id: m.masaId,
-            name: m.masaAdi || `Masa ${m.masaNo || m.masaId}`,
-            status: status,
-            capacity: m.kapasite || 4,
-            order: orderWithTotal,
-            time: computeTime(order)
-          };
+         return {
+  id: m.masaId,
+  name: m.masaAdi || `Masa ${m.masaNo || m.masaId}`,
+  status: status,
+  rawStatus: durum, 
+  capacity: m.kapasite || 4,
+  order: orderWithTotal,
+  time: computeTime(order)
+};
         });
         setTables(formatliMasalar);
       }
@@ -392,31 +393,6 @@ const GarsonPanel = () => {
     setShowStatusModal(true);
   };
 
-  const handleSaveStatus = async (status) => {
-    if (!selectedStatusTable) return;
-    await changeTableStatus(selectedStatusTable, status);
-    setShowStatusModal(false);
-    setSelectedStatusTable(null);
-  };
-
-  const changeTableStatus = async (table, status) => {
-    const durumMap = {
-      empty: 'BOŞ',
-      occupied: 'DOLU',
-      reserved: 'REZERVE',
-      broken: 'ARIZALI'
-    };
-    const masaDurumu = durumMap[status] || 'BOŞ';
-
-    try {
-      await tableService.update(table.id, { masaDurumu });
-      setTables(prev => prev.map(t => t.id === table.id ? { ...t, status } : t));
-      toast.success('Masa durumu güncellendi.');
-    } catch (error) {
-      toast.error('Masa durumu güncellenemedi.');
-      console.error(error);
-    }
-  };
 
   const filteredTables = tables.filter(table => {
     if (filter === 'all') return true;
@@ -1052,7 +1028,7 @@ const GarsonPanel = () => {
         processRefund={processRefund}
       />
 
-      <MasaDurumuModal
+    <MasaDurumuModal
         showStatusModal={showStatusModal}
         onClose={() => {
           setShowStatusModal(false);
@@ -1060,6 +1036,18 @@ const GarsonPanel = () => {
         }}
         selectedTable={selectedStatusTable}
         verileriYukle={verileriYukle}
+        onOpenOrderModal={(tbl) => {
+          setSelectedTable(tbl);
+          setActiveTab('yeni');
+        }}
+        onOpenMoveModal={(tbl) => {
+          setMoveFromTable(String(tbl.id));
+          setShowMoveTableModal(true);
+        }}
+        onOpenPaymentModal={(tbl) => {
+          setSelectedOrderTable(tbl);
+          setShowPaymentModal(true);
+        }}
       />
 
       <SifreModal
