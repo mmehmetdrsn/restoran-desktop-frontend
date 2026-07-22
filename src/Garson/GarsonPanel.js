@@ -44,6 +44,7 @@ const GarsonPanel = () => {
   // Modallar
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentProcessing, setPaymentProcessing] = useState(false);
   const [showOrderDetailModal, setShowOrderDetailModal] = useState(false);
   const [selectedOrderTable, setSelectedOrderTable] = useState(null);
   const [showMoveTableModal, setShowMoveTableModal] = useState(false);
@@ -136,15 +137,15 @@ const GarsonPanel = () => {
             return o.time || o.siparisSaati || o.olusturmaTarihi || o.siparisZamani || null;
           };
 
-         return {
-  id: m.masaId,
-  name: m.masaAdi || `Masa ${m.masaNo || m.masaId}`,
-  status: status,
-  rawStatus: durum, 
-  capacity: m.kapasite || 4,
-  order: orderWithTotal,
-  time: computeTime(order)
-};
+          return {
+            id: m.masaId,
+            name: m.masaAdi || `Masa ${m.masaNo || m.masaId}`,
+            status: status,
+            rawStatus: durum, 
+            capacity: m.kapasite || 4,
+            order: orderWithTotal,
+            time: computeTime(order)
+          };
         });
         setTables(formatliMasalar);
       }
@@ -302,11 +303,9 @@ const GarsonPanel = () => {
     return tableOrOrder;
   };
 
-  // handleOpenOrderDetail - Sipariş detaylarını getir
   const handleOpenOrderDetail = async (table) => {
     setSelectedTable(table);
     
-    // Eğer masanın order'ı varsa direkt göster
     if (table.order && (table.order.siparisUrunleri || table.order.items)) {
       setSelectedOrderTable(table);
       setShowOrderDetailModal(true);
@@ -314,7 +313,6 @@ const GarsonPanel = () => {
     }
 
     try {
-      // API'den sipariş detaylarını çek
       const response = await orderService.getAll();
       const allOrders = response?.data || response;
       
@@ -326,14 +324,11 @@ const GarsonPanel = () => {
         : null;
 
       if (foundOrder) {
-        // Sipariş detaylarını tabloya ekle
         const updatedTable = {
           ...table,
           order: foundOrder
         };
         setSelectedOrderTable(updatedTable);
-        
-        // Tabloyu da güncelle
         setTables(prev => prev.map(t => 
           t.id === table.id ? updatedTable : t
         ));
@@ -347,21 +342,16 @@ const GarsonPanel = () => {
     }
   };
 
-  // handleTableClick - Masa tıklandığında
   const handleTableClick = async (table) => {
     setSelectedTable(table);
     
-    // Her durumda sipariş detaylarını göster
     if (table.status === 'occupied' || table.status === 'reserved') {
-      // Dolu veya rezerve masa için sipariş detaylarını getir
       await handleOpenOrderDetail(table);
     } else if (table.status === 'empty') {
-      // Boş masa için yeni sipariş ekranı
       setActiveTab('yeni');
       setCurrentOrder({ tableId: table.id, items: [], total: 0 });
       setShowOrderModal(false);
     } else {
-      // Arızalı veya diğer durumlar için sadece bilgi göster
       toast.info(`${table.name} - Durum: ${getTableStatusText(table.status)}`);
     }
   };
@@ -374,11 +364,58 @@ const GarsonPanel = () => {
     setShowOrderDetailModal(false);
   };
 
+  // 🔑 Sipariş detayından "Ödeme Al" butonuna basılınca çalışan fonksiyon
   const handlePaymentFromDetail = () => {
     if (!selectedOrderTable) return;
-    setSelectedTable(selectedOrderTable);
+    setSelectedTable({
+      ...selectedOrderTable,
+      order: getOrderObject(selectedOrderTable)
+    });
     setShowPaymentModal(true);
     setShowOrderDetailModal(false);
+  };
+
+  // 🔑 Ödeme İşleme Fonksiyonu (SADECE TEK TANIMLAMA)
+  const processPayment = async (tableId, method) => {
+    if (paymentProcessing) return;
+    setPaymentProcessing(true);
+
+    const table = tables.find(t => t.id === tableId) || selectedTable;
+    const siparisId = table?.order?.siparisId || table?.order?.id;
+
+    if (!table || !siparisId) {
+      toast.error('Ödeme alınacak sipariş bilgisi bulunamadı.');
+      setPaymentProcessing(false);
+      return;
+    }
+
+    try {
+      const paymentData = {
+        siparisId: siparisId,
+        odemeTipi: method === 'Nakit' ? 'NAKIT' : 'KREDI KARTI',
+        personelId: 1,
+        kasaId: 1
+      };
+
+      const res = await paymentService.processPayment(paymentData);
+
+      if (res?.error) {
+        toast.error(res.error?.Mesaj || 'Ödeme alınamadı!');
+        return;
+      }
+
+      toast.success(`${table.name} için ödeme başarıyla alındı! 🎉`);
+
+      setShowPaymentModal(false);
+      setSelectedTable(null);
+      setSelectedOrderTable(null);
+      await verileriYukle();
+    } catch (error) {
+      console.error('Ödeme hatası:', error);
+      toast.error(error.response?.data?.Mesaj || 'Ödeme işlemi başarısız oldu!');
+    } finally {
+      setPaymentProcessing(false);
+    }
   };
 
   const handleCancelNewOrder = () => {
@@ -393,13 +430,11 @@ const GarsonPanel = () => {
     setShowStatusModal(true);
   };
 
-
   const filteredTables = tables.filter(table => {
     if (filter === 'all') return true;
     return table.status === filter;
   });
 
-  // Sepet İşlemleri
   const addToCart = (item) => {
     const note = prompt(`📝 ${item.name} için özel not (isteğe bağlı):`, '');
     const existing = cart.find(c => c.id === item.id);
@@ -450,7 +485,7 @@ const GarsonPanel = () => {
       const siparisData = {
         masaId: selectedTable.id,
         siparisTipi: 'SALON',
-         personelId: 1,
+        personelId: 1,
         detaylar: cart.map(item => ({
           urunId: item.id,
           adet: item.quantity,
@@ -459,76 +494,47 @@ const GarsonPanel = () => {
       };
 
       const createdOrderResponse = await orderService.create(siparisData);
-    const responseData = createdOrderResponse?.data || createdOrderResponse;
-    
-    // Sipariş başarıyla oluşturuldu
-    toast.success('Sipariş başarıyla mutfağa iletildi! 🍳');
+      const responseData = createdOrderResponse?.data || createdOrderResponse;
+      
+      toast.success('Sipariş başarıyla mutfağa iletildi! 🍳');
 
-    // Gelen sipariş verilerini kontrol et
-    const createdOrder = responseData?.Siparis || responseData;
-    
-    if (createdOrder) {
-      // Masa bilgisini güncelle
-      const updatedTable = {
-        ...selectedTable,
-        status: 'occupied',
-        order: {
-          siparisId: createdOrder.siparisId || responseData?.SiparisId,
-          toplam: createdOrder.toplamTutar || responseData?.HesaplananToplamTutar || cart.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0),
-          siparisDurumu: createdOrder.siparisDurumu || 'BEKLEMEDE',
-          siparisTarihi: createdOrder.siparisTarihi || new Date().toISOString(),
-          siparisUrunleri: createdOrder.siparisUrunleri || cart.map(item => ({
-            urunId: item.id,
-            urunAdi: item.name,
-            adet: item.quantity,
-            fiyat: item.price || 0,
-            detayNot: item.note || '',
-            satirToplami: (item.price || 0) * (item.quantity || 1)
-          }))
-        },
-        time: createdOrder.siparisTarihi || new Date().toISOString()
-      };
+      const createdOrder = responseData?.Siparis || responseData;
+      
+      if (createdOrder) {
+        const updatedTable = {
+          ...selectedTable,
+          status: 'occupied',
+          order: {
+            siparisId: createdOrder.siparisId || responseData?.SiparisId,
+            toplam: createdOrder.toplamTutar || responseData?.HesaplananToplamTutar || cart.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0),
+            siparisDurumu: createdOrder.siparisDurumu || 'BEKLEMEDE',
+            siparisTarihi: createdOrder.siparisTarihi || new Date().toISOString(),
+            siparisUrunleri: createdOrder.siparisUrunleri || cart.map(item => ({
+              urunId: item.id,
+              urunAdi: item.name,
+              adet: item.quantity,
+              fiyat: item.price || 0,
+              detayNot: item.note || '',
+              satirToplami: (item.price || 0) * (item.quantity || 1)
+            }))
+          },
+          time: createdOrder.siparisTarihi || new Date().toISOString()
+        };
 
-      setSelectedTable(updatedTable);
-      setTables(prev => prev.map(t => 
-        t.id === updatedTable.id ? updatedTable : t
-      ));
-    }
+        setSelectedTable(updatedTable);
+        setTables(prev => prev.map(t => 
+          t.id === updatedTable.id ? updatedTable : t
+        ));
+      }
 
-    // Verileri yeniden yükle
-    await verileriYukle();
-    setActiveTab('masa');
-    setShowOrderModal(false);
-    setCart([]);
-    
-  } catch (error) {
-    console.error('Sipariş hatası:', error);
-    toast.error(error.response?.data?.Mesaj || error.message || 'Sipariş oluşturulamadı!');
-  }
-};
-
-  const processPayment = async (tableId, method) => {
-    const table = tables.find(t => t.id === tableId);
-    const siparisId = table?.order?.siparisId;
-    if (!table || !siparisId) {
-      toast.error('Ödeme alınacak sipariş bilgisi bulunamadı.');
-      return;
-    }
-
-    try {
-      await paymentService.processPayment({
-        siparisId,
-        odemeTipi: method === 'Nakit' ? 'NAKIT' : 'KREDI KARTI',
-        personelId: 1,
-        kasaId: 1
-      });
-
-      toast.success('Ödeme başarıyla alındı!');
       await verileriYukle();
-      setShowPaymentModal(false);
+      setActiveTab('masa');
+      setShowOrderModal(false);
+      setCart([]);
+      
     } catch (error) {
-      const errorMessage = error.response?.data?.Mesaj || error.response?.data?.message || error.message || 'Ödeme alınamadı!';
-      toast.error(errorMessage);
+      console.error('Sipariş hatası:', error);
+      toast.error(error.response?.data?.Mesaj || error.message || 'Sipariş oluşturulamadı!');
     }
   };
 
@@ -555,7 +561,6 @@ const GarsonPanel = () => {
     }
   };
 
-  // İade Masa Seçimi
   const handleRefundSelect = async (tableId) => {
     if (!tableId) return;
 
@@ -602,7 +607,6 @@ const GarsonPanel = () => {
     }
   };
 
-  // İade Talebi Gönderme
   const processRefund = async () => {
     if (!refundTable?.order?.siparisId) {
       toast.error('İade edilecek sipariş bilgisi bulunamadı.');
@@ -867,14 +871,26 @@ const GarsonPanel = () => {
 
       {showPaymentModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <div className="bg-black/95 backdrop-blur-sm rounded-2xl border border-white/10 shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
+          <div className="bg-black/95 backdrop-blur-sm rounded-2xl border border-white/10 shadow-2xl max-w-xl w-full p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-white font-bold text-lg">💰 Ödeme Al</h2>
-              <button onClick={() => setShowPaymentModal(false)} className="text-gray-400 hover:text-white">
+              <button 
+                onClick={() => {
+                  setShowPaymentModal(false);
+                  setSelectedTable(null);
+                }} 
+                className="text-gray-400 hover:text-white"
+              >
                 <FaTimes size={20} />
               </button>
             </div>
-            <HesapIslemleri occupiedTables={occupiedTables} processPayment={processPayment} isDayMode={isDayMode} />
+            
+            <HesapIslemleri 
+              occupiedTables={occupiedTables} 
+              processPayment={processPayment} 
+              isDayMode={isDayMode} 
+              selectedTable={selectedTable}
+            />
           </div>
         </div>
       )}
@@ -888,7 +904,6 @@ const GarsonPanel = () => {
                   {selectedOrderTable.name} - Sipariş Detayları
                 </h2>
                 
-                {/* Masa durumu */}
                 <div className="flex items-center gap-2 mt-1">
                   <span className={`text-sm ${isDayMode ? 'text-slate-500' : 'text-gray-400'}`}>
                     Durum:
@@ -930,13 +945,11 @@ const GarsonPanel = () => {
 
                 return (
                   <div className="space-y-3">
-                    {/* Başlık */}
                     <div className={`flex justify-between items-center px-1 ${isDayMode ? 'text-slate-500' : 'text-gray-400'} text-xs uppercase font-semibold`}>
                       <span>Ürün</span>
                       <span>Tutar</span>
                     </div>
                     
-                    {/* Ürün listesi */}
                     {items.map((item, index) => {
                       const normalized = normalizeOrderItem(item);
                       const subtotal = normalized.quantity * normalized.price;
@@ -1028,7 +1041,7 @@ const GarsonPanel = () => {
         processRefund={processRefund}
       />
 
-    <MasaDurumuModal
+      <MasaDurumuModal
         showStatusModal={showStatusModal}
         onClose={() => {
           setShowStatusModal(false);
