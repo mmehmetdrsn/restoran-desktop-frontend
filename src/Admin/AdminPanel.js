@@ -39,7 +39,7 @@ import StokButonlari from './Bilesenler/Stok/StokButonlari';
 import MasaButonlari from './Bilesenler/Masa/MasaButonlari';
 import RezervasyonButonlari from './Bilesenler/Rezervasyon/RezervasyonButonlari';
 import SiparisButonlari from './Bilesenler/Siparis/SiparisButonlari';
-import RaporlarButonlari from './Bilesenler/Raporlar/RaporButonlari';
+import RaporButonlari from './Bilesenler/Raporlar/RaporButonlari';
 
 // Modal Dosyalari
 import PersonelEkle from './Bilesenler/Personel/PersonelEkle';
@@ -82,7 +82,9 @@ import MalzemeGiris from './Bilesenler/Stok/MalzemeGiris';
 import MalzemeCikis from './Bilesenler/Stok/MalzemeCikis';
 import StokHareketleri from './Bilesenler/Stok/StokHareketleri';
 
+import SiparisYonetimi from './Bilesenler/Siparis/SiparisYonetimi';
 import SiparisDetay from './Bilesenler/Siparis/SiparisDetay';
+
 import Rapor from './Bilesenler/Raporlar/Rapor';
 
 const backgroundImage = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80';
@@ -360,6 +362,11 @@ const AdminPanel = () => {
         return { data: [] };
       });
 
+      const ordersRes = await orderService.getAll().catch(err => {
+        console.warn('Siparisler yüklenemedi:', err)
+        return { data: [] };
+      });
+
       console.log('Urunler:', productsRes);
       console.log('Kategoriler:', categoriesRes);
       console.log('Malzemeler:', materialsRes);
@@ -369,6 +376,7 @@ const AdminPanel = () => {
       console.log('Uyeler:', usersRes);
       console.log('Odemeler:', paymentsRes);
       console.log('Kasa:', cashRes);
+      console.log('Siparisler:', ordersRes);
 
       setProducts(Array.isArray(productsRes?.data) ? productsRes.data : []);
       setCategories(Array.isArray(categoriesRes?.data) ? categoriesRes.data : []);
@@ -379,6 +387,7 @@ const AdminPanel = () => {
       setUsers(Array.isArray(usersRes?.data) ? usersRes.data : []);
       setPayments(Array.isArray(paymentsRes?.data) ? paymentsRes.data : []);
       setCash(Array.isArray(cashRes?.data) ? cashRes.data : []);
+      setOrders(Array.isArray(ordersRes?.data) ? ordersRes.data : []);
 
       if (Array.isArray(personnelRes?.data) && personnelRes.data.length > 0) {
         const personeller = personnelRes.data.map(p => ({
@@ -483,30 +492,30 @@ const AdminPanel = () => {
     try {
       const response = await productService.getAll();
       const data = response.data || [];
-      
+
       console.log('Tüm ürünler:', data);
-      
+
       data.forEach((urun, index) => {
         console.log(`Urun ${index + 1}: ${urun.urunAdi} - isActive:`, urun.isActive, '| IsActive:', urun.IsActive);
       });
-      
+
       const pasifUrunler = data.filter(u => {
         const active = u.isActive ?? u.IsActive ?? u.is_active ?? u.IS_ACTIVE;
         return active === false || active === 0 || active === 'false' || active === '0';
       });
-      
+
       const aktifUrunler = data.filter(u => {
         const active = u.isActive ?? u.IsActive ?? u.is_active ?? u.IS_ACTIVE;
         return active === true || active === 1 || active === 'true' || active === '1' || active == null;
       });
-      
+
       console.log('Aktif ürünler:', aktifUrunler.length);
       console.log('Pasif ürünler:', pasifUrunler.length);
       console.log('Pasif ürün listesi:', pasifUrunler);
-      
+
       setUrunListesi(data);
       setShowUrunListele(true);
-      
+
       toast.info(`${data.length || 0} ürün (${aktifUrunler.length} aktif, ${pasifUrunler.length} pasif)`);
     } catch (error) {
       console.error('Urunler yüklenirken hata:', error);
@@ -758,7 +767,7 @@ const AdminPanel = () => {
 
   // Personel Yonetimi Sayfasi
   const renderPersonnel = () => {
-    return <PersonelButonlari 
+    return <PersonelButonlari
       setShowPersonelEkle={setShowPersonelEkle}
       setShowPersonelDuzenle={setShowPersonelDuzenle}
       setShowPersonelSil={setShowPersonelSil}
@@ -768,7 +777,7 @@ const AdminPanel = () => {
 
   // Urun ve Menu Yonetimi Sayfasi
   const renderProductMenu = () => {
-    return <UrunButonlari 
+    return <UrunButonlari
       setShowUrunEkle={setShowUrunEkle}
       setShowUrunSil={setShowUrunSil}
       setShowUrunDuzenle={setShowUrunDuzenle}
@@ -778,7 +787,7 @@ const AdminPanel = () => {
 
   // Uye Yonetimi Sayfasi
   const renderMembers = () => {
-    return <UyeButonlari 
+    return <UyeButonlari
       setShowUyeEkle={setShowUyeEkle}
       setShowUyeSil={setShowUyeSil}
       setShowUyeDuzenle={setShowUyeDuzenle}
@@ -789,7 +798,7 @@ const AdminPanel = () => {
 
   // Finans ve Kasa Yonetimi Sayfasi
   const renderFinance = () => {
-    return <FinansButonlari 
+    return <FinansButonlari
       handleOdemeListele={handleOdemeListele}
       setShowGunSonu={setShowGunSonu}
       setShowIade={setShowIade}
@@ -799,7 +808,7 @@ const AdminPanel = () => {
 
   // Depo / Stok Yonetimi Sayfasi
   const renderStock = () => {
-    return <StokButonlari 
+    return <StokButonlari
       handleStokDurumu={handleStokDurumu}
       setShowMalzemeGiris={setShowMalzemeGiris}
       setShowMalzemeCikis={setShowMalzemeCikis}
@@ -809,7 +818,7 @@ const AdminPanel = () => {
 
   // Masa Yonetimi Sayfasi
   const renderMasa = () => {
-    return <MasaButonlari 
+    return <MasaButonlari
       tables={tables}
       setShowMasaEkle={setShowMasaEkle}
       setShowMasaSil={setShowMasaSil}
@@ -819,7 +828,7 @@ const AdminPanel = () => {
 
   // Rezervasyon Yonetimi Sayfasi
   const renderRezervasyon = () => {
-    return <RezervasyonButonlari 
+    return <RezervasyonButonlari
       setShowRezervasyonEkle={setShowRezervasyonEkle}
       setShowRezervasyonSil={setShowRezervasyonSil}
       setShowRezervasyonDuzenle={setShowRezervasyonDuzenle}
@@ -831,13 +840,13 @@ const AdminPanel = () => {
   const renderTables = () => {
     return (
       <div className="space-y-6">
-        <MasaButonlari 
+        <MasaButonlari
           tables={tables}
           setShowMasaEkle={setShowMasaEkle}
           setShowMasaSil={setShowMasaSil}
           setShowMasaDuzenle={setShowMasaDuzenle}
         />
-        <RezervasyonButonlari 
+        <RezervasyonButonlari
           setShowRezervasyonEkle={setShowRezervasyonEkle}
           setShowRezervasyonSil={setShowRezervasyonSil}
           setShowRezervasyonDuzenle={setShowRezervasyonDuzenle}
@@ -849,31 +858,19 @@ const AdminPanel = () => {
 
   // Siparis Yonetimi Sayfasi
   const renderOrders = () => {
-    const tumSiparisler = orders;
-    const aktifSiparisler = orders.filter(
-      o => o.siparisDurumu !== 'TAMAMLANDI' && 
-           o.siparisDurumu !== 'IPTAL' && 
-           o.siparisDurumu !== 'ODENDI' &&
-           o.siparisDurumu !== 'IADE'
-    );
-    const iptalIadeSiparisler = orders.filter(
-      o => o.siparisDurumu === 'IPTAL' || o.siparisDurumu === 'IADE'
-    );
-
-    return <SiparisButonlari 
-      tumSiparisler={tumSiparisler}
-      aktifSiparisler={aktifSiparisler}
-      iptalIadeSiparisler={iptalIadeSiparisler}
+    return <SiparisYonetimi
+      orders={orders}
       siparisGosterimModu={siparisGosterimModu}
       setSiparisGosterimModu={setSiparisGosterimModu}
       handleSiparisListele={handleSiparisListele}
+      handleSiparisTamamla={handleSiparisTamamla}
       setShowSiparisDetay={setShowSiparisDetay}
     />;
   };
 
   // Raporlar Sayfasi
   const renderReports = () => {
-    return <Rapor/>;
+    return <Rapor />;
   };
 
   // ============ RENDER CONTENT ============
@@ -891,16 +888,16 @@ const AdminPanel = () => {
             setSelectedMenu('product_menu');
           }}
         />;
-      case 'product_menu': 
+      case 'product_menu':
         return (
           <div className="space-y-6">
-            <UrunButonlari 
+            <UrunButonlari
               setShowUrunEkle={setShowUrunEkle}
               setShowUrunSil={setShowUrunSil}
               setShowUrunDuzenle={setShowUrunDuzenle}
               handleUrunListele={handleUrunListele}
             />
-            <KategoriButonlari 
+            <KategoriButonlari
               setShowKategoriEkle={setShowKategoriEkle}
               setShowKategoriSil={setShowKategoriSil}
               setShowKategoriDuzenle={setShowKategoriDuzenle}
@@ -908,35 +905,35 @@ const AdminPanel = () => {
             />
           </div>
         );
-      case 'members': 
-        return <UyeButonlari 
+      case 'members':
+        return <UyeButonlari
           setShowUyeEkle={setShowUyeEkle}
           setShowUyeSil={setShowUyeSil}
           setShowUyeDuzenle={setShowUyeDuzenle}
           handleUyeListele={handleUyeListele}
           setShowUyeDetay={setShowUyeDetay}
         />;
-      case 'finance': 
-        return <FinansButonlari 
+      case 'finance':
+        return <FinansButonlari
           handleOdemeListele={handleOdemeListele}
           setShowGunSonu={setShowGunSonu}
           setShowIade={setShowIade}
           handleKasaHareketleri={handleKasaHareketleri}
         />;
-      case 'stock': 
-        return <StokButonlari 
+      case 'stock':
+        return <StokButonlari
           handleStokDurumu={handleStokDurumu}
           setShowMalzemeGiris={setShowMalzemeGiris}
           setShowMalzemeCikis={setShowMalzemeCikis}
           setShowStokHareket={setShowStokHareket}
         />;
-      case 'orders': 
+      case 'orders':
         return renderOrders();
-      case 'tables': 
+      case 'tables':
         return renderTables();
-      case 'personnel': 
+      case 'personnel':
         return renderPersonnel();
-      case 'reports': 
+      case 'reports':
         return renderReports();
       default:
         return <Dashboard
