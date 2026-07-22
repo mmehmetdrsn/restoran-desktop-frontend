@@ -39,7 +39,7 @@ import StokButonlari from './Bilesenler/Stok/StokButonlari';
 import MasaButonlari from './Bilesenler/Masa/MasaButonlari';
 import RezervasyonButonlari from './Bilesenler/Rezervasyon/RezervasyonButonlari';
 import SiparisButonlari from './Bilesenler/Siparis/SiparisButonlari';
-import Raporlar from './Bilesenler/Raporlar/Raporlar';
+import Raporlar from './Bilesenler/Raporlar/Rapor';
 
 // Modal Dosyalari
 import PersonelEkle from './Bilesenler/Personel/PersonelEkle';
