@@ -14,30 +14,7 @@ const MasaYonetimi = ({
   onOpenStatusModal,
   isDayMode
 }) => {
-  const [hoveredTable, setHoveredTable] = useState(null);
-
-  // Sipariş özetini gösteren tooltip içeriği
-  const getOrderTooltip = (table) => {
-    if (table.status !== 'occupied' || !table.order) {
-      return getTableStatusText(table.status);
-    }
-
-    const items = table.order.siparisUrunleri || table.order.items || [];
-    if (items.length === 0) {
-      return `${getTableStatusText(table.status)} - Sipariş yok`;
-    }
-
-    let tooltipText = `${getTableStatusText(table.status)}\n`;
-    items.forEach(item => {
-      const name = item.urunAdi || item.name || 'Ürün';
-      const qty = item.adet || item.quantity || 1;
-      const price = item.fiyat || item.price || 0;
-      tooltipText += `${name} x${qty} = ₺${(qty * price).toFixed(2)}\n`;
-    });
-    const total = table.order.toplam || table.order.total || 0;
-    tooltipText += `\n📊 Toplam: ₺${total.toFixed(2)}`;
-    return tooltipText;
-  };
+  
 
   // Sipariş detaylarını gösteren modal içeriği
   const renderOrderDetails = (table) => {
@@ -107,24 +84,15 @@ const MasaYonetimi = ({
         <button onClick={() => setFilter('broken')} className={`px-4 py-2 rounded-lg text-sm transition-all ${filter === 'broken' ? 'bg-gray-500/30 text-gray-400' : `${isDayMode ? 'bg-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-200' : 'bg-white/5 text-gray-400 hover:text-white hover:bg-white/10'}`}`}>Arızalı ({tables.filter(t => t.status === 'broken').length})</button>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 auto-rows-fr">
         {filteredTables.map((table) => (
           <div 
             key={table.id} 
             onClick={() => handleTableClick(table)} 
-            onMouseEnter={() => setHoveredTable(table.id)}
-            onMouseLeave={() => setHoveredTable(null)}
-            className={`rounded-2xl p-4 cursor-pointer transition-all duration-300 ${getTableStatusColor(table.status)} shadow-lg hover:shadow-xl hover:scale-105 border ${isDayMode ? 'border-slate-200/50' : 'border-white/10'} relative`}
+            className={`h-full rounded-2xl p-4 cursor-pointer transition-all duration-300 flex flex-col ${getTableStatusColor(table.status)} shadow-lg hover:shadow-xl hover:scale-105 border ${isDayMode ? 'border-slate-200/50' : 'border-white/10'} relative`}
           >
-            {/* Hover durumunda gösterilen tooltip - masa durumu */}
-            {hoveredTable === table.id && (
-              <div className={`absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 p-3 rounded-xl ${isDayMode ? 'bg-slate-900 text-white' : 'bg-black/95 text-white'} shadow-2xl border ${isDayMode ? 'border-slate-700' : 'border-white/10'} z-50 min-w-[200px] max-w-[300px] whitespace-pre-line text-sm`}>
-                {getOrderTooltip(table)}
-                <div className={`absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-8 border-r-8 border-t-8 ${isDayMode ? 'border-l-transparent border-r-transparent border-t-slate-900' : 'border-l-transparent border-r-transparent border-t-black'}`}></div>
-              </div>
-            )}
-
-            <div className="flex flex-col items-center text-center">
+            
+            <div className="flex-1 flex flex-col items-center text-center justify-between">
               <div className="text-3xl mb-2">{getStatusIcon(table.status)}</div>
               <h3 className={`${isDayMode ? 'text-slate-900' : 'text-white'} font-bold text-lg`}>{table.name}</h3>
               <div className={`flex items-center gap-1 ${isDayMode ? 'text-slate-600' : 'text-white/80'} text-sm`}><FaChair size={12} /><span>{table.capacity} Kişi</span></div>
@@ -140,9 +108,7 @@ const MasaYonetimi = ({
                   <div className={`mt-2 ${isDayMode ? 'text-slate-900' : 'text-white/90'} text-sm font-medium`}>
                     ₺{table.order?.toplam ?? table.order?.total ?? table.order?.tutar ?? 0}
                   </div>
-                  <div className={`${isDayMode ? 'text-slate-500' : 'text-white/70'} text-xs`}>
-                    {table.order?.siparisTarihi || table.order?.siparisSaati || table.order?.time || ''}
-                  </div>
+                  {/* Tarih/saat gösterimi kaldırıldı */}
                   {/* Sipariş edilen ürün sayısı */}
                   {(() => {
                     const items = table.order?.siparisUrunleri || table.order?.items || [];
@@ -170,7 +136,7 @@ const MasaYonetimi = ({
                   e.stopPropagation();
                   onOpenStatusModal(table);
                 }}
-                className={`mt-4 w-full py-2 text-sm rounded-xl transition ${isDayMode ? 'bg-slate-200 hover:bg-slate-300 text-slate-900' : 'bg-white/10 hover:bg-white/15 text-white'}`}
+                className={`w-full h-12 flex items-center justify-center px-4 text-sm rounded-xl transition ${isDayMode ? 'bg-slate-200 hover:bg-slate-300 text-slate-900' : 'bg-white/10 hover:bg-white/15 text-white'}`}
               >
                 Durum Değiştir
               </button>

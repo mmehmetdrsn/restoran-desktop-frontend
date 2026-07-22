@@ -17,7 +17,6 @@ export const apiRequest = async (endpoint, method = 'GET', body = null) => {
         },
     };
 
-    // Token varsa ekle
     const token = localStorage.getItem('token') || sessionStorage.getItem('token');
     if (token) {
         options.headers['Authorization'] = `Bearer ${token}`;
@@ -27,40 +26,52 @@ export const apiRequest = async (endpoint, method = 'GET', body = null) => {
         options.body = JSON.stringify(body);
     }
 
+    let response;
     try {
-        const response = await fetch(url, options);
-        console.log(`📡 Response Status: ${response.status} - ${url}`);
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error(`❌ HTTP Hatası: ${response.status} - ${errorText}`);
-            
-            // 401 Unauthorized - Token geçersiz
-            if (response.status === 401) {
-                localStorage.removeItem('token');
-                sessionStorage.removeItem('token');
-                localStorage.removeItem('user');
-                sessionStorage.removeItem('user');
-                window.location.href = '/login';
-            }
-            
-            return { data: null, status: response.status, error: errorText };
-        }
-
-        if (response.status === 204) {
-            console.log('📡 204 No Content - Veri yok');
-            return { data: [], status: 204 };
-        }
-
-        const data = await response.json();
-        console.log(`📡 Response Data:`, data);
-        return { data, status: response.status };
-    } catch (error) {
-        console.error('❌ API Hatası:', error);
-        return { data: [], error: true };
+        response = await fetch(url, options);
+    } catch (networkErr) {
+        console.error('❌ Ağ Hatası:', networkErr);
+        const err = new Error('Sunucuya bağlanılamadı.');
+        err.response = { status: 0, data: { Mesaj: 'Sunucuya bağlanılamadı.' } };
+        throw err;
     }
-};
 
+    console.log(`📡 Response Status: ${response.status} - ${url}`);
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`❌ HTTP Hatası: ${response.status} - ${errorText}`);
+
+        let errorData;
+        try {
+            errorData = JSON.parse(errorText);
+        } catch {
+            errorData = { Mesaj: errorText || `HTTP ${response.status} hatası` };
+        }
+
+        if (response.status === 401) {
+            localStorage.removeItem('token');
+            sessionStorage.removeItem('token');
+            localStorage.removeItem('user');
+            sessionStorage.removeItem('user');
+            window.location.href = '/login';
+        }
+
+        // 👇 KRİTİK: artık gerçekten throw ediyoruz, axios benzeri şekilde
+        const err = new Error(errorData.Mesaj || errorData.mesaj || `HTTP ${response.status}`);
+        err.response = { status: response.status, data: errorData };
+        throw err;
+    }
+
+    if (response.status === 204) {
+        console.log('📡 204 No Content - Veri yok');
+        return { data: [], status: 204 };
+    }
+
+    const data = await response.json();
+    console.log(`📡 Response Data:`, data);
+    return { data, status: response.status };
+};
 // ========== AUTH SERVİSİ ==========
 export const authService = {
     login: (data) => apiRequest('/Auth/login', 'POST', data),
@@ -229,10 +240,13 @@ export const tableService = {
         console.log('📦 Masa taşınıyor:', data);
         return apiRequest('/Masa/tasi', 'POST', data);
     },
-    updateStatus: (id, status) => {
-        console.log(`📦 Masa #${id} durumu güncelleniyor:`, status);
-        return apiRequest(`/Masa/${id}/durum`, 'PUT', { masaDurumu: status });
-    }
+   updateStatus: (id, status, rezervasyonSaati = null) => {
+    console.log(`📦 Masa #${id} durumu güncelleniyor:`, status, rezervasyonSaati);
+    return apiRequest(`/Masa/${id}/durum`, 'PUT', {
+        masaDurumu: status,
+        rezervasyonSaati: rezervasyonSaati
+    });
+}
 };
 
 // ========== REZERVASYON SERVİSİ ==========
