@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   FaSignOutAlt, FaTruck, FaCheckCircle, 
-  FaPhone, FaHistory, FaEye, FaTimes, FaSpinner, FaSync
+  FaPhone, FaHistory, FaEye, FaTimes, FaSpinner, FaSync,
+  FaBoxOpen, FaMapMarkerAlt, FaHome
 } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import { kuryeAPI } from '../api/api';
@@ -18,6 +19,7 @@ const KuryePanel = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [activeOrders, setActiveOrders] = useState([]);
   const [historyOrders, setHistoryOrders] = useState([]);
+  const [updatingOrderId, setUpdatingOrderId] = useState(null);
 
   let userData = null;
   const sessionUser = sessionStorage.getItem('user');
@@ -27,7 +29,6 @@ const KuryePanel = () => {
 
   console.log('🔍 Kullanıcı verisi:', userData);
 
-  // Backend'de PersonelId olarak geçiyor
   const personelId =
     userData?.personelId ??
     userData?.PersonelId ??
@@ -36,11 +37,22 @@ const KuryePanel = () => {
 
   console.log('🔍 Kurye ID:', personelId);
 
+  // ========== DURUM ETİKETLERİ ==========
+  const getStatusInfo = (status) => {
+    const statusMap = {
+      'HAZIR': { label: 'Hazır', icon: '📦', color: 'bg-yellow-500/20 text-yellow-400' },
+      'KURYEDE': { label: 'Teslim Alındı', icon: '📦', color: 'bg-blue-500/20 text-blue-400' },
+      'YOLDA': { label: 'Yolda', icon: '🚚', color: 'bg-purple-500/20 text-purple-400' },
+      'TESLIM EDILDI': { label: 'Teslim Edildi', icon: '✅', color: 'bg-green-500/20 text-green-400' },
+      'Teslim Edildi': { label: 'Teslim Edildi', icon: '✅', color: 'bg-green-500/20 text-green-400' }
+    };
+    return statusMap[status] || { label: status, icon: '📦', color: 'bg-gray-500/20 text-gray-400' };
+  };
+
   // ========== BACKEND DTO -> FRONTEND ALAN EŞLEMESİ ==========
   const mapSiparisToOrder = (s) => {
     console.log('🔄 Map ediliyor:', s);
     
-    // 🟢 Durum eşlemesi
     let status = s.siparisDurumu || s.SiparisDurumu || 'Bilinmiyor';
     
     return {
@@ -51,7 +63,8 @@ const KuryePanel = () => {
       status: status,
       time: formatElapsed(s.siparisTarihi ?? s.SiparisTarihi),
       phone: s.musteriTelefon ?? s.MusteriTelefon ?? '',
-      rawStatus: status
+      rawStatus: status,
+      siparisDetay: s.detaylar ?? s.Detaylar ?? []
     };
   };
 
@@ -81,15 +94,22 @@ const KuryePanel = () => {
       const response = await kuryeAPI.getAktifSiparisler(personelId);
       console.log('📦 API Yanıtı:', response);
       
-      const data = response?.data || [];
+      let data = [];
+      if (response?.data?.data) {
+        data = response.data.data;
+      } else if (response?.data) {
+        data = Array.isArray(response.data) ? response.data : [];
+      } else if (Array.isArray(response)) {
+        data = response;
+      }
+      
       console.log(`📦 ${data.length} sipariş bulundu.`);
       
-      // Her siparişi detaylı logla
       data.forEach((s, index) => {
-        console.log(`  ${index + 1}. Sipariş #${s.siparisId} - Durum: ${s.siparisDurumu} - Müşteri: ${s.musteriAdSoyad}`);
+        console.log(`  ${index + 1}. Sipariş #${s.siparisId} - Durum: ${s.siparisDurumu} - Tip: ${s.siparisTipi}`);
       });
       
-      // 🟢 Sadece KURYEDE veya YOLDA durumundaki siparişleri göster
+      // 🟢 SADECE KURYEDE ve YOLDA durumlarını göster
       const filteredData = data.filter(s => 
         s.siparisDurumu === "KURYEDE" || 
         s.siparisDurumu === "YOLDA"
@@ -118,12 +138,10 @@ const KuryePanel = () => {
       const data = response?.data || [];
       console.log(`📦 ${data.length} geçmiş sipariş bulundu.`);
       
-      // Geçmişi localStorage'a da kaydet
       localStorage.setItem('historyOrders', JSON.stringify(data));
       setHistoryOrders(data.map(mapSiparisToOrder));
     } catch (err) {
       console.error('❌ Geçmiş siparişler yüklenirken hata:', err);
-      // LocalStorage'dan dene
       try {
         const savedHistory = localStorage.getItem('historyOrders');
         if (savedHistory) {
@@ -135,6 +153,94 @@ const KuryePanel = () => {
     }
   }, [personelId]);
 
+  // ========== SİPARİŞ DURUMUNU GÜNCELLE ==========
+  const updateOrderStatus = async (orderId, newStatus, actionLabel) => {
+    if (updatingOrderId === orderId) return;
+    
+    try {
+        setUpdatingOrderId(orderId);
+        
+        console.log(`🔄 Sipariş #${orderId} durumu güncelleniyor: ${newStatus}`);
+        
+        // ✅ Doğru çağrı
+        await kuryeAPI.updateSiparisDurum(orderId, { 
+            siparisDurumu: newStatus,  // DTO'daki alan adı
+            personelId: personelId 
+        });
+        
+        toast.success(`✅ Sipariş #${orderId} ${actionLabel}`);
+        
+        await fetchActiveOrders();
+        await fetchHistoryOrders();
+        
+    } catch (error) {
+        console.error('❌ Durum güncelleme hatası:', error);
+        toast.error(`❌ ${error?.response?.data || error?.message || 'Hata oluştu!'}`);
+    } finally {
+        setUpdatingOrderId(null);
+    }
+};
+
+  // ========== TESLİMAT ADIMLARI ==========
+  
+  // 1. Teslim Al (HAZIR → KURYEDE)
+  const handleTeslimAl = (order) => {
+    if (!order) return;
+    
+    const confirm = window.confirm(
+      `📦 Sipariş #${order.id}\nMüşteri: ${order.customer}\nAdres: ${order.address}\n\nSiparişi teslim aldığınızı onaylıyor musunuz?`
+    );
+    
+    if (!confirm) {
+      toast.info('Teslim alma iptal edildi.');
+      return;
+    }
+    
+    updateOrderStatus(order.id, 'KURYEDE', 'teslim alındı');
+  };
+
+  // 2. Yola Çık (KURYEDE → YOLDA)
+  const handleYolaCik = (order) => {
+    if (!order) return;
+    
+    const confirm = window.confirm(
+      `🚚 Sipariş #${order.id}\nMüşteri: ${order.customer}\nAdres: ${order.address}\n\nYola çıktığınızı onaylıyor musunuz?`
+    );
+    
+    if (!confirm) {
+      toast.info('Yola çıkma iptal edildi.');
+      return;
+    }
+    
+    updateOrderStatus(order.id, 'YOLDA', 'yola çıkıldı');
+    
+    // Müşteriye bildirim
+    setTimeout(() => {
+      toast.info(`📱 ${order.customer} müşterisine "Kurye yolda!" bildirimi gönderildi.`);
+    }, 1000);
+  };
+
+  // 3. Teslim Et (YOLDA → TESLIM EDILDI)
+  const handleTeslimEt = (order) => {
+    if (!order) return;
+    
+    const confirm = window.confirm(
+      `✅ Sipariş #${order.id}\nMüşteri: ${order.customer}\nAdres: ${order.address}\nTutar: ₺${order.amount}\n\nTeslimatı onaylıyor musunuz?`
+    );
+    
+    if (!confirm) {
+      toast.info('Teslimat onayı iptal edildi.');
+      return;
+    }
+    
+    updateOrderStatus(order.id, 'TESLIM EDILDI', 'teslim edildi');
+    
+    // Müşteriye bildirim
+    setTimeout(() => {
+      toast.info(`📱 ${order.customer} müşterisine "Siparişiniz teslim edildi!" bildirimi gönderildi.`);
+    }, 1000);
+  };
+
   // ========== MANUEL YENİLEME ==========
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -143,12 +249,27 @@ const KuryePanel = () => {
     toast.info('🔄 Siparişler yenilendi!');
   };
 
+  // ========== MÜŞTERİ ARA ==========
+  const handleCallCustomer = (order) => {
+    if (!order) return;
+    
+    if (order?.phone) {
+      toast.info(`📞 ${order.phone} aranıyor...`);
+      window.location.href = `tel:${order.phone}`;
+    } else {
+      const phone = prompt('📞 Müşteri telefon numarasını girin:');
+      if (phone?.trim()) {
+        toast.success(`📞 ${phone} aranıyor...`);
+        window.location.href = `tel:${phone}`;
+      }
+    }
+  };
+
   // ========== UYGULAMA AÇILDIĞINDA VERİLERİ YÜKLE ==========
   useEffect(() => {
     fetchActiveOrders();
     fetchHistoryOrders();
 
-    // 🟢 Her 10 saniyede bir otomatik yenile
     const interval = setInterval(() => {
       console.log('🔄 Otomatik yenileme çalışıyor...');
       fetchActiveOrders();
@@ -167,76 +288,12 @@ const KuryePanel = () => {
     navigate('/login');
   };
 
-  // ========== MÜŞTERİ ARA ==========
-  const handleCallCustomer = (order) => {
-    if (!order) return;
-    
-    if (order?.phone) {
-      toast.info(`📞 ${order.phone} aranıyor...`);
-    } else {
-      const phone = prompt('📞 Müşteri telefon numarasını girin:');
-      if (phone?.trim()) {
-        toast.success(`📞 ${phone} aranıyor...`);
-        const updatedOrders = activeOrders.map(o => 
-          o.id === order.id ? { ...o, phone: phone } : o
-        );
-        setActiveOrders(updatedOrders);
-      }
-    }
-  };
-
-  // ========== TESLİMAT ONAYLA ==========
-  const handleDeliveryConfirm = async (order) => {
-    if (!order) return;
-
-    if (!personelId) {
-      toast.error('Kurye kimliği bulunamadı, lütfen tekrar giriş yapın.');
-      return;
-    }
-
-    const confirm = window.confirm(
-      `📦 Sipariş #${order.id}\nMüşteri: ${order.customer}\nTutar: ₺${order.amount}\n\nTeslimatı onaylıyor musunuz?`
-    );
-
-    if (!confirm) {
-      toast.info('Teslimat onayı iptal edildi.');
-      return;
-    }
-
-    try {
-      toast.info(`📦 Sipariş #${order.id} teslimat onaylanıyor...`);
-
-      console.log('🔍 teslimEt çağrısı:', {
-        siparisId: order.id,
-        personelId,
-        tip: typeof personelId,
-      });
-
-      await kuryeAPI.teslimEt(order.id, { personelId: personelId });
-
-      toast.success(`✅ Sipariş #${order.id} teslim edildi!`);
-
-      // Aktif siparişlerden kaldır
-      const updatedActive = activeOrders.filter((o) => o.id !== order.id);
-      setActiveOrders(updatedActive);
-
-      // Geçmişi yeniden çek
-      await fetchHistoryOrders();
-
-      if (showOrderModal) setShowOrderModal(false);
-
-      setTimeout(() => {
-        toast.info(`📱 Müşteriye ${order.customer} teslimat bildirimi gönderildi!`);
-      }, 1000);
-    } catch (err) {
-      console.error('❌ Teslimat hatası:', err);
-      toast.error(`❌ Sipariş #${order.id} teslim edilirken bir hata oluştu.`);
-    }
-  };
-
   // ========== SİPARİŞ DETAY MODALI ==========
   const OrderDetailModal = ({ order, onClose }) => {
     if (!order) return null;
+    const statusInfo = getStatusInfo(order.status);
+    const isUpdating = updatingOrderId === order.id;
+    
     return (
       <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div className="bg-black/90 rounded-2xl border border-white/10 max-w-2xl w-full">
@@ -250,24 +307,60 @@ const KuryePanel = () => {
               <div><p className="text-gray-400 text-xs">Tutar</p><p className="text-yellow-400 font-bold">₺{order.amount}</p></div>
               <div className="col-span-2"><p className="text-gray-400 text-xs">Adres</p><p className="text-gray-300">{order.address}</p></div>
               <div className="col-span-2"><p className="text-gray-400 text-xs">Durum</p>
-                <span className={`px-3 py-1 rounded-full text-sm ${
-                  order.status === 'TESLIM EDILDI' || order.status === 'Teslim Edildi' ? 'bg-green-500/20 text-green-400' :
-                  order.status === 'KURYEDE' ? 'bg-orange-500/20 text-orange-400' :
-                  order.status === 'YOLDA' ? 'bg-blue-500/20 text-blue-400' :
-                  order.status === 'HAZIR' ? 'bg-yellow-500/20 text-yellow-400' :
-                  order.status === 'İptal' ? 'bg-red-500/20 text-red-400' :
-                  'bg-gray-500/20 text-gray-400'
-                }`}>
-                  {order.status}
+                <span className={`px-3 py-1 rounded-full text-sm ${statusInfo.color}`}>
+                  {statusInfo.icon} {statusInfo.label}
                 </span>
               </div>
             </div>
+            
+            {/* Sipariş Adımları */}
+            <div className="border-t border-white/10 pt-4">
+              <p className="text-gray-400 text-xs mb-3">Teslimat Adımları:</p>
+              <div className="flex flex-wrap gap-2">
+                {order.status === 'HAZIR' && (
+                  <button 
+                    onClick={() => handleTeslimAl(order)}
+                    disabled={isUpdating}
+                    className="flex-1 px-4 py-3 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    {isUpdating ? <FaSpinner className="animate-spin" /> : <FaBoxOpen />}
+                    Teslim Al
+                  </button>
+                )}
+                
+                {order.status === 'KURYEDE' && (
+                  <button 
+                    onClick={() => handleYolaCik(order)}
+                    disabled={isUpdating}
+                    className="flex-1 px-4 py-3 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 rounded-lg flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    {isUpdating ? <FaSpinner className="animate-spin" /> : <FaMapMarkerAlt />}
+                    Yola Çık
+                  </button>
+                )}
+                
+                {order.status === 'YOLDA' && (
+                  <button 
+                    onClick={() => handleTeslimEt(order)}
+                    disabled={isUpdating}
+                    className="flex-1 px-4 py-3 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    {isUpdating ? <FaSpinner className="animate-spin" /> : <FaHome />}
+                    Teslim Et
+                  </button>
+                )}
+                
+                {(order.status === 'TESLIM EDILDI' || order.status === 'Teslim Edildi') && (
+                  <div className="flex-1 px-4 py-3 bg-green-500/20 text-green-400 rounded-lg flex items-center justify-center gap-2">
+                    <FaCheckCircle /> Teslim Edildi ✅
+                  </div>
+                )}
+              </div>
+            </div>
+            
             <div className="flex gap-2 flex-wrap">
               <button onClick={() => handleCallCustomer(order)} className="flex-1 px-4 py-3 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg flex items-center justify-center gap-2 transition-all cursor-pointer">
                 <FaPhone /> Müşteriyi Ara
-              </button>
-              <button onClick={() => handleDeliveryConfirm(order)} className="flex-1 px-4 py-3 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 rounded-lg flex items-center justify-center gap-2 transition-all cursor-pointer">
-                <FaCheckCircle /> Teslimat Onayla
               </button>
             </div>
           </div>
@@ -289,8 +382,6 @@ const KuryePanel = () => {
       );
     }
 
-    console.log('📦 Aktif siparişler:', activeOrders);
-
     return (
       <div className="bg-black/80 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
         <div className="flex items-center justify-between mb-4">
@@ -310,57 +401,96 @@ const KuryePanel = () => {
             </span>
           </div>
         </div>
-        <p className="text-gray-400 mb-4">Bugün teslim edilecek siparişler:</p>
+        <p className="text-gray-400 mb-4">Teslimat adımlarını takip edin:</p>
         
         <div className="space-y-3">
           {activeOrders.length > 0 ? (
-            activeOrders.map((order) => (
-              <div key={order.id} className="flex items-center justify-between p-4 bg-white/5 rounded-xl hover:bg-white/10 transition-all">
-                <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-full bg-yellow-500/20 flex items-center justify-center text-yellow-400">
-                    {order.status === 'KURYEDE' ? '📦' : '🚚'}
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-white font-medium">#{order.id}</span>
-                      <span className="text-white">{order.customer}</span>
+            activeOrders.map((order) => {
+              const statusInfo = getStatusInfo(order.status);
+              const isUpdating = updatingOrderId === order.id;
+              const isCompleted = order.status === 'TESLIM EDILDI' || order.status === 'Teslim Edildi';
+              
+              return (
+                <div key={order.id} className={`flex items-center justify-between p-4 rounded-xl transition-all ${isCompleted ? 'bg-green-500/5 border border-green-500/20' : 'bg-white/5 hover:bg-white/10'}`}>
+                  <div className="flex items-start gap-4">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${statusInfo.color.replace('text-', 'bg-').replace('/20', '/20')}`}>
+                      <span className="text-xl">{statusInfo.icon}</span>
                     </div>
-                    <p className="text-gray-400 text-sm">{order.address}</p>
-                    <div className="flex items-center gap-3 mt-1">
-                      <span className="text-yellow-400 font-semibold text-sm">₺{order.amount}</span>
-                      <span className="text-gray-500 text-xs">{order.time}</span>
-                      <span className={`px-2 py-0.5 rounded-full text-xs ${
-                        order.status === 'TESLIM EDILDI' || order.status === 'Teslim Edildi' ? 'bg-green-500/20 text-green-400' :
-                        order.status === 'KURYEDE' ? 'bg-orange-500/20 text-orange-400' :
-                        order.status === 'YOLDA' ? 'bg-blue-500/20 text-blue-400' :
-                        order.status === 'HAZIR' ? 'bg-yellow-500/20 text-yellow-400' :
-                        'bg-gray-500/20 text-gray-400'
-                      }`}>
-                        {order.status === 'KURYEDE' ? 'Kuryede' : 
-                         order.status === 'YOLDA' ? 'Yolda' : 
-                         order.status === 'TESLIM EDILDI' ? 'Teslim Edildi' : 
-                         order.status === 'HAZIR' ? 'Hazır' : order.status}
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-white font-medium">#{order.id}</span>
+                        <span className="text-white">{order.customer}</span>
+                        <span className={`px-2 py-0.5 rounded-full text-xs ${statusInfo.color}`}>
+                          {statusInfo.label}
+                        </span>
+                      </div>
+                      <p className="text-gray-400 text-sm">{order.address}</p>
+                      <div className="flex items-center gap-3 mt-1">
+                        <span className="text-yellow-400 font-semibold text-sm">₺{order.amount}</span>
+                        <span className="text-gray-500 text-xs">{order.time}</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-2 flex-wrap">
+                    {order.status === 'HAZIR' && (
+                      <button 
+                        onClick={() => handleTeslimAl(order)}
+                        disabled={isUpdating}
+                        className="px-3 py-1.5 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg text-sm transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1"
+                      >
+                        {isUpdating ? <FaSpinner className="animate-spin" size={12} /> : <FaBoxOpen size={12} />}
+                        Teslim Al
+                      </button>
+                    )}
+                    
+                    {order.status === 'KURYEDE' && (
+                      <button 
+                        onClick={() => handleYolaCik(order)}
+                        disabled={isUpdating}
+                        className="px-3 py-1.5 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 rounded-lg text-sm transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1"
+                      >
+                        {isUpdating ? <FaSpinner className="animate-spin" size={12} /> : <FaMapMarkerAlt size={12} />}
+                        Yola Çık
+                      </button>
+                    )}
+                    
+                    {order.status === 'YOLDA' && (
+                      <button 
+                        onClick={() => handleTeslimEt(order)}
+                        disabled={isUpdating}
+                        className="px-3 py-1.5 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg text-sm transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1"
+                      >
+                        {isUpdating ? <FaSpinner className="animate-spin" size={12} /> : <FaCheckCircle size={12} />}
+                        Teslim Et
+                      </button>
+                    )}
+                    
+                    {isCompleted && (
+                      <span className="px-3 py-1.5 bg-green-500/20 text-green-400 rounded-lg text-sm flex items-center gap-1">
+                        <FaCheckCircle size={12} /> Tamamlandı
                       </span>
-                    </div>
+                    )}
+                    
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); handleCallCustomer(order); }} 
+                      className="px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-sm text-gray-300 transition-all cursor-pointer"
+                    >
+                      <FaPhone size={12} />
+                    </button>
+                    
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setSelectedOrder(order); setShowOrderModal(true); }} 
+                      className="px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-sm text-gray-300 transition-all cursor-pointer"
+                    >
+                      <FaEye size={12} />
+                    </button>
                   </div>
                 </div>
-                <div className="flex gap-2 flex-wrap">
-                  <button onClick={(e) => { e.stopPropagation(); handleCallCustomer(order); }} className="px-3 py-1.5 bg-green-500/20 hover:bg-green-500/30 rounded-lg text-sm text-green-400 transition-all cursor-pointer z-10 relative">
-                    <FaPhone />
-                  </button>
-                  {order.status !== 'TESLIM EDILDI' && order.status !== 'Teslim Edildi' && (
-                    <button onClick={(e) => { e.stopPropagation(); handleDeliveryConfirm(order); }} className="px-3 py-1.5 bg-yellow-500/20 hover:bg-yellow-500/30 rounded-lg text-sm text-yellow-400 transition-all cursor-pointer z-10 relative">
-                      <FaCheckCircle />
-                    </button>
-                  )}
-                  <button onClick={(e) => { e.stopPropagation(); setSelectedOrder(order); setShowOrderModal(true); }} className="px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-sm text-gray-300 transition-all cursor-pointer z-10 relative">
-                    <FaEye />
-                  </button>
-                </div>
-              </div>
-            ))
+              );
+            })
           ) : (
-            <div className="text-center py-8 text-gray-400">🎉 Bugün teslim edilecek sipariş kalmadı!</div>
+            <div className="text-center py-8 text-gray-400">🎉 Teslim edilecek sipariş kalmadı!</div>
           )}
         </div>
       </div>
@@ -386,7 +516,9 @@ const KuryePanel = () => {
                 <span className="text-gray-300 ml-2">{order.customer}</span>
               </div>
               <span className="text-yellow-400">₺{order.amount}</span>
-              <span className="text-green-400 text-sm">✅ Tamamlandı</span>
+              <span className="text-green-400 text-sm flex items-center gap-1">
+                <FaCheckCircle /> Tamamlandı
+              </span>
             </div>
           ))
         ) : (

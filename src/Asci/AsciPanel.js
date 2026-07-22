@@ -4,8 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { 
   FaSignOutAlt, FaKey,
   FaTimes, FaBars, FaUtensils,
-  FaCheck, FaSpinner,
-  FaSync
+  FaCheck, FaSpinner, FaSync,
+  FaMotorcycle, FaUser
 } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import { asciAPI, authService } from '../api/api';
@@ -74,7 +74,6 @@ const AsciPanel = () => {
   const fetchOrders = useCallback(async () => {
     try {
       setLoading(true);
-      // 🟢 Sadece BEKLEMEDE ve HAZIRLANIYOR durumlarını getir
       const response = await asciAPI.getAsciSiparisleri();
       
       let data = [];
@@ -98,7 +97,9 @@ const AsciPanel = () => {
           rawStatus: s.siparisDurumu,
           customer: s.uyeAdi || 'Ziyaretçi',
           totalAmount: s.toplamTutar || 0,
-          personelAdi: s.personelAdi || null
+          personelAdi: s.personelAdi || null,
+          // 🆕 Sipariş türünü ekle
+          siparisTuru: s.siparisTuru || (s.masaNo ? 'salon' : 'online')
         }));
 
       setOrders(filteredOrders);
@@ -130,27 +131,47 @@ const AsciPanel = () => {
     }
   }, []);
 
-  // ========== SİPARİŞ DURUMUNU GÜNCELLE (OTOMATİK KURYE ATAMA İLE) ==========
+  // ========== SİPARİŞ DURUMUNU GÜNCELLE ==========
   const updateOrderStatus = async (orderId, newStatus) => {
-    // Zaten güncelleniyorsa tekrar tıklanmasın
     if (updatingOrderId === orderId) return;
     
     try {
       setUpdatingOrderId(orderId);
       
-      // 🟢 "Hazır" butonuna tıklandığında özel işlem (OTOMATİK KURYE ATAMA)
+      // 🔥 HAZIR butonuna tıklandığında
       if (newStatus === 'ready') {
-        // 🔥 Siparişi HAZIR yap ve kurye ata
-        const result = await asciAPI.siparisHazirVeKuryeAta(orderId);
-        
-        if (result.success) {
-          // Siparişi listeden kaldır
-          setOrders(prev => prev.filter(o => o.id !== orderId));
-          toast.success(`✅ ${result.message}`);
+        // Siparişi bul
+        const order = orders.find(o => o.id === orderId);
+        if (!order) {
+          toast.error('Sipariş bulunamadı!');
+          return;
+        }
+
+        // 🟢 Sipariş türüne göre işlem yap
+        if (order.siparisTuru === 'online') {
+          // Online sipariş → Kuryeye ata
+          const result = await asciAPI.siparisHazirVeKuryeAta(orderId);
+          
+          if (result.success) {
+            setOrders(prev => prev.filter(o => o.id !== orderId));
+            toast.success(`✅ ${result.message}`);
+          } else {
+            setOrders(prev => prev.filter(o => o.id !== orderId));
+            toast.warning(`⚠️ ${result.message}`);
+          }
         } else {
-          // Kurye bulunamadı, sipariş havuza eklendi
+          // Salon siparişi → Garsona bildirim git
+          await asciAPI.siparisHazir(orderId);
           setOrders(prev => prev.filter(o => o.id !== orderId));
-          toast.warning(`⚠️ ${result.message}`);
+          toast.success(`✅ Sipariş #${orderId} hazır! Garsona bildirim gönderildi.`);
+          
+          // Garsona bildirim gönder (API çağrısı)
+          try {
+            await asciAPI.garsonaBildirimGonder(orderId);
+            console.log(`📢 Garsona bildirim gönderildi: Sipariş #${orderId}`);
+          } catch (err) {
+            console.warn('Garson bildirimi gönderilemedi:', err);
+          }
         }
         
         // 🔄 Listeyi yenile
@@ -174,25 +195,20 @@ const AsciPanel = () => {
 
       console.log(`🔄 Sipariş #${orderId} durumu güncelleniyor: ${backendStatus}`);
 
-      // Durumu güncelle
       await asciAPI.updateSiparisDurum(orderId, backendStatus);
 
-      // Local state'i güncelle
       setOrders(prev => prev.map(order => 
         order.id === orderId ? { ...order, status: newStatus, rawStatus: backendStatus } : order
       ));
 
       toast.success(`✅ Sipariş #${orderId} hazırlanmaya başlandı 🍳`);
 
-      // 🔄 Listeyi yenile
       setTimeout(() => {
         fetchOrders();
       }, 1000);
       
     } catch (error) {
       console.error('Sipariş durumu güncellenirken hata:', error);
-      
-      // Hata mesajını göster
       const errorMsg = error?.response?.data?.message || error?.message || 'Sipariş durumu güncellenirken bir hata oluştu!';
       toast.error(`❌ ${errorMsg}`);
     } finally {
@@ -229,7 +245,6 @@ const AsciPanel = () => {
       setNewPassword('');
       setConfirmPassword('');
 
-      // 3 saniye sonra tekrar giriş yapmasını iste
       setTimeout(() => {
         toast.info('Güvenlik için lütfen tekrar giriş yapın.');
         handleLogout();
@@ -267,12 +282,19 @@ const AsciPanel = () => {
     }
   };
 
+  // ========== SİPARİŞ TÜRÜNE GÖRE RENK ==========
+  const getSiparisTuruBadge = (tur) => {
+    if (tur === 'online') {
+      return { bg: 'bg-blue-500/20', text: 'text-blue-400', icon: <FaMotorcycle className="inline mr-1" size={12} />, label: 'Online' };
+    }
+    return { bg: 'bg-green-500/20', text: 'text-green-400', icon: <FaUser className="inline mr-1" size={12} />, label: 'Salon' };
+  };
+
   // ========== EFFECT'LER ==========
   useEffect(() => {
     fetchUserData();
     fetchOrders();
 
-    // Her 10 saniyede bir otomatik yenile (daha hızlı tepki için)
     const interval = setInterval(fetchOrders, 10000);
     return () => clearInterval(interval);
   }, [fetchUserData, fetchOrders]);
@@ -291,7 +313,6 @@ const AsciPanel = () => {
         backgroundAttachment: 'fixed'
       }}
     >
-      {/* Arka plan overlay */}
       <div className="absolute inset-0 bg-black/40 backdrop-blur-xl"></div>
       
       <div className="relative z-10 flex">
@@ -304,7 +325,6 @@ const AsciPanel = () => {
           ${mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
           z-50 flex-shrink-0
         `}>
-          {/* Sidebar Header */}
           <div className="flex items-center justify-between p-4 border-b border-white/10">
             {sidebarOpen ? (
               <div className="flex items-center gap-3">
@@ -331,7 +351,6 @@ const AsciPanel = () => {
             </button>
           </div>
 
-          {/* Sidebar Menü */}
           <div className="py-4 px-3">
             <button className="w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all text-white bg-white/10">
               <FaUtensils size={18} />
@@ -363,7 +382,6 @@ const AsciPanel = () => {
           </div>
         </div>
 
-        {/* Mobile Sidebar Toggle */}
         <button
           onClick={() => setMobileSidebarOpen(true)}
           className="lg:hidden fixed top-4 left-4 z-40 p-2.5 bg-black/80 backdrop-blur-sm rounded-lg text-white"
@@ -380,7 +398,6 @@ const AsciPanel = () => {
 
         {/* Ana İçerik */}
         <div className="flex-1">
-          {/* Üst Navbar */}
           <div className="bg-black/80 backdrop-blur-sm border-b border-white/10 sticky top-0 z-30">
             <div className="max-w-7xl mx-auto px-4 py-3">
               <div className="flex items-center justify-end gap-4">
@@ -399,7 +416,6 @@ const AsciPanel = () => {
             </div>
           </div>
 
-          {/* İçerik */}
           <div className="max-w-7xl mx-auto px-4 py-6">
             {/* Başlık */}
             <div className="flex items-center justify-between mb-6 flex-wrap gap-2">
@@ -417,24 +433,31 @@ const AsciPanel = () => {
               </div>
             </div>
 
-            {/* Loading State */}
             {loading && orders.length === 0 ? (
               <div className="bg-black/80 backdrop-blur-sm rounded-2xl p-12 border border-white/10 flex flex-col items-center justify-center">
                 <FaSpinner className="animate-spin text-yellow-400 text-4xl mb-4" />
                 <p className="text-gray-400">Siparişler yükleniyor...</p>
               </div>
             ) : (
-              /* Sipariş Listesi */
               <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
                 {orders.map((order) => {
                   const status = getStatusBadge(order.status);
                   const isUpdating = updatingOrderId === order.id;
+                  const turBadge = getSiparisTuruBadge(order.siparisTuru);
+                  const isOnline = order.siparisTuru === 'online';
                   
                   return (
                     <div key={order.id} className="bg-black/80 backdrop-blur-sm rounded-2xl border border-white/10 p-4 hover:border-white/20 transition-all">
                       <div className="flex items-start justify-between mb-3">
                         <div>
-                          <h3 className="text-white font-bold text-lg">{order.table}</h3>
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-white font-bold text-lg">{order.table}</h3>
+                            {/* 🆕 Sipariş türü badge'i */}
+                            <span className={`text-[10px] px-2 py-0.5 rounded ${turBadge.bg} ${turBadge.text}`}>
+                              {turBadge.icon}
+                              {turBadge.label}
+                            </span>
+                          </div>
                           <p className="text-gray-400 text-sm">{order.time}</p>
                           <p className="text-gray-500 text-xs mt-1">Müşteri: {order.customer}</p>
                           {order.personelAdi && (
@@ -470,6 +493,7 @@ const AsciPanel = () => {
                         </div>
                       )}
 
+                      {/* ========== BUTONLAR ========== */}
                       <div className="flex gap-2 mt-3">
                         {order.status === 'pending' && (
                           <button
@@ -486,18 +510,37 @@ const AsciPanel = () => {
                           </button>
                         )}
                         {order.status === 'preparing' && (
-                          <button
-                            onClick={() => updateOrderStatus(order.id, 'ready')}
-                            disabled={isUpdating}
-                            className="flex-1 px-3 py-2 bg-green-500/20 hover:bg-green-500/30 disabled:opacity-50 disabled:cursor-not-allowed text-green-400 rounded-lg text-sm transition-all flex items-center justify-center gap-2"
-                          >
-                            {isUpdating ? (
-                              <FaSpinner className="animate-spin" size={14} />
+                          <>
+                            {isOnline ? (
+                              // 🟢 Online Sipariş → Kuryeye Ata
+                              <button
+                                onClick={() => updateOrderStatus(order.id, 'ready')}
+                                disabled={isUpdating}
+                                className="flex-1 px-3 py-2 bg-green-500/20 hover:bg-green-500/30 disabled:opacity-50 disabled:cursor-not-allowed text-green-400 rounded-lg text-sm transition-all flex items-center justify-center gap-2"
+                              >
+                                {isUpdating ? (
+                                  <FaSpinner className="animate-spin" size={14} />
+                                ) : (
+                                  <FaMotorcycle size={14} />
+                                )}
+                                Hazır (Kurye Ata)
+                              </button>
                             ) : (
-                              <FaCheck size={14} />
+                              // 🟢 Salon Siparişi → Garsona Bildir
+                              <button
+                                onClick={() => updateOrderStatus(order.id, 'ready')}
+                                disabled={isUpdating}
+                                className="flex-1 px-3 py-2 bg-green-500/20 hover:bg-green-500/30 disabled:opacity-50 disabled:cursor-not-allowed text-green-400 rounded-lg text-sm transition-all flex items-center justify-center gap-2"
+                              >
+                                {isUpdating ? (
+                                  <FaSpinner className="animate-spin" size={14} />
+                                ) : (
+                                  <FaCheck size={14} />
+                                )}
+                                Hazır (Garsona Bildir)
+                              </button>
                             )}
-                            Hazır (Kurye Ata)
-                          </button>
+                          </>
                         )}
                       </div>
                     </div>
@@ -515,7 +558,6 @@ const AsciPanel = () => {
             )}
           </div>
 
-          {/* Alt Bilgi */}
           <div className="border-t border-white/10 bg-black/30 backdrop-blur-sm">
             <div className="max-w-7xl mx-auto px-4 py-3">
               <p className="text-gray-400 text-[10px] text-center">
