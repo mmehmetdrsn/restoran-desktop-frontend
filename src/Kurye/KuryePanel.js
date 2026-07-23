@@ -1,3 +1,4 @@
+// src/Kurye/KuryePanel.js
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -55,6 +56,15 @@ const KuryePanel = () => {
     
     let status = s.siparisDurumu || s.SiparisDurumu || 'Bilinmiyor';
     
+    const items = s.detaylar || s.Detaylar || [];
+    const itemList = items.map(item => ({
+        urunAdi: item.urunAdi || item.UrunAdi || 'Ürün',
+        adet: item.adet || item.Adet || 1,
+        birimFiyat: item.birimFiyat || item.BirimFiyat || 0,
+        satirToplami: item.satirToplami || item.SatirToplami || 0,
+        detayNot: item.detayNot || item.DetayNot || ''
+    }));
+    
     return {
       id: s.siparisId ?? s.SiparisId,
       customer: s.musteriAdSoyad ?? s.MusteriAdSoyad ?? 'Müşteri',
@@ -64,6 +74,7 @@ const KuryePanel = () => {
       time: formatElapsed(s.siparisTarihi ?? s.SiparisTarihi),
       phone: s.musteriTelefon ?? s.MusteriTelefon ?? '',
       rawStatus: status,
+      items: itemList,
       siparisDetay: s.detaylar ?? s.Detaylar ?? []
     };
   };
@@ -109,7 +120,6 @@ const KuryePanel = () => {
         console.log(`  ${index + 1}. Sipariş #${s.siparisId} - Durum: ${s.siparisDurumu} - Tip: ${s.siparisTipi}`);
       });
       
-      // 🟢 SADECE KURYEDE ve YOLDA durumlarını göster
       const filteredData = data.filter(s => 
         s.siparisDurumu === "KURYEDE" || 
         s.siparisDurumu === "YOLDA"
@@ -162,9 +172,8 @@ const KuryePanel = () => {
         
         console.log(`🔄 Sipariş #${orderId} durumu güncelleniyor: ${newStatus}`);
         
-        // ✅ Doğru çağrı
-        await kuryeAPI.updateSiparisDurum(orderId, { 
-            siparisDurumu: newStatus,  // DTO'daki alan adı
+        await kuryeAPI.updateSiparisDurum(orderId, {  
+            siparisDurumu: newStatus,
             personelId: personelId 
         });
         
@@ -179,11 +188,9 @@ const KuryePanel = () => {
     } finally {
         setUpdatingOrderId(null);
     }
-};
+  };
 
   // ========== TESLİMAT ADIMLARI ==========
-  
-  // 1. Teslim Al (HAZIR → KURYEDE)
   const handleTeslimAl = (order) => {
     if (!order) return;
     
@@ -199,7 +206,6 @@ const KuryePanel = () => {
     updateOrderStatus(order.id, 'KURYEDE', 'teslim alındı');
   };
 
-  // 2. Yola Çık (KURYEDE → YOLDA)
   const handleYolaCik = (order) => {
     if (!order) return;
     
@@ -214,13 +220,11 @@ const KuryePanel = () => {
     
     updateOrderStatus(order.id, 'YOLDA', 'yola çıkıldı');
     
-    // Müşteriye bildirim
     setTimeout(() => {
       toast.info(`📱 ${order.customer} müşterisine "Kurye yolda!" bildirimi gönderildi.`);
     }, 1000);
   };
 
-  // 3. Teslim Et (YOLDA → TESLIM EDILDI)
   const handleTeslimEt = (order) => {
     if (!order) return;
     
@@ -235,7 +239,6 @@ const KuryePanel = () => {
     
     updateOrderStatus(order.id, 'TESLIM EDILDI', 'teslim edildi');
     
-    // Müşteriye bildirim
     setTimeout(() => {
       toast.info(`📱 ${order.customer} müşterisine "Siparişiniz teslim edildi!" bildirimi gönderildi.`);
     }, 1000);
@@ -313,7 +316,25 @@ const KuryePanel = () => {
               </div>
             </div>
             
-            {/* Sipariş Adımları */}
+            {/*  Ürün detayları */}
+            {order.items && order.items.length > 0 && (
+              <div className="border-t border-white/10 pt-3">
+                <p className="text-gray-400 text-xs mb-2">Ürünler:</p>
+                <div className="space-y-1">
+                  {order.items.map((item, idx) => (
+                    <div key={idx} className="text-gray-300 text-sm flex items-center gap-2">
+                      <span>•</span>
+                      <span>{item.urunAdi}</span>
+                      <span className="text-gray-500">x{item.adet}</span>
+                      {item.detayNot && (
+                        <span className="text-yellow-500/70 text-[10px]">({item.detayNot})</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            
             <div className="border-t border-white/10 pt-4">
               <p className="text-gray-400 text-xs mb-3">Teslimat Adımları:</p>
               <div className="flex flex-wrap gap-2">
@@ -424,6 +445,23 @@ const KuryePanel = () => {
                           {statusInfo.label}
                         </span>
                       </div>
+                      
+                      {/* Ürünleri göster */}
+                      {order.items && order.items.length > 0 && (
+                        <div className="mt-1 space-y-0.5">
+                          {order.items.map((item, idx) => (
+                            <div key={idx} className="text-gray-400 text-xs flex items-center gap-2">
+                              <span>•</span>
+                              <span>{item.urunAdi}</span>
+                              <span className="text-gray-500">x{item.adet}</span>
+                              {item.detayNot && (
+                                <span className="text-yellow-500/70 text-[10px]">({item.detayNot})</span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      
                       <p className="text-gray-400 text-sm">{order.address}</p>
                       <div className="flex items-center gap-3 mt-1">
                         <span className="text-yellow-400 font-semibold text-sm">₺{order.amount}</span>
