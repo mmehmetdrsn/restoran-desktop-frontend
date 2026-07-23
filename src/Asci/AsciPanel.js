@@ -8,7 +8,7 @@ import {
   FaSync
 } from 'react-icons/fa';
 import { toast } from 'react-toastify';
-import { asciAPI, authService } from '../api/api';
+import { asciAPI, authService, orderService, paymentService } from '../api/api';
 
 // Arka plan resmi
 const backgroundImage = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80';
@@ -74,7 +74,6 @@ const AsciPanel = () => {
   const fetchOrders = useCallback(async () => {
     try {
       setLoading(true);
-      // 🟢 Sadece BEKLEMEDE ve HAZIRLANIYOR durumlarını getir
       const response = await asciAPI.getAsciSiparisleri();
       
       let data = [];
@@ -103,7 +102,6 @@ const AsciPanel = () => {
 
       setOrders(filteredOrders);
 
-      // Her siparişin detaylarını çek
       for (const order of filteredOrders) {
         try {
           const detailResponse = await asciAPI.getSiparisDetay(order.id);
@@ -130,30 +128,24 @@ const AsciPanel = () => {
     }
   }, []);
 
-  // ========== SİPARİŞ DURUMUNU GÜNCELLE (OTOMATİK KURYE ATAMA İLE) ==========
+  // ========== SİPARİŞ DURUMUNU GÜNCELLE ==========
   const updateOrderStatus = async (orderId, newStatus) => {
-    // Zaten güncelleniyorsa tekrar tıklanmasın
     if (updatingOrderId === orderId) return;
     
     try {
       setUpdatingOrderId(orderId);
       
-      // 🟢 "Hazır" butonuna tıklandığında özel işlem (OTOMATİK KURYE ATAMA)
       if (newStatus === 'ready') {
-        // 🔥 Siparişi HAZIR yap ve kurye ata
         const result = await asciAPI.siparisHazirVeKuryeAta(orderId);
         
         if (result.success) {
-          // Siparişi listeden kaldır
           setOrders(prev => prev.filter(o => o.id !== orderId));
           toast.success(`✅ ${result.message}`);
         } else {
-          // Kurye bulunamadı, sipariş havuza eklendi
           setOrders(prev => prev.filter(o => o.id !== orderId));
           toast.warning(`⚠️ ${result.message}`);
         }
         
-        // 🔄 Listeyi yenile
         setTimeout(() => {
           fetchOrders();
         }, 2000);
@@ -161,7 +153,6 @@ const AsciPanel = () => {
         return;
       }
       
-      // 🟡 "Hazırlamaya Başla" için normal işlem
       const statusMap = {
         'preparing': 'HAZIRLANIYOR'
       };
@@ -174,26 +165,66 @@ const AsciPanel = () => {
 
       console.log(`🔄 Sipariş #${orderId} durumu güncelleniyor: ${backendStatus}`);
 
-      // Durumu güncelle
       await asciAPI.updateSiparisDurum(orderId, backendStatus);
 
-      // Local state'i güncelle
       setOrders(prev => prev.map(order => 
         order.id === orderId ? { ...order, status: newStatus, rawStatus: backendStatus } : order
       ));
 
       toast.success(`✅ Sipariş #${orderId} hazırlanmaya başlandı 🍳`);
 
-      // 🔄 Listeyi yenile
       setTimeout(() => {
         fetchOrders();
       }, 1000);
       
     } catch (error) {
       console.error('Sipariş durumu güncellenirken hata:', error);
-      
-      // Hata mesajını göster
       const errorMsg = error?.response?.data?.message || error?.message || 'Sipariş durumu güncellenirken bir hata oluştu!';
+      toast.error(`❌ ${errorMsg}`);
+    } finally {
+      setUpdatingOrderId(null);
+    }
+  };
+
+  // ========== SİPARİŞ İPTAL ==========
+  const handleCancelOrder = async (orderId) => {
+    if (!window.confirm(`Sipariş #${orderId} iptal edilsin mi?`)) return;
+    
+    try {
+      setUpdatingOrderId(orderId);
+      await orderService.cancel(orderId);
+      toast.success(`✅ Sipariş #${orderId} iptal edildi.`);
+      setTimeout(() => {
+        fetchOrders();
+      }, 1000);
+    } catch (error) {
+      console.error('İptal hatası:', error);
+      const errorMsg = error?.response?.data?.mesaj || error?.message || 'İptal işlemi başarısız!';
+      toast.error(`❌ ${errorMsg}`);
+    } finally {
+      setUpdatingOrderId(null);
+    }
+  };
+
+  // ========== SİPARİŞ İADE ==========
+  const handleRefundOrder = async (orderId) => {
+    const reason = window.prompt('İade sebebini girin:');
+    if (!reason) return;
+    
+    try {
+      setUpdatingOrderId(orderId);
+      await paymentService.processRefund({
+        siparisId: orderId,
+        iadeSebebi: reason,
+        personelId: userData.personelId
+      });
+      toast.success(`✅ Sipariş #${orderId} iade edildi.`);
+      setTimeout(() => {
+        fetchOrders();
+      }, 1000);
+    } catch (error) {
+      console.error('İade hatası:', error);
+      const errorMsg = error?.response?.data?.mesaj || error?.message || 'İade işlemi başarısız!';
       toast.error(`❌ ${errorMsg}`);
     } finally {
       setUpdatingOrderId(null);
@@ -229,7 +260,6 @@ const AsciPanel = () => {
       setNewPassword('');
       setConfirmPassword('');
 
-      // 3 saniye sonra tekrar giriş yapmasını iste
       setTimeout(() => {
         toast.info('Güvenlik için lütfen tekrar giriş yapın.');
         handleLogout();
@@ -272,7 +302,6 @@ const AsciPanel = () => {
     fetchUserData();
     fetchOrders();
 
-    // Her 10 saniyede bir otomatik yenile (daha hızlı tepki için)
     const interval = setInterval(fetchOrders, 10000);
     return () => clearInterval(interval);
   }, [fetchUserData, fetchOrders]);
@@ -291,7 +320,6 @@ const AsciPanel = () => {
         backgroundAttachment: 'fixed'
       }}
     >
-      {/* Arka plan overlay */}
       <div className="absolute inset-0 bg-black/40 backdrop-blur-xl"></div>
       
       <div className="relative z-10 flex">
@@ -304,7 +332,6 @@ const AsciPanel = () => {
           ${mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
           z-50 flex-shrink-0
         `}>
-          {/* Sidebar Header */}
           <div className="flex items-center justify-between p-4 border-b border-white/10">
             {sidebarOpen ? (
               <div className="flex items-center gap-3">
@@ -331,7 +358,6 @@ const AsciPanel = () => {
             </button>
           </div>
 
-          {/* Sidebar Menü */}
           <div className="py-4 px-3">
             <button className="w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all text-white bg-white/10">
               <FaUtensils size={18} />
@@ -470,35 +496,56 @@ const AsciPanel = () => {
                         </div>
                       )}
 
-                      <div className="flex gap-2 mt-3">
-                        {order.status === 'pending' && (
+                      <div className="flex flex-col gap-2 mt-3">
+                        {/* Ana işlem butonları */}
+                        <div className="flex gap-2">
+                          {order.status === 'pending' && (
+                            <button
+                              onClick={() => updateOrderStatus(order.id, 'preparing')}
+                              disabled={isUpdating}
+                              className="flex-1 px-3 py-2 bg-blue-500/20 hover:bg-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed text-blue-400 rounded-lg text-sm transition-all flex items-center justify-center gap-2"
+                            >
+                              {isUpdating ? (
+                                <FaSpinner className="animate-spin" size={14} />
+                              ) : (
+                                <FaSpinner className="animate-spin" size={14} />
+                              )}
+                              Hazırlamaya Başla
+                            </button>
+                          )}
+                          {order.status === 'preparing' && (
+                            <button
+                              onClick={() => updateOrderStatus(order.id, 'ready')}
+                              disabled={isUpdating}
+                              className="flex-1 px-3 py-2 bg-green-500/20 hover:bg-green-500/30 disabled:opacity-50 disabled:cursor-not-allowed text-green-400 rounded-lg text-sm transition-all flex items-center justify-center gap-2"
+                            >
+                              {isUpdating ? (
+                                <FaSpinner className="animate-spin" size={14} />
+                              ) : (
+                                <FaCheck size={14} />
+                              )}
+                              Hazır (Kurye Ata)
+                            </button>
+                          )}
+                        </div>
+
+                        {/* ✅ İptal ve İade butonları */}
+                        <div className="flex gap-2">
                           <button
-                            onClick={() => updateOrderStatus(order.id, 'preparing')}
+                            onClick={() => handleCancelOrder(order.id)}
                             disabled={isUpdating}
-                            className="flex-1 px-3 py-2 bg-blue-500/20 hover:bg-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed text-blue-400 rounded-lg text-sm transition-all flex items-center justify-center gap-2"
+                            className="flex-1 px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 disabled:opacity-50 disabled:cursor-not-allowed text-red-400 rounded-lg text-xs transition-all flex items-center justify-center gap-1"
                           >
-                            {isUpdating ? (
-                              <FaSpinner className="animate-spin" size={14} />
-                            ) : (
-                              <FaSpinner className="animate-spin" size={14} />
-                            )}
-                            Hazırlamaya Başla
+                            ❌ İptal Et
                           </button>
-                        )}
-                        {order.status === 'preparing' && (
                           <button
-                            onClick={() => updateOrderStatus(order.id, 'ready')}
-                            disabled={isUpdating}
-                            className="flex-1 px-3 py-2 bg-green-500/20 hover:bg-green-500/30 disabled:opacity-50 disabled:cursor-not-allowed text-green-400 rounded-lg text-sm transition-all flex items-center justify-center gap-2"
+                            onClick={() => handleRefundOrder(order.id)}
+                            disabled={isUpdating || order.status !== 'pending'}
+                            className="flex-1 px-3 py-1.5 bg-yellow-500/20 hover:bg-yellow-500/30 disabled:opacity-50 disabled:cursor-not-allowed text-yellow-400 rounded-lg text-xs transition-all flex items-center justify-center gap-1"
                           >
-                            {isUpdating ? (
-                              <FaSpinner className="animate-spin" size={14} />
-                            ) : (
-                              <FaCheck size={14} />
-                            )}
-                            Hazır (Kurye Ata)
+                            ↩️ İade Et
                           </button>
-                        )}
+                        </div>
                       </div>
                     </div>
                   );

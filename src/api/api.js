@@ -1,11 +1,13 @@
 // src/api/api.js
 
 // .env dosyasından API URL'sini al
-const API_BASE_URL = process.env.REACT_APP_API_URL 
+const API_BASE_URL = process.env.REACT_APP_API_URL;
 
 console.log('🚀 API Base URL:', API_BASE_URL);
 
-// Genel API istek fonksiyonu
+// ============================================================
+// ✅ GENEL API İSTEK FONKSİYONU
+// ============================================================
 export const apiRequest = async (endpoint, method = 'GET', body = null) => {
     const url = `${API_BASE_URL}${endpoint}`;
     console.log(`📡 ${method} ${url}`);
@@ -57,7 +59,6 @@ export const apiRequest = async (endpoint, method = 'GET', body = null) => {
             window.location.href = '/login';
         }
 
-        // 👇 KRİTİK: artık gerçekten throw ediyoruz, axios benzeri şekilde
         const err = new Error(errorData.Mesaj || errorData.mesaj || `HTTP ${response.status}`);
         err.response = { status: response.status, data: errorData };
         throw err;
@@ -72,21 +73,23 @@ export const apiRequest = async (endpoint, method = 'GET', body = null) => {
     console.log(`📡 Response Data:`, data);
     return { data, status: response.status };
 };
-// ========== AUTH SERVİSİ ==========
+
+// ============================================================
+// ✅ AUTH SERVİSİ
+// ============================================================
 export const authService = {
     login: (data) => apiRequest('/Auth/login', 'POST', data),
     register: (data) => apiRequest('/Auth/register', 'POST', data),
     refresh: (data) => apiRequest('/Auth/refresh', 'POST', data),
     logout: () => apiRequest('/Auth/logout', 'POST'),
-    sifreDegistir: (currentPassword, newPassword) => {
-        return apiRequest('/Auth/sifre-degistir', 'POST', { 
-            mevcutSifre: currentPassword, 
-            yeniSifre: newPassword 
-        });
+    sifreDegistir: (data) => {
+        return apiRequest('/Auth/sifre-degistir', 'POST', data);
     },
 };
 
-// ========== SİPARİŞ SERVİSİ ==========
+// ============================================================
+// ✅ SİPARİŞ SERVİSİ
+// ============================================================
 export const orderService = {
     getAll: () => apiRequest('/Siparisler'),
     getById: (id) => apiRequest(`/Siparisler/${id}`),
@@ -99,42 +102,29 @@ export const orderService = {
     updateStatus: (id, status) => apiRequest(`/Siparisler/${id}/durum`, 'PUT', { siparisDurumu: status }),
     cancel: (id) => apiRequest(`/Siparisler/${id}/iptal`, 'PUT'),
     complete: (id) => apiRequest(`/Siparisler/${id}/tamamla`, 'PUT'),
-    
-    // 🆕 Sipariş detaylarını güncelle (ürün ekle/çıkar)
     updateDetails: (id, data) => {
         console.log(`📦 Sipariş #${id} detayları güncelleniyor:`, data);
         return apiRequest(`/Siparisler/${id}`, 'PUT', data);
     },
-    
-    // 🆕 Siparişe ürün ekle
     addItem: (id, item) => {
         console.log(`📦 Sipariş #${id} ürün ekleniyor:`, item);
         return apiRequest(`/Siparisler/${id}/urun-ekle`, 'POST', item);
     },
-    
-    // 🆕 Siparişten ürün çıkar
     removeItem: (id, itemId) => {
         console.log(`📦 Sipariş #${id} ürün çıkarılıyor:`, itemId);
         return apiRequest(`/Siparisler/${id}/urun-cikar/${itemId}`, 'DELETE');
     }
 };
 
-// ========== AŞÇI SERVİSİ ==========
+// ============================================================
+// ✅ AŞÇI SERVİSİ
+// ============================================================
 export const asciAPI = {
-    // Tüm siparişleri getir
     getSiparisler: () => apiRequest('/Siparisler'),
-    
-    // Tek sipariş detayını getir
     getSiparisDetay: (id) => apiRequest(`/Siparisler/${id}`),
-    
-    // Sipariş durumunu güncelle (BEKLEMEDE -> HAZIRLANIYOR -> HAZIR)
-    updateSiparisDurum: (id, durum) => 
+    updateSiparisDurum: (id, durum) =>
         apiRequest(`/Siparisler/${id}/durum`, 'PUT', { siparisDurumu: durum }),
-    
-    // Sipariş tamamla (stok düşümü için)
     siparisTamamla: (id) => apiRequest(`/Siparisler/${id}/tamamla`, 'PUT'),
-    
-    // Sadece aşçının ilgilendiği siparişleri getir (BEKLEMEDE, HAZIRLANIYOR)
     getAsciSiparisleri: async () => {
         const response = await apiRequest('/Siparisler');
         if (response.data && Array.isArray(response.data)) {
@@ -146,48 +136,42 @@ export const asciAPI = {
         }
         return response;
     },
-    
-    // 🆕 Sipariş hazır olduğunda otomatik kurye ata
     siparisHazirVeKuryeAta: async (siparisId) => {
         try {
-            // 1. Siparişi HAZIR yap
             await asciAPI.updateSiparisDurum(siparisId, 'HAZIR');
-            
-            // 2. Müsait kurye bul
             const kuryeResponse = await kuryeAPI.getMusaitKuryeler();
             const musaitKuryeler = kuryeResponse?.data || [];
-            
+
             if (musaitKuryeler.length === 0) {
-                return { 
-                    success: false, 
-                    message: 'Müsait kurye bulunamadı! Sipariş havuza eklendi.' 
+                return {
+                    success: false,
+                    message: 'Müsait kurye bulunamadı! Sipariş havuza eklendi.'
                 };
             }
-            
-            // 3. İlk müsait kuryeye ata
+
             const secilenKurye = musaitKuryeler[0];
             await kuryeAPI.siparisKuryeyeAta(siparisId, secilenKurye.personelId);
-            
-            return { 
-                success: true, 
+
+            return {
+                success: true,
                 message: `Sipariş kurye ${secilenKurye.personelAdi} ${secilenKurye.personelSoyadi}'a atandı!`,
                 kurye: secilenKurye
             };
         } catch (error) {
             console.error('Kurye atama hatası:', error);
-            return { 
-                success: false, 
-                message: 'Kurye atama başarısız! Sipariş havuza eklendi.' 
+            return {
+                success: false,
+                message: 'Kurye atama başarısız! Sipariş havuza eklendi.'
             };
         }
     },
-    
-    // 🆕 Sipariş bildirimi gönder
-    siparisBildirimGonder: (siparisId, durum) => 
+    siparisBildirimGonder: (siparisId, durum) =>
         apiRequest(`/Siparisler/${siparisId}/bildirim`, 'POST', { durum }),
 };
 
-// ========== ÜYE SERVİSİ ==========
+// ============================================================
+// ✅ ÜYE SERVİSİ
+// ============================================================
 export const userService = {
     getAll: () => apiRequest('/Uyeler'),
     getById: (id) => apiRequest(`/Uyeler/${id}`),
@@ -196,7 +180,9 @@ export const userService = {
     delete: (id) => apiRequest(`/Uyeler/${id}`, 'DELETE'),
 };
 
-// ========== KATEGORİ SERVİSİ ==========
+// ============================================================
+// ✅ KATEGORİ SERVİSİ
+// ============================================================
 export const categoryService = {
     getAll: () => apiRequest('/Kategoriler'),
     getById: (id) => apiRequest(`/Kategoriler/${id}`),
@@ -205,7 +191,9 @@ export const categoryService = {
     delete: (id) => apiRequest(`/Kategoriler/${id}`, 'DELETE'),
 };
 
-// ========== ÜRÜN SERVİSİ ==========
+// ============================================================
+// ✅ ÜRÜN SERVİSİ
+// ============================================================
 export const productService = {
     getAll: () => apiRequest('/Urunler'),
     getById: (id) => apiRequest(`/Urunler/${id}`),
@@ -220,7 +208,9 @@ export const productService = {
     delete: (id) => apiRequest(`/Urunler/${id}`, 'DELETE'),
 };
 
-// ========== MASA SERVİSİ ==========
+// ============================================================
+// ✅ MASA SERVİSİ
+// ============================================================
 export const tableService = {
     getAll: () => {
         console.log('📦 Masalar getiriliyor...');
@@ -240,16 +230,18 @@ export const tableService = {
         console.log('📦 Masa taşınıyor:', data);
         return apiRequest('/Masa/tasi', 'POST', data);
     },
-   updateStatus: (id, status, rezervasyonSaati = null) => {
-    console.log(`📦 Masa #${id} durumu güncelleniyor:`, status, rezervasyonSaati);
-    return apiRequest(`/Masa/${id}/durum`, 'PUT', {
-        masaDurumu: status,
-        rezervasyonSaati: rezervasyonSaati
-    });
-}
+    updateStatus: (id, status, rezervasyonSaati = null) => {
+        console.log(`📦 Masa #${id} durumu güncelleniyor:`, status, rezervasyonSaati);
+        return apiRequest(`/Masa/${id}/durum`, 'PUT', {
+            masaDurumu: status,
+            rezervasyonSaati: rezervasyonSaati
+        });
+    }
 };
 
-// ========== REZERVASYON SERVİSİ ==========
+// ============================================================
+// ✅ REZERVASYON SERVİSİ
+// ============================================================
 export const reservationService = {
     getAll: () => apiRequest('/Rezervasyon'),
     getById: (id) => apiRequest(`/Rezervasyon/${id}`),
@@ -259,7 +251,9 @@ export const reservationService = {
     updateStatus: (id, status) => apiRequest(`/Rezervasyon/${id}/durum`, 'PUT', { durum: status }),
 };
 
-// ========== PERSONEL SERVİSİ ==========
+// ============================================================
+// ✅ PERSONEL SERVİSİ
+// ============================================================
 export const personnelService = {
     getAll: () => apiRequest('/Personel'),
     getById: (id) => apiRequest(`/Personel/${id}`),
@@ -268,7 +262,9 @@ export const personnelService = {
     delete: (id) => apiRequest(`/Personel/${id}`, 'DELETE'),
 };
 
-// ========== ÖDEME SERVİSİ ==========
+// ============================================================
+// ✅ ÖDEME SERVİSİ
+// ============================================================
 export const paymentService = {
     getAll: () => apiRequest('/Odeme'),
     getById: (id) => apiRequest(`/Odeme/${id}`),
@@ -282,13 +278,19 @@ export const paymentService = {
         console.log('💰 Ödeme işleniyor:', data);
         return apiRequest('/Odeme/odeme-al', 'POST', data);
     },
+    masaOdeme: (data) => {
+        console.log('💰 Masa ödemesi işleniyor:', data);
+        return apiRequest('/Odeme/masa-odeme', 'POST', data);
+    },
     processRefund: (data) => {
         console.log('↩️ İade işleniyor:', data);
-        return apiRequest('/Odeme/iade', 'POST', data);
+        return apiRequest('/Iade/siparis-iade', 'POST', data);
     }
 };
 
-// ========== KASA SERVİSİ ==========
+// ============================================================
+// ✅ KASA SERVİSİ
+// ============================================================
 export const cashService = {
     getAll: () => apiRequest('/Kasa'),
     getById: (id) => apiRequest(`/Kasa/${id}`),
@@ -298,7 +300,9 @@ export const cashService = {
     close: (id, data) => apiRequest(`/Kasa/${id}/kapat`, 'PUT', data),
 };
 
-// ========== MALZEME SERVİSİ ==========
+// ============================================================
+// ✅ MALZEME SERVİSİ
+// ============================================================
 export const materialService = {
     getAll: () => apiRequest('/Malzemeler'),
     getById: (id) => apiRequest(`/Malzemeler/${id}`),
@@ -307,7 +311,9 @@ export const materialService = {
     delete: (id) => apiRequest(`/Malzemeler/${id}`, 'DELETE'),
 };
 
-// ========== RAPOR SERVİSİ ==========
+// ============================================================
+// ✅ RAPOR SERVİSİ
+// ============================================================
 export const reportService = {
     getGunlukCiro: (tarih) => {
         const params = tarih ? `?tarih=${tarih}` : '';
@@ -321,17 +327,14 @@ export const reportService = {
         const params = adet ? `?adet=${adet}` : '';
         return apiRequest(`/Rapor/son-siparisler${params}`);
     },
-
     getGunlukSatis: (tarih) => {
         const params = tarih ? `?tarih=${tarih}` : '';
         return apiRequest(`/Rapor/gunluk-satis${params}`);
     },
-
     getUrunSatis: (gun) => {
         const params = gun ? `?gun=${gun}` : '';
         return apiRequest(`/Rapor/urun-satis${params}`);
     },
-
     getRezervasyonRaporu: (baslangic, bitis) => {
         let params = '';
         if (baslangic) params += `?baslangic=${baslangic}`;
@@ -351,7 +354,9 @@ export const reportService = {
     }
 };
 
-// ========== STOK HAREKET SERVİSİ ==========
+// ============================================================
+// ✅ STOK HAREKET SERVİSİ
+// ============================================================
 export const stokHareketService = {
     getAll: () => apiRequest('/StokHareketleri'),
     getById: (id) => apiRequest(`/StokHareketleri/${id}`),
@@ -360,7 +365,9 @@ export const stokHareketService = {
     delete: (id) => apiRequest(`/StokHareketleri/${id}`, 'DELETE'),
 };
 
-// ========== REÇETE SERVİSİ ==========
+// ============================================================
+// ✅ REÇETE SERVİSİ
+// ============================================================
 export const receteService = {
     getAll: () => apiRequest('/Receteler'),
     getByUrun: (urunId) => apiRequest(`/Receteler/urun/${urunId}`),
@@ -369,7 +376,9 @@ export const receteService = {
     delete: (id) => apiRequest(`/Receteler/${id}`, 'DELETE'),
 };
 
-// ========== İADE SERVİSİ ==========
+// ============================================================
+// ✅ İADE SERVİSİ
+// ============================================================
 export const iadeService = {
     getAll: () => apiRequest('/Iade'),
     getById: (id) => apiRequest(`/Iade/${id}`),
@@ -378,7 +387,9 @@ export const iadeService = {
     updateStatus: (id, status) => apiRequest(`/Iade/${id}/durum`, 'PUT', { iadeDurumu: status }),
 };
 
-// ========== PERSONEL İZİN SERVİSİ ==========
+// ============================================================
+// ✅ PERSONEL İZİN SERVİSİ
+// ============================================================
 export const personelIzinService = {
     getAll: () => apiRequest('/PersonelIzin'),
     getById: (id) => apiRequest(`/PersonelIzin/${id}`),
@@ -390,10 +401,9 @@ export const personelIzinService = {
 };
 
 // ============================================================
-// ✅ KURYE SERVİSİ (DÜZELTİLDİ)
+// ✅ KURYE SERVİSİ
 // ============================================================
 export const kuryeAPI = {
-    // Mevcut fonksiyonlar
     getKuryeler: () => apiRequest('/Kurye/kuryeler'),
     getAktifSiparisler: (personelId) => apiRequest(`/Kurye/${personelId}/aktif-siparisler`),
     getHavuzdakiSiparisler: (siparisId) => {
@@ -403,45 +413,37 @@ export const kuryeAPI = {
     getOnlineSiparis: (siparisId) => apiRequest(`/Kurye/online-siparis/${siparisId}`),
     siparisKabulEt: (data) => apiRequest('/Kurye/siparis-kabul-et', 'POST', data),
     teslimEt: (siparisId, data) => apiRequest(`/Kurye/teslim-et/${siparisId}`, 'PUT', data),
-    
-    // 🆕 YENİ FONKSİYONLAR
     getMusaitKuryeler: () => apiRequest('/Kurye/musait-kuryeler'),
-    
-    // ✅ DÜZELTİLDİ: Siparişi kuryeye ata (SiparisId EKLENDİ)
     siparisKuryeyeAta: (siparisId, kuryeId) => {
         console.log(`📦 Sipariş #${siparisId} kurye #${kuryeId}'a atanıyor...`);
-        return apiRequest(`/Kurye/siparis-ata/${siparisId}`, 'POST', { 
+        return apiRequest(`/Kurye/siparis-ata/${siparisId}`, 'POST', {
             siparisId: siparisId,
-            personelId: kuryeId 
+            personelId: kuryeId
         });
     },
-    
-    // ✅ DÜZELTİLDİ: Sipariş kabul
     siparisKabul: (siparisId, kuryeId) => {
         console.log(`📦 Sipariş #${siparisId} kurye #${kuryeId} tarafından kabul ediliyor...`);
-        return apiRequest(`/Kurye/siparis-kabul/${siparisId}`, 'POST', { 
+        return apiRequest(`/Kurye/siparis-kabul/${siparisId}`, 'POST', {
             siparisId: siparisId,
-            personelId: kuryeId 
+            personelId: kuryeId
         });
     },
-    
-    // ✅ DÜZELTİLDİ: Sipariş iptal
     siparisIptal: (siparisId, kuryeId) => {
         console.log(`📦 Sipariş #${siparisId} iptal ediliyor...`);
-        return apiRequest(`/Kurye/siparis-iptal/${siparisId}`, 'PUT', { 
+        return apiRequest(`/Kurye/siparis-iptal/${siparisId}`, 'PUT', {
             siparisId: siparisId,
-            personelId: kuryeId 
+            personelId: kuryeId
         });
     },
-    
-    // 🆕 Kurye teslim geçmişi
     getTeslimGecmisi: (personelId) => {
         console.log(`📦 Kurye #${personelId} teslim geçmişi çekiliyor...`);
         return apiRequest(`/Kurye/${personelId}/gecmis`);
     }
 };
 
-// ========== BİLDİRİM SERVİSİ ==========
+// ============================================================
+// ✅ BİLDİRİM SERVİSİ
+// ============================================================
 export const notificationService = {
     getAll: () => apiRequest('/Bildirim'),
     getById: (id) => apiRequest(`/Bildirim/${id}`),
@@ -451,15 +453,49 @@ export const notificationService = {
     markAsRead: (id) => apiRequest(`/Bildirim/okundu/${id}`, 'PUT'),
 };
 
-// ========== KATEGORİ İŞLEMLERİ İÇİN EK FONKSİYONLAR ==========
+// ============================================================
+// ✅ MALZEME TALEP SERVİSİ 
+// ============================================================
+export const malzemeTalepAPI = {
+    // Tüm talepleri getir
+    getAll: () => apiRequest('/MalzemeTalep'),
+
+    // Tek bir talebi getir
+    getById: (id) => apiRequest(`/MalzemeTalep/${id}`),
+
+    // Yeni talep oluştur
+    create: (data) => apiRequest('/MalzemeTalep', 'POST', data),
+
+    // Talep durumunu güncelle (Onayla/Reddet)
+    updateStatus: (id, data) => apiRequest(`/MalzemeTalep/${id}/durum`, 'PUT', data),
+
+    // Talep sil
+    delete: (id) => apiRequest(`/MalzemeTalep/${id}`, 'DELETE'),
+
+    // Aşçı tarafından talep oluştur
+    asciTalepOlustur: (data) => apiRequest('/MalzemeTalep/asci-talep', 'POST', data),
+
+    // Admin tarafından tüm talepleri getir
+    getAdminTalepler: () => apiRequest('/MalzemeTalep/admin/talepler'),
+
+    // Admin tarafından talep onayla
+    adminOnayla: (id) => apiRequest(`/MalzemeTalep/admin/onayla/${id}`, 'PUT'),
+
+    // Admin tarafından talep reddet
+    adminReddet: (id) => apiRequest(`/MalzemeTalep/admin/reddet/${id}`, 'PUT')
+};
+
+// ============================================================
+// ✅ EK FONKSİYONLAR
+// ============================================================
 export const getKategoriler = categoryService.getAll;
 export const kategoriEkle = categoryService.create;
 export const kategoriSil = categoryService.delete;
-
-// ========== ÜRÜN İŞLEMLERİ İÇİN EK FONKSİYONLAR ==========
 export const urunEkle = productService.create;
 
-// ========== AUTH İŞLEMLERİ ==========
+// ============================================================
+// ✅ AUTH İŞLEMLERİ
+// ============================================================
 export const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('refreshToken');
@@ -470,7 +506,9 @@ export const logout = () => {
 
 export const sifreDegistir = authService.sifreDegistir;
 
-// ========== VARSAYILAN EXPORT ==========
+// ============================================================
+// ✅ VARSAYILAN EXPORT
+// ============================================================
 const api = {
     authService,
     orderService,
@@ -491,6 +529,7 @@ const api = {
     kuryeAPI,
     asciAPI,
     notificationService,
+    malzemeTalepAPI, 
     getKategoriler,
     kategoriEkle,
     kategoriSil,

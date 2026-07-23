@@ -7,7 +7,7 @@ const SiparisTakip = ({ uyeId }) => {
         if (!uyeId) return;
 
         const connection = new signalR.HubConnectionBuilder()
-            .withUrl("http://localhost:5000/hubs/siparis")
+            .withUrl("http://localhost:5000/Hubs/SiparisHub")
             .withAutomaticReconnect()
             .build();
 
