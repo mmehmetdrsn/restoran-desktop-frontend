@@ -8,11 +8,7 @@ import {
   FaExclamationTriangle
 } from 'react-icons/fa';
 import { toast } from 'react-toastify';
-<<<<<<< HEAD
-import { asciAPI, authService, orderService, paymentService } from '../api/api';
-=======
-import { asciAPI, authService, malzemeTalepAPI } from '../api/api';
->>>>>>> 9c3ec6798f35772834ff05f9d3f509748daad53b
+import { asciAPI, authService, orderService, paymentService, malzemeTalepAPI } from '../api/api';
 
 // Arka plan resmi
 const backgroundImage = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80';
@@ -141,21 +137,20 @@ const AsciPanel = () => {
 
       console.log('📦 Gelen siparişler:', data);
 
-      const filteredOrders = data
-        .map(s => ({
-          id: s.siparisId,
-          table: s.masaNo ? `Masa ${s.masaNo}` : 'Paket Servis',
-          items: [],
-          status: mapStatus(s.siparisDurumu),
-          time: formatTime(s.siparisTarihi),
-          note: '',
-          quantity: s.detaySayisi || 0,
-          rawStatus: s.siparisDurumu,
-          customer: s.uyeAdi || 'Ziyaretçi',
-          totalAmount: s.toplamTutar || 0,
-          personelAdi: s.personelAdi || null,
-          siparisTuru: s.siparisTuru || (s.masaNo ? 'salon' : 'online')
-        }));
+      const filteredOrders = data.map(s => ({
+        id: s.siparisId,
+        table: s.masaNo ? `Masa ${s.masaNo}` : 'Paket Servis',
+        items: [],
+        status: mapStatus(s.siparisDurumu),
+        time: formatTime(s.siparisTarihi),
+        note: '',
+        quantity: s.detaySayisi || 0,
+        rawStatus: s.siparisDurumu,
+        customer: s.uyeAdi || 'Ziyaretçi',
+        totalAmount: s.toplamTutar || 0,
+        personelAdi: s.personelAdi || null,
+        siparisTuru: s.siparisTuru || (s.masaNo ? 'salon' : 'online')
+      }));
 
       setOrders(filteredOrders);
 
@@ -193,14 +188,6 @@ const AsciPanel = () => {
       setUpdatingOrderId(orderId);
       
       if (newStatus === 'ready') {
-<<<<<<< HEAD
-        const result = await asciAPI.siparisHazirVeKuryeAta(orderId);
-        
-        if (result.success) {
-          setOrders(prev => prev.filter(o => o.id !== orderId));
-          toast.success(`✅ ${result.message}`);
-        } else {
-=======
         const order = orders.find(o => o.id === orderId);
         if (!order) {
           toast.error('Sipariş bulunamadı!');
@@ -209,17 +196,13 @@ const AsciPanel = () => {
 
         if (order.siparisTuru === 'online') {
           const result = await asciAPI.siparisHazirVeKuryeAta(orderId);
-          
+          setOrders(prev => prev.filter(o => o.id !== orderId));
           if (result.success) {
-            setOrders(prev => prev.filter(o => o.id !== orderId));
             toast.success(`✅ ${result.message}`);
           } else {
-            setOrders(prev => prev.filter(o => o.id !== orderId));
             toast.warning(`⚠️ ${result.message}`);
           }
         } else {
-          await asciAPI.siparisHazir(orderId);
->>>>>>> 9c3ec6798f35772834ff05f9d3f509748daad53b
           setOrders(prev => prev.filter(o => o.id !== orderId));
           toast.success(`✅ Sipariş #${orderId} hazır! Garsona bildirim gönderildi.`);
           
@@ -234,7 +217,6 @@ const AsciPanel = () => {
         setTimeout(() => {
           fetchOrders();
         }, 2000);
-        
         return;
       }
       
@@ -612,11 +594,7 @@ const AsciPanel = () => {
                               disabled={isUpdating}
                               className="flex-1 px-3 py-2 bg-blue-500/20 hover:bg-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed text-blue-400 rounded-lg text-sm transition-all flex items-center justify-center gap-2"
                             >
-                              {isUpdating ? (
-                                <FaSpinner className="animate-spin" size={14} />
-                              ) : (
-                                <FaSpinner className="animate-spin" size={14} />
-                              )}
+                              <FaSpinner className={isUpdating ? "animate-spin" : "hidden"} size={14} />
                               Hazırlamaya Başla
                             </button>
                           )}
@@ -628,15 +606,17 @@ const AsciPanel = () => {
                             >
                               {isUpdating ? (
                                 <FaSpinner className="animate-spin" size={14} />
+                              ) : isOnline ? (
+                                <FaMotorcycle size={14} />
                               ) : (
                                 <FaCheck size={14} />
                               )}
-                              Hazır (Kurye Ata)
+                              Hazır ({isOnline ? 'Kurye Ata' : 'Garsona Bildir'})
                             </button>
                           )}
                         </div>
 
-                        {/* ✅ İptal ve İade butonları */}
+                        {/* İptal ve İade butonları */}
                         <div className="flex gap-2">
                           <button
                             onClick={() => handleCancelOrder(order.id)}
@@ -645,7 +625,7 @@ const AsciPanel = () => {
                           >
                             ❌ İptal Et
                           </button>
-<<<<<<< HEAD
+
                           <button
                             onClick={() => handleRefundOrder(order.id)}
                             disabled={isUpdating || order.status !== 'pending'}
@@ -654,40 +634,6 @@ const AsciPanel = () => {
                             ↩️ İade Et
                           </button>
                         </div>
-=======
-                        )}
-                        {order.status === 'preparing' && (
-                          <>
-                            {isOnline ? (
-                              <button
-                                onClick={() => updateOrderStatus(order.id, 'ready')}
-                                disabled={isUpdating}
-                                className="flex-1 px-3 py-2 bg-green-500/20 hover:bg-green-500/30 disabled:opacity-50 disabled:cursor-not-allowed text-green-400 rounded-lg text-sm transition-all flex items-center justify-center gap-2"
-                              >
-                                {isUpdating ? (
-                                  <FaSpinner className="animate-spin" size={14} />
-                                ) : (
-                                  <FaMotorcycle size={14} />
-                                )}
-                                Hazır (Kurye Ata)
-                              </button>
-                            ) : (
-                              <button
-                                onClick={() => updateOrderStatus(order.id, 'ready')}
-                                disabled={isUpdating}
-                                className="flex-1 px-3 py-2 bg-green-500/20 hover:bg-green-500/30 disabled:opacity-50 disabled:cursor-not-allowed text-green-400 rounded-lg text-sm transition-all flex items-center justify-center gap-2"
-                              >
-                                {isUpdating ? (
-                                  <FaSpinner className="animate-spin" size={14} />
-                                ) : (
-                                  <FaCheck size={14} />
-                                )}
-                                Hazır (Garsona Bildir)
-                              </button>
-                            )}
-                          </>
-                        )}
->>>>>>> 9c3ec6798f35772834ff05f9d3f509748daad53b
                       </div>
                     </div>
                   );
@@ -791,7 +737,7 @@ const AsciPanel = () => {
         </div>
       )}
 
-      {/*  EKSİK MALZEME TALEBİ MODALI */}
+      {/* EKSİK MALZEME TALEBİ MODALI */}
       {showMalzemeTalep && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
           <div className="bg-black/95 backdrop-blur-sm rounded-2xl border border-white/10 shadow-2xl max-w-md w-full p-6">

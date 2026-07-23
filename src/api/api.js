@@ -414,11 +414,7 @@ export const kuryeAPI = {
     siparisKabulEt: (data) => apiRequest('/Kurye/siparis-kabul-et', 'POST', data),
     teslimEt: (siparisId, data) => apiRequest(`/Kurye/teslim-et/${siparisId}`, 'PUT', data),
     getMusaitKuryeler: () => apiRequest('/Kurye/musait-kuryeler'),
-<<<<<<< HEAD
-=======
-    
-    // ✅ DÜZELTİLDİ: Siparişi kuryeye ata
->>>>>>> 9c3ec6798f35772834ff05f9d3f509748daad53b
+
     siparisKuryeyeAta: (siparisId, kuryeId) => {
         console.log(`📦 Sipariş #${siparisId} kurye #${kuryeId}'a atanıyor...`);
         return apiRequest(`/Kurye/siparis-ata/${siparisId}`, 'POST', {

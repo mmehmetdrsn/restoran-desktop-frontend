@@ -1,4 +1,3 @@
-// src/Garson/GarsonPanel.js
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -375,49 +374,6 @@ const GarsonPanel = () => {
     setShowOrderDetailModal(false);
   };
 
-  // 🔑 Ödeme İşleme Fonksiyonu (SADECE TEK TANIMLAMA)
-  const processPayment = async (tableId, method) => {
-    if (paymentProcessing) return;
-    setPaymentProcessing(true);
-
-    const table = tables.find(t => t.id === tableId) || selectedTable;
-    const siparisId = table?.order?.siparisId || table?.order?.id;
-
-    if (!table || !siparisId) {
-      toast.error('Ödeme alınacak sipariş bilgisi bulunamadı.');
-      setPaymentProcessing(false);
-      return;
-    }
-
-    try {
-      const paymentData = {
-        siparisId: siparisId,
-        odemeTipi: method === 'Nakit' ? 'NAKIT' : 'KREDI KARTI',
-        personelId: 1,
-        kasaId: 1
-      };
-
-      const res = await paymentService.processPayment(paymentData);
-
-      if (res?.error) {
-        toast.error(res.error?.Mesaj || 'Ödeme alınamadı!');
-        return;
-      }
-
-      toast.success(`${table.name} için ödeme başarıyla alındı! 🎉`);
-
-      setShowPaymentModal(false);
-      setSelectedTable(null);
-      setSelectedOrderTable(null);
-      await verileriYukle();
-    } catch (error) {
-      console.error('Ödeme hatası:', error);
-      toast.error(error.response?.data?.Mesaj || 'Ödeme işlemi başarısız oldu!');
-    } finally {
-      setPaymentProcessing(false);
-    }
-  };
-
   const handleCancelNewOrder = () => {
     setActiveTab('masa');
     setSelectedTable(null);
@@ -435,10 +391,7 @@ const GarsonPanel = () => {
     return table.status === filter;
   });
 
-<<<<<<< HEAD
-  // ============================================================
-  // ✅ DOLU MASALARI SIPARIŞLERLE EŞLEŞTİR
-  // ============================================================
+  // ✅ DOLU MASALARI SİPARİŞLERLE EŞLEŞTİR
   const occupiedTables = tables
     .filter(t => t.status === 'occupied')
     .map(t => {
@@ -456,8 +409,6 @@ const GarsonPanel = () => {
     });
 
   // Sepet İşlemleri
-=======
->>>>>>> 9c3ec6798f35772834ff05f9d3f509748daad53b
   const addToCart = (item) => {
     const note = prompt(`📝 ${item.name} için özel not (isteğe bağlı):`, '');
     const existing = cart.find(c => c.id === item.id);
@@ -549,7 +500,6 @@ const GarsonPanel = () => {
           t.id === updatedTable.id ? updatedTable : t
         ));
       }
-<<<<<<< HEAD
 
       await verileriYukle();
       setActiveTab('masa');
@@ -562,29 +512,24 @@ const GarsonPanel = () => {
     }
   };
 
-  // ============================================================
-  // ✅ ÖDEME İŞLEMİ (GÜNCELLENDİ - masa-odeme endpoint'i kullanıyor)
-  // ============================================================
+  // ✅ ÖDEME İŞLEMİ (masaOdeme ve processPayment çakışması çözüldü)
   const processPayment = async (tableId, method) => {
-    // Önce masayı bul
-    const table = tables.find(t => t.id === tableId);
+    if (paymentProcessing) return;
+    setPaymentProcessing(true);
+
+    const table = tables.find(t => t.id === tableId) || selectedTable;
     if (!table) {
       toast.error('Masa bulunamadı!');
+      setPaymentProcessing(false);
       return;
     }
 
-    // Masaya ait sipariş kontrolü
     if (!table.order) {
       toast.error('Bu masada ödenecek sipariş bulunamadı!');
+      setPaymentProcessing(false);
       return;
     }
 
-    if (table.order.toplam === 0) {
-      toast.warning('Sipariş tutarı 0 TL, ödeme yapılamaz!');
-      return;
-    }
-
-    // Personel ID'yi al
     let personelId = 1;
     try {
       const userStr = localStorage.getItem('user') || sessionStorage.getItem('user');
@@ -599,54 +544,36 @@ const GarsonPanel = () => {
     const odemeTipiBackend = method === 'Nakit' ? 'NAKIT' : 'KREDI KARTI';
 
     try {
-      console.log(`💰 Masa #${tableId} için ${odemeTipiBackend} ödeme alınıyor...`);
-      console.log(`📦 Sipariş ID: ${table.order.siparisId}, Tutar: ${table.order.toplam}`);
-
-      // ✅ masa-odeme endpoint'ini kullan
-      const response = await paymentService.masaOdeme({
-        masaId: tableId,
-        odemeTipi: odemeTipiBackend,
-        personelId: personelId,
-        kasaId: 1
-      });
-
-      console.log('✅ Ödeme cevabı:', response);
-
-      if (response?.status === 200) {
-        toast.success('✅ Ödeme başarıyla alındı! Masa boşa çıkarıldı.');
-        
-        // Verileri yenile
-        await verileriYukle();
-        setShowPaymentModal(false);
-        
-        if (showOrderDetailModal) {
-          setShowOrderDetailModal(false);
-        }
+      let response;
+      if (typeof paymentService.masaOdeme === 'function') {
+        response = await paymentService.masaOdeme({
+          masaId: tableId,
+          odemeTipi: odemeTipiBackend,
+          personelId: personelId,
+          kasaId: 1
+        });
+      } else {
+        const siparisId = table.order.siparisId || table.order.id;
+        response = await paymentService.processPayment({
+          siparisId: siparisId,
+          odemeTipi: odemeTipiBackend,
+          personelId: personelId,
+          kasaId: 1
+        });
       }
+
+      toast.success('✅ Ödeme başarıyla alındı! Masa boşa çıkarıldı.');
+      setShowPaymentModal(false);
+      setSelectedTable(null);
+      setSelectedOrderTable(null);
+      if (showOrderDetailModal) setShowOrderDetailModal(false);
+      await verileriYukle();
     } catch (error) {
       console.error('❌ Ödeme hatası:', error);
-      
-      let errorMsg = 'Ödeme alınamadı!';
-      if (error.response?.data?.mesaj) {
-        errorMsg = error.response.data.mesaj;
-      } else if (error.response?.data?.Mesaj) {
-        errorMsg = error.response.data.Mesaj;
-      } else if (error.message) {
-        errorMsg = error.message;
-      }
-      
+      const errorMsg = error.response?.data?.mesaj || error.response?.data?.Mesaj || error.message || 'Ödeme alınamadı!';
       toast.error(`❌ ${errorMsg}`);
-=======
-
-      await verileriYukle();
-      setActiveTab('masa');
-      setShowOrderModal(false);
-      setCart([]);
-      
-    } catch (error) {
-      console.error('Sipariş hatası:', error);
-      toast.error(error.response?.data?.Mesaj || error.message || 'Sipariş oluşturulamadı!');
->>>>>>> 9c3ec6798f35772834ff05f9d3f509748daad53b
+    } finally {
+      setPaymentProcessing(false);
     }
   };
 
@@ -794,7 +721,7 @@ const GarsonPanel = () => {
       <div className="relative z-10 flex">
         {/* Sidebar */}
         <div className={`
-          fixed lg:relative lg:flex lg:flex-col relative
+          fixed lg:relative lg:flex lg:flex-col
           ${sidebarOpen ? 'w-64' : 'w-20'}
           ${isDayMode ? 'bg-slate-50/95 text-slate-900 border-slate-200/50' : 'bg-black/90 text-white border-white/10'}
           backdrop-blur-sm
@@ -865,11 +792,11 @@ const GarsonPanel = () => {
             </div>
 
             <div className={`border-t my-3 ${isDayMode ? 'border-slate-200/60' : 'border-white/10'}`}></div>
-            <div className="absolute left-4 bottom-4">
+            <div className="mb-3">
               <button
                 onClick={() => setIsDayMode(prev => !prev)}
                 title={isDayMode ? 'Gece Modu' : 'Gündüz Modu'}
-                className={`flex ${sidebarOpen ? 'justify-between w-[calc(100%-2rem)]' : 'justify-center w-12'} items-center gap-3 px-3 py-3 rounded-2xl transition-all ${isDayMode ? 'bg-slate-300 text-slate-900 hover:bg-slate-400' : 'bg-white/10 text-gray-300 hover:bg-white/20'}`}
+                className={`flex w-full items-center gap-3 px-3 py-3 rounded-xl transition-all ${isDayMode ? 'bg-slate-300 text-slate-900 hover:bg-slate-400' : 'bg-white/10 text-gray-300 hover:bg-white/20'}`}
               >
                 {isDayMode ? <FaMoon size={18} /> : <FaSun size={18} />}
                 {sidebarOpen && <span className="text-sm">{isDayMode ? 'Gece Modu' : 'Gündüz Modu'}</span>}
@@ -948,6 +875,7 @@ const GarsonPanel = () => {
                     occupiedTables={occupiedTables} 
                     processPayment={processPayment} 
                     isDayMode={isDayMode}
+                    selectedTable={selectedTable}
                     onPaymentSuccess={(masaId) => {
                       console.log(`✅ Masa ${masaId} ödemesi başarılı!`);
                       verileriYukle();
@@ -1003,31 +931,23 @@ const GarsonPanel = () => {
                 <FaTimes size={20} />
               </button>
             </div>
-<<<<<<< HEAD
             <HesapIslemleri 
               occupiedTables={occupiedTables} 
               processPayment={processPayment} 
               isDayMode={isDayMode}
+              selectedTable={selectedTable}
               onPaymentSuccess={(masaId) => {
                 console.log(`✅ Masa ${masaId} ödemesi başarılı!`);
                 verileriYukle();
               }}
-=======
-            
-            <HesapIslemleri 
-              occupiedTables={occupiedTables} 
-              processPayment={processPayment} 
-              isDayMode={isDayMode} 
-              selectedTable={selectedTable}
->>>>>>> 9c3ec6798f35772834ff05f9d3f509748daad53b
             />
           </div>
         </div>
       )}
 
       {showOrderDetailModal && selectedOrderTable && (
-        <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm`}>
-          <div className={`${isDayMode ? 'bg-white text-slate-900' : 'bg-black/95 text-white'} backdrop-blur-sm rounded-2xl border ${isDayMode ? 'border-slate-200' : 'border-white/10'} shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6`}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className={`${isDayMode ? 'bg-white text-slate-900 border-slate-200' : 'bg-black/95 text-white border-white/10'} backdrop-blur-sm rounded-2xl border shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6`}>
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
               <div>
                 <h2 className={`${isDayMode ? 'text-slate-900' : 'text-white'} font-bold text-xl`}>
