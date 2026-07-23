@@ -5,10 +5,11 @@ import {
   FaTimes, FaBars, FaUtensils,
   FaCheck, FaSpinner, FaSync,
   FaMotorcycle, FaUser,
-  FaExclamationTriangle
+  FaExclamationTriangle, FaClipboardCheck,
+  FaClock
 } from 'react-icons/fa';
 import { toast } from 'react-toastify';
-import { asciAPI, authService, orderService, paymentService, malzemeTalepAPI } from '../api/api';
+import { asciAPI, authService, malzemeTalepAPI } from '../api/api';
 
 // Arka plan resmi
 const backgroundImage = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80';
@@ -23,6 +24,7 @@ const AsciPanel = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [orders, setOrders] = useState([]);
+  const [hazirOrders, setHazirOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [updatingOrderId, setUpdatingOrderId] = useState(null);
   const [userData, setUserData] = useState({
@@ -122,6 +124,22 @@ const AsciPanel = () => {
     }
   };
 
+  // ========== SADECE BUGÜNÜN SİPARİŞİ Mİ? ==========
+  const isToday = (dateString) => {
+    if (!dateString) return false;
+    try {
+      const date = new Date(dateString);
+      const now = new Date();
+      return (
+        date.getFullYear() === now.getFullYear() &&
+        date.getMonth() === now.getMonth() &&
+        date.getDate() === now.getDate()
+      );
+    } catch {
+      return false;
+    }
+  };
+
   // ========== SİPARİŞLERİ BACKEND'DEN ÇEK ==========
   const fetchOrders = useCallback(async () => {
     try {
@@ -137,13 +155,27 @@ const AsciPanel = () => {
 
       console.log('📦 Gelen siparişler:', data);
 
-      const filteredOrders = data.map(s => ({
+      // Bugünün siparişlerini filtrele
+      const todayData = data.filter(s => isToday(s.siparisTarihi));
+
+      // Aktif siparişler (BEKLEMEDE ve HAZIRLANIYOR)
+      const aktifData = todayData.filter(s => 
+        s.siparisDurumu === "BEKLEMEDE" || s.siparisDurumu === "HAZIRLANIYOR"
+      );
+
+      // Hazır siparişler (HAZIR)
+      const hazirData = todayData.filter(s => 
+        s.siparisDurumu === "HAZIR"
+      );
+
+      // Aktif siparişleri map'le
+      const aktifOrders = aktifData.map(s => ({
         id: s.siparisId,
         table: s.masaNo ? `Masa ${s.masaNo}` : 'Paket Servis',
-        items: [],
+        items: s.detaylar?.map(d => `${d.adet}x ${d.urunAdi}`) || [],
         status: mapStatus(s.siparisDurumu),
         time: formatTime(s.siparisTarihi),
-        note: '',
+        note: s.detaylar?.find(d => d.detayNot)?.detayNot || '',
         quantity: s.detaySayisi || 0,
         rawStatus: s.siparisDurumu,
         customer: s.uyeAdi || 'Ziyaretçi',
@@ -152,26 +184,27 @@ const AsciPanel = () => {
         siparisTuru: s.siparisTuru || (s.masaNo ? 'salon' : 'online')
       }));
 
-      setOrders(filteredOrders);
+      // Hazır siparişleri map'le
+      const hazirOrdersMapped = hazirData.map(s => ({
+        id: s.siparisId,
+        table: s.masaNo ? `Masa ${s.masaNo}` : 'Paket Servis',
+        items: s.detaylar?.map(d => `${d.adet}x ${d.urunAdi}`) || [],
+        status: mapStatus(s.siparisDurumu),
+        time: formatTime(s.siparisTarihi),
+        note: s.detaylar?.find(d => d.detayNot)?.detayNot || '',
+        quantity: s.detaySayisi || 0,
+        rawStatus: s.siparisDurumu,
+        customer: s.uyeAdi || 'Ziyaretçi',
+        totalAmount: s.toplamTutar || 0,
+        personelAdi: s.personelAdi || null,
+        siparisTuru: s.siparisTuru || (s.masaNo ? 'salon' : 'online')
+      }));
 
-      for (const order of filteredOrders) {
-        try {
-          const detailResponse = await asciAPI.getSiparisDetay(order.id);
-          const detailData = detailResponse?.data;
-          if (detailData?.detaylar && Array.isArray(detailData.detaylar)) {
-            setOrders(prev => prev.map(o => 
-              o.id === order.id ? {
-                ...o,
-                items: detailData.detaylar.map(d => d.urunAdi || 'Ürün'),
-                note: detailData.detaylar.find(d => d.detayNot)?.detayNot || '',
-                quantity: detailData.detaylar.length
-              } : o
-            ));
-          }
-        } catch (err) {
-          console.error(`Sipariş #${order.id} detayları alınamadı:`, err);
-        }
-      }
+      setOrders(aktifOrders);
+      setHazirOrders(hazirOrdersMapped);
+      
+      console.log(`📊 Aktif: ${aktifOrders.length}, Hazır: ${hazirOrdersMapped.length}`);
+      
     } catch (error) {
       console.error('Siparişler yüklenirken hata:', error);
       toast.error('❌ Siparişler yüklenirken bir hata oluştu!');
@@ -181,123 +214,110 @@ const AsciPanel = () => {
   }, []);
 
   // ========== SİPARİŞ DURUMUNU GÜNCELLE ==========
-  const updateOrderStatus = async (orderId, newStatus) => {
-    if (updatingOrderId === orderId) return;
+const updateOrderStatus = async (orderId, newStatus) => {
+  if (updatingOrderId === orderId) return;
+  
+  try {
+    setUpdatingOrderId(orderId);
     
-    try {
-      setUpdatingOrderId(orderId);
-      
-      if (newStatus === 'ready') {
-        const order = orders.find(o => o.id === orderId);
-        if (!order) {
-          toast.error('Sipariş bulunamadı!');
-          return;
-        }
+    if (newStatus === 'ready') {
+      const order = orders.find(o => o.id === orderId);
+      if (!order) {
+        toast.error('Sipariş bulunamadı!');
+        return;
+      }
 
-        if (order.siparisTuru === 'online') {
-          const result = await asciAPI.siparisHazirVeKuryeAta(orderId);
-          setOrders(prev => prev.filter(o => o.id !== orderId));
-          if (result.success) {
-            toast.success(`✅ ${result.message}`);
-          } else {
-            toast.warning(`⚠️ ${result.message}`);
-          }
+      // 1. Backend'de HAZIR yap
+      await asciAPI.updateSiparisDurum(orderId, 'HAZIR');
+      console.log(`✅ Sipariş #${orderId} backend'de HAZIR yapıldı`);
+
+      // 2. Online sipariş kontrolü
+      if (order.siparisTuru === 'online') {
+        const result = await asciAPI.siparisHazirVeKuryeAta(orderId);
+        if (result.success) {
+          toast.success(`✅ ${result.message}`);
         } else {
-          setOrders(prev => prev.filter(o => o.id !== orderId));
-          toast.success(`✅ Sipariş #${orderId} hazır! Garsona bildirim gönderildi.`);
-          
-          try {
-            await asciAPI.garsonaBildirimGonder(orderId);
-            console.log(`📢 Garsona bildirim gönderildi: Sipariş #${orderId}`);
-          } catch (err) {
-            console.warn('Garson bildirimi gönderilemedi:', err);
-          }
+          toast.warning(`⚠️ ${result.message}`);
         }
+      } else {
+        // 3. Garsona bildirim gönder
+        try {
+          await asciAPI.garsonaBildirimGonder(orderId);
+          toast.success(`✅ Sipariş #${orderId} hazır! Garsona bildirim gönderildi.`);
+          console.log(`📢 Garsona bildirim gönderildi: Sipariş #${orderId}`);
+        } catch (err) {
+          console.warn('Garson bildirimi gönderilemedi:', err);
+          toast.success(`✅ Sipariş #${orderId} hazır!`);
+        }
+      }
+
+      // 4. Siparişi aktif listeden kaldır
+      const completedOrder = orders.find(o => o.id === orderId);
+      if (completedOrder) {
+        // Aktif listeden kaldır
+        setOrders(prev => prev.filter(o => o.id !== orderId));
         
-        setTimeout(() => {
-          fetchOrders();
-        }, 2000);
-        return;
+        // 🔥 Hazır listesine EKLE (backend'den silinene kadar kalsın)
+        setHazirOrders(prev => {
+          // Eğer zaten varsa ekleme
+          if (prev.some(o => o.id === orderId)) {
+            return prev;
+          }
+          return [...prev, { 
+            ...completedOrder, 
+            status: 'ready', 
+            rawStatus: 'HAZIR' 
+          }];
+        });
+        
+        console.log(`📦 Sipariş #${orderId} hazır listesine taşındı`);
       }
-      
-      const statusMap = {
-        'preparing': 'HAZIRLANIYOR'
-      };
-      
-      const backendStatus = statusMap[newStatus];
-      if (!backendStatus) {
-        toast.error('Geçersiz durum!');
-        return;
-      }
 
-      console.log(`🔄 Sipariş #${orderId} durumu güncelleniyor: ${backendStatus}`);
-
-      await asciAPI.updateSiparisDurum(orderId, backendStatus);
-
-      setOrders(prev => prev.map(order => 
-        order.id === orderId ? { ...order, status: newStatus, rawStatus: backendStatus } : order
-      ));
-
-      toast.success(`✅ Sipariş #${orderId} hazırlanmaya başlandı 🍳`);
-
+      // 5. 3 saniye sonra backend'den yeniden çek (senkronizasyon için)
       setTimeout(() => {
         fetchOrders();
-      }, 1000);
+      }, 3000);
       
-    } catch (error) {
-      console.error('Sipariş durumu güncellenirken hata:', error);
-      const errorMsg = error?.response?.data?.message || error?.message || 'Sipariş durumu güncellenirken bir hata oluştu!';
-      toast.error(`❌ ${errorMsg}`);
-    } finally {
-      setUpdatingOrderId(null);
+      return;
     }
-  };
-
-  // ========== SİPARİŞ İPTAL ==========
-  const handleCancelOrder = async (orderId) => {
-    if (!window.confirm(`Sipariş #${orderId} iptal edilsin mi?`)) return;
     
-    try {
-      setUpdatingOrderId(orderId);
-      await orderService.cancel(orderId);
-      toast.success(`✅ Sipariş #${orderId} iptal edildi.`);
-      setTimeout(() => {
-        fetchOrders();
-      }, 1000);
-    } catch (error) {
-      console.error('İptal hatası:', error);
-      const errorMsg = error?.response?.data?.mesaj || error?.message || 'İptal işlemi başarısız!';
-      toast.error(`❌ ${errorMsg}`);
-    } finally {
-      setUpdatingOrderId(null);
-    }
-  };
-
-  // ========== SİPARİŞ İADE ==========
-  const handleRefundOrder = async (orderId) => {
-    const reason = window.prompt('İade sebebini girin:');
-    if (!reason) return;
+    // Hazırlamaya Başla işlemi
+    const statusMap = {
+      'preparing': 'HAZIRLANIYOR'
+    };
     
-    try {
-      setUpdatingOrderId(orderId);
-      await paymentService.processRefund({
-        siparisId: orderId,
-        iadeSebebi: reason,
-        personelId: userData.personelId
-      });
-      toast.success(`✅ Sipariş #${orderId} iade edildi.`);
-      setTimeout(() => {
-        fetchOrders();
-      }, 1000);
-    } catch (error) {
-      console.error('İade hatası:', error);
-      const errorMsg = error?.response?.data?.mesaj || error?.message || 'İade işlemi başarısız!';
-      toast.error(`❌ ${errorMsg}`);
-    } finally {
-      setUpdatingOrderId(null);
+    const backendStatus = statusMap[newStatus];
+    if (!backendStatus) {
+      toast.error('Geçersiz durum!');
+      return;
     }
-  };
 
+    console.log(`🔄 Sipariş #${orderId} durumu güncelleniyor: ${backendStatus}`);
+
+    await asciAPI.updateSiparisDurum(orderId, backendStatus);
+
+    // Frontend'de durumu güncelle
+    setOrders(prev => prev.map(order => 
+      order.id === orderId ? { ...order, status: newStatus, rawStatus: backendStatus } : order
+    ));
+
+    toast.success(`✅ Sipariş #${orderId} hazırlanmaya başlandı 🍳`);
+
+    setTimeout(() => {
+      fetchOrders();
+    }, 2000);
+    
+  } catch (error) {
+    console.error('Sipariş durumu güncellenirken hata:', error);
+    const errorMsg = error?.response?.data?.message || 
+                     error?.response?.data?.Mesaj ||
+                     error?.message || 
+                     'Sipariş durumu güncellenirken bir hata oluştu!';
+    toast.error(`❌ ${errorMsg}`);
+  } finally {
+    setUpdatingOrderId(null);
+  }
+};
   // ========== ŞİFRE DEĞİŞTİR ==========
   const handlePasswordChange = async (e) => {
     e.preventDefault();
@@ -373,16 +393,116 @@ const AsciPanel = () => {
   };
 
   // ========== EFFECT'LER ==========
-  useEffect(() => {
-    fetchUserData();
+useEffect(() => {
+  fetchUserData();
+  fetchOrders();
+
+  // Her 10 saniyede bir yenile - ama hazirOrders state'ini koru
+  const interval = setInterval(() => {
     fetchOrders();
-
-    const interval = setInterval(fetchOrders, 10000);
-    return () => clearInterval(interval);
-  }, [fetchUserData, fetchOrders]);
-
+  }, 10000);
+  
+  return () => clearInterval(interval);
+}, [fetchUserData]); // ⬅️ fetchOrders dependency'den çıkarıldı
   // ========== SIDEBAR TOGGLE ==========
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
+
+  // ========== SİPARİŞ KARTI ==========
+  const OrderCard = ({ order, isHazir = false }) => {
+    const status = getStatusBadge(order.status);
+    const isUpdating = updatingOrderId === order.id;
+    const turBadge = getSiparisTuruBadge(order.siparisTuru);
+    const isOnline = order.siparisTuru === 'online';
+
+    return (
+      <div className="bg-black/80 backdrop-blur-sm rounded-2xl border border-white/10 p-4 hover:border-white/20 transition-all">
+        <div className="flex items-start justify-between mb-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="text-white font-bold text-lg">{order.table}</h3>
+              <span className={`text-[10px] px-2 py-0.5 rounded ${turBadge.bg} ${turBadge.text}`}>
+                {turBadge.icon}
+                {turBadge.label}
+              </span>
+            </div>
+            <p className="text-gray-400 text-sm">{order.time}</p>
+            <p className="text-gray-500 text-xs mt-1">Müşteri: {order.customer}</p>
+            {order.personelAdi && (
+              <p className="text-gray-500 text-xs">Personel: {order.personelAdi}</p>
+            )}
+          </div>
+          <span className={`px-3 py-1 rounded-lg text-xs font-medium ${status.bg} ${status.text}`}>
+            {status.label}
+          </span>
+        </div>
+
+        <div className="space-y-1 mb-3">
+          {order.items && order.items.length > 0 ? (
+            order.items.map((item, idx) => (
+              <div key={idx} className="flex items-center gap-2 text-gray-300 text-sm">
+                <span className="text-gray-500">•</span>
+                <span>{item}</span>
+              </div>
+            ))
+          ) : (
+            <div className="text-gray-500 text-sm flex items-center gap-2">
+              <FaSpinner className="animate-spin" size={12} />
+              Ürünler yükleniyor...
+            </div>
+          )}
+        </div>
+
+        {order.note && (
+          <div className="mb-3 p-2 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
+            <p className="text-yellow-400 text-xs">
+              <span className="font-medium">Not:</span> {order.note}
+            </p>
+          </div>
+        )}
+
+        {/* Hazır siparişlerde buton gösterilmez, sadece bilgi */}
+        {!isHazir && (
+          <div className="flex gap-2 mt-3">
+            {order.status === 'pending' && (
+              <button
+                onClick={() => updateOrderStatus(order.id, 'preparing')}
+                disabled={isUpdating}
+                className="flex-1 px-3 py-2 bg-blue-500/20 hover:bg-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed text-blue-400 rounded-lg text-sm transition-all flex items-center justify-center gap-2"
+              >
+                <FaSpinner className={isUpdating ? "animate-spin" : "hidden"} size={14} />
+                Hazırlamaya Başla
+              </button>
+            )}
+            {order.status === 'preparing' && (
+              <button
+                onClick={() => updateOrderStatus(order.id, 'ready')}
+                disabled={isUpdating}
+                className="flex-1 px-3 py-2 bg-green-500/20 hover:bg-green-500/30 disabled:opacity-50 disabled:cursor-not-allowed text-green-400 rounded-lg text-sm transition-all flex items-center justify-center gap-2"
+              >
+                {isUpdating ? (
+                  <FaSpinner className="animate-spin" size={14} />
+                ) : isOnline ? (
+                  <FaMotorcycle size={14} />
+                ) : (
+                  <FaCheck size={14} />
+                )}
+                Hazır ({isOnline ? 'Kurye Ata' : 'Garsona Bildir'})
+              </button>
+            )}
+          </div>
+        )}
+        
+        {isHazir && (
+          <div className="mt-3 text-center">
+            <span className="text-green-400 text-xs flex items-center justify-center gap-2">
+              <FaClock size={12} />
+              Teslim bekleniyor...
+            </span>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   // ========== RENDER ==========
   return (
@@ -514,139 +634,78 @@ const AsciPanel = () => {
             <div className="flex items-center justify-between mb-6 flex-wrap gap-2">
               <div>
                 <h1 className="text-2xl font-bold text-white">Mutfak Yönetimi</h1>
-                <p className="text-gray-400 text-sm">Gelen siparişleri görüntüleyin ve yönetin</p>
+                <p className="text-gray-400 text-sm">Bugünün siparişlerini görüntüleyin ve yönetin</p>
               </div>
               <div className="flex items-center gap-3 flex-wrap">
-                <span className="text-white text-sm bg-white/10 px-3 py-1 rounded-lg">
+                <span className="text-yellow-400 text-sm bg-yellow-500/10 px-3 py-1 rounded-lg">
                   Bekleyen: {orders.filter(o => o.status === 'pending').length}
                 </span>
                 <span className="text-blue-400 text-sm bg-blue-500/10 px-3 py-1 rounded-lg">
                   Hazırlanan: {orders.filter(o => o.status === 'preparing').length}
                 </span>
+                <span className="text-green-400 text-sm bg-green-500/10 px-3 py-1 rounded-lg">
+                  Hazır: {hazirOrders.length}
+                </span>
               </div>
             </div>
 
-            {loading && orders.length === 0 ? (
+            {loading && orders.length === 0 && hazirOrders.length === 0 ? (
               <div className="bg-black/80 backdrop-blur-sm rounded-2xl p-12 border border-white/10 flex flex-col items-center justify-center">
                 <FaSpinner className="animate-spin text-yellow-400 text-4xl mb-4" />
                 <p className="text-gray-400">Siparişler yükleniyor...</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-                {orders.map((order) => {
-                  const status = getStatusBadge(order.status);
-                  const isUpdating = updatingOrderId === order.id;
-                  const turBadge = getSiparisTuruBadge(order.siparisTuru);
-                  const isOnline = order.siparisTuru === 'online';
-                  
-                  return (
-                    <div key={order.id} className="bg-black/80 backdrop-blur-sm rounded-2xl border border-white/10 p-4 hover:border-white/20 transition-all">
-                      <div className="flex items-start justify-between mb-3">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h3 className="text-white font-bold text-lg">{order.table}</h3>
-                            <span className={`text-[10px] px-2 py-0.5 rounded ${turBadge.bg} ${turBadge.text}`}>
-                              {turBadge.icon}
-                              {turBadge.label}
-                            </span>
-                          </div>
-                          <p className="text-gray-400 text-sm">{order.time}</p>
-                          <p className="text-gray-500 text-xs mt-1">Müşteri: {order.customer}</p>
-                          {order.personelAdi && (
-                            <p className="text-gray-500 text-xs">Personel: {order.personelAdi}</p>
-                          )}
-                        </div>
-                        <span className={`px-3 py-1 rounded-lg text-xs font-medium ${status.bg} ${status.text}`}>
-                          {status.label}
-                        </span>
-                      </div>
-
-                      <div className="space-y-1 mb-3">
-                        {order.items && order.items.length > 0 ? (
-                          order.items.map((item, idx) => (
-                            <div key={idx} className="flex items-center gap-2 text-gray-300 text-sm">
-                              <span className="text-gray-500">•</span>
-                              <span>{item}</span>
-                            </div>
-                          ))
-                        ) : (
-                          <div className="text-gray-500 text-sm flex items-center gap-2">
-                            <FaSpinner className="animate-spin" size={12} />
-                            Ürünler yükleniyor...
-                          </div>
-                        )}
-                      </div>
-
-                      {order.note && (
-                        <div className="mb-3 p-2 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
-                          <p className="text-yellow-400 text-xs">
-                            <span className="font-medium">Not:</span> {order.note}
-                          </p>
-                        </div>
-                      )}
-
-                      <div className="flex flex-col gap-2 mt-3">
-                        {/* Ana işlem butonları */}
-                        <div className="flex gap-2">
-                          {order.status === 'pending' && (
-                            <button
-                              onClick={() => updateOrderStatus(order.id, 'preparing')}
-                              disabled={isUpdating}
-                              className="flex-1 px-3 py-2 bg-blue-500/20 hover:bg-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed text-blue-400 rounded-lg text-sm transition-all flex items-center justify-center gap-2"
-                            >
-                              <FaSpinner className={isUpdating ? "animate-spin" : "hidden"} size={14} />
-                              Hazırlamaya Başla
-                            </button>
-                          )}
-                          {order.status === 'preparing' && (
-                            <button
-                              onClick={() => updateOrderStatus(order.id, 'ready')}
-                              disabled={isUpdating}
-                              className="flex-1 px-3 py-2 bg-green-500/20 hover:bg-green-500/30 disabled:opacity-50 disabled:cursor-not-allowed text-green-400 rounded-lg text-sm transition-all flex items-center justify-center gap-2"
-                            >
-                              {isUpdating ? (
-                                <FaSpinner className="animate-spin" size={14} />
-                              ) : isOnline ? (
-                                <FaMotorcycle size={14} />
-                              ) : (
-                                <FaCheck size={14} />
-                              )}
-                              Hazır ({isOnline ? 'Kurye Ata' : 'Garsona Bildir'})
-                            </button>
-                          )}
-                        </div>
-
-                        {/* İptal ve İade butonları */}
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => handleCancelOrder(order.id)}
-                            disabled={isUpdating}
-                            className="flex-1 px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 disabled:opacity-50 disabled:cursor-not-allowed text-red-400 rounded-lg text-xs transition-all flex items-center justify-center gap-1"
-                          >
-                            ❌ İptal Et
-                          </button>
-
-                          <button
-                            onClick={() => handleRefundOrder(order.id)}
-                            disabled={isUpdating || order.status !== 'pending'}
-                            className="flex-1 px-3 py-1.5 bg-yellow-500/20 hover:bg-yellow-500/30 disabled:opacity-50 disabled:cursor-not-allowed text-yellow-400 rounded-lg text-xs transition-all flex items-center justify-center gap-1"
-                          >
-                            ↩️ İade Et
-                          </button>
-                        </div>
-                      </div>
+              <>
+                {/* ========== AKTİF SİPARİŞLER ========== */}
+                <div className="mb-8">
+                  <h2 className="text-white font-semibold text-lg mb-3 flex items-center gap-2">
+                    <FaUtensils className="text-yellow-400" size={16} />
+                    Aktif Siparişler
+                    <span className="text-sm text-gray-400 ml-2">({orders.length})</span>
+                  </h2>
+                  {orders.length > 0 ? (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+                      {orders.map((order) => (
+                        <OrderCard key={order.id} order={order} isHazir={false} />
+                      ))}
                     </div>
-                  );
-                })}
+                  ) : (
+                    <div className="text-center py-10 bg-black/40 rounded-2xl border border-white/10">
+                      <div className="text-5xl mb-3">🍳</div>
+                      <p className="text-gray-400">Bekleyen ya da hazırlanan sipariş yok</p>
+                    </div>
+                  )}
+                </div>
 
-                {orders.length === 0 && !loading && (
-                  <div className="col-span-full text-center py-12">
+                {/* ========== HAZIR SİPARİŞLER ========== */}
+                <div>
+                  <h2 className="text-white font-semibold text-lg mb-3 flex items-center gap-2">
+                    <FaClipboardCheck className="text-green-400" size={16} />
+                    Hazır Siparişler (Teslim Bekliyor)
+                    <span className="text-sm text-gray-400 ml-2">({hazirOrders.length})</span>
+                  </h2>
+                  {hazirOrders.length > 0 ? (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+                      {hazirOrders.map((order) => (
+                        <OrderCard key={order.id} order={order} isHazir={true} />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-10 bg-black/40 rounded-2xl border border-white/10">
+                      <div className="text-5xl mb-3">✅</div>
+                      <p className="text-gray-400">Henüz hazırlanmış sipariş yok</p>
+                    </div>
+                  )}
+                </div>
+
+                {orders.length === 0 && hazirOrders.length === 0 && !loading && (
+                  <div className="text-center py-12">
                     <div className="text-6xl mb-4">🍳</div>
-                    <p className="text-gray-400 text-lg">Henüz sipariş yok</p>
+                    <p className="text-gray-400 text-lg">Bugün henüz sipariş yok</p>
                     <p className="text-gray-500 text-sm">Yeni siparişler burada görünecek</p>
                   </div>
                 )}
-              </div>
+              </>
             )}
           </div>
 

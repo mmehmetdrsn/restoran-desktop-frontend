@@ -116,58 +116,6 @@ export const orderService = {
     }
 };
 
-// ============================================================
-// ✅ AŞÇI SERVİSİ
-// ============================================================
-export const asciAPI = {
-    getSiparisler: () => apiRequest('/Siparisler'),
-    getSiparisDetay: (id) => apiRequest(`/Siparisler/${id}`),
-    updateSiparisDurum: (id, durum) =>
-        apiRequest(`/Siparisler/${id}/durum`, 'PUT', { siparisDurumu: durum }),
-    siparisTamamla: (id) => apiRequest(`/Siparisler/${id}/tamamla`, 'PUT'),
-    getAsciSiparisleri: async () => {
-        const response = await apiRequest('/Siparisler');
-        if (response.data && Array.isArray(response.data)) {
-            const asciDurumlar = ['BEKLEMEDE', 'HAZIRLANIYOR'];
-            response.data = response.data.filter(s => {
-                const durum = s.siparisDurumu?.toUpperCase() || '';
-                return asciDurumlar.includes(durum);
-            });
-        }
-        return response;
-    },
-    siparisHazirVeKuryeAta: async (siparisId) => {
-        try {
-            await asciAPI.updateSiparisDurum(siparisId, 'HAZIR');
-            const kuryeResponse = await kuryeAPI.getMusaitKuryeler();
-            const musaitKuryeler = kuryeResponse?.data || [];
-
-            if (musaitKuryeler.length === 0) {
-                return {
-                    success: false,
-                    message: 'Müsait kurye bulunamadı! Sipariş havuza eklendi.'
-                };
-            }
-
-            const secilenKurye = musaitKuryeler[0];
-            await kuryeAPI.siparisKuryeyeAta(siparisId, secilenKurye.personelId);
-
-            return {
-                success: true,
-                message: `Sipariş kurye ${secilenKurye.personelAdi} ${secilenKurye.personelSoyadi}'a atandı!`,
-                kurye: secilenKurye
-            };
-        } catch (error) {
-            console.error('Kurye atama hatası:', error);
-            return {
-                success: false,
-                message: 'Kurye atama başarısız! Sipariş havuza eklendi.'
-            };
-        }
-    },
-    siparisBildirimGonder: (siparisId, durum) =>
-        apiRequest(`/Siparisler/${siparisId}/bildirim`, 'POST', { durum }),
-};
 
 // ============================================================
 // ✅ ÜYE SERVİSİ
@@ -515,6 +463,43 @@ export const malzemeTalepAPI = {
     // Admin tarafından talep reddet
     adminReddet: (id) => apiRequest(`/MalzemeTalep/admin/reddet/${id}`, 'PUT')
 };
+
+
+// ============================================================
+// ✅ AŞÇI SERVİSİ
+// ============================================================
+export const asciAPI = {
+    // Aşçı panelindeki siparişleri getir
+    getAsciSiparisleri: async () => {
+        try {
+            const response = await apiRequest('/Asci/siparisler');
+            return response;
+        } catch (error) {
+            console.error('Siparişler alınamadı:', error);
+            throw error;
+        }
+    },
+
+    // Tek sipariş detaylarını getir
+    getSiparisDetay: (id) => apiRequest(`/Siparisler/${id}`),
+
+   // Sipariş durumunu güncelle - direkt string gönder
+updateSiparisDurum: (id, durum) => 
+    apiRequest(`/Asci/siparis/${id}/durum`, 'PUT', durum),
+
+    // Sipariş hazır ve kurye ata
+    siparisHazirVeKuryeAta: (id) => 
+        apiRequest(`/Asci/siparis/${id}/hazir-ve-kurye-ata`, 'POST'),
+
+    // Garsona bildirim gönder
+    garsonaBildirimGonder: (id) => 
+        apiRequest(`/Asci/siparis/${id}/garson-bildirim`, 'POST'),
+
+    // Sipariş tamamla (stok düşüşü ile)
+    siparisTamamla: (id) => 
+        apiRequest(`/Asci/siparis/${id}/tamamla`, 'PUT'),
+};
+
 
 // ============================================================
 // ✅ EK FONKSİYONLAR
