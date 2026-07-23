@@ -1,4 +1,3 @@
-// src/Admin/components/Finans/Iade.js
 import React, { useState } from 'react';
 import { 
   FaTimes, FaUndo, FaSearch, FaMoneyBillWave, FaUser, 
@@ -6,7 +5,8 @@ import {
   FaExclamationTriangle
 } from 'react-icons/fa';
 import { toast } from 'react-toastify';
-import { paymentService, orderService } from '../../../api/api';
+import { paymentService, orderService, iadeService } from '../../../api/api';
+import SiparisDetay from '../Siparis/SiparisDetay';
 
 const IadeOnayModal = ({ acik, kapat, onConfirm, secilenUrunler, toplamTutar, siparisId }) => {
   if (!acik) return null;
@@ -68,66 +68,78 @@ const Iade = ({ acik, kapat }) => {
   const [siparisBilgisi, setSiparisBilgisi] = useState(null);
   const [seciliUrunler, setSeciliUrunler] = useState([]);
   const [iadeAciklama, setIadeAciklama] = useState('');
-  
   const [onayModal, setOnayModal] = useState({ acik: false });
+  
+  // Kullanıcı bilgilerini localStorage'dan al
+  const [userData, setUserData] = useState(() => {
+    try {
+      const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
+      if (storedUser) {
+        return JSON.parse(storedUser);
+      }
+      return { personelId: null };
+    } catch {
+      return { personelId: null };
+    }
+  });
 
   if (!acik) return null;
 
   const handleSiparisAra = async () => {
-  if (!siparisId) {
-    toast.warning('Lütfen sipariş ID girin!');
-    return;
-  }
+    if (!siparisId) {
+      toast.warning('Lütfen sipariş ID girin!');
+      return;
+    }
 
-  try {
-    setLoading(true);
-    const response = await orderService.getById(parseInt(siparisId));
-    const data = response.data;
-    
-    console.log('📋 Gelen sipariş verisi:', data);
-    console.log('📋 Detaylar:', data?.detaylar);  
-    console.log('📋 Detay sayısı:', data?.detaylar?.length || 0);  
-    
-    if (data && data.siparisId) {
-      const odemeResponse = await paymentService.getAll();
-      const odeme = odemeResponse.data?.find(o => o.siparisId === parseInt(siparisId));
+    try {
+      setLoading(true);
+      const response = await orderService.getById(parseInt(siparisId));
+      const data = response.data;
       
-      setSiparisBilgisi({
-        ...data,
-        odeme: odeme || null
-      });
+      console.log('📋 Gelen sipariş verisi:', data);
+      console.log('📋 Detaylar:', data?.detaylar);  
+      console.log('📋 Detay sayısı:', data?.detaylar?.length || 0);  
       
-      if (data.detaylar && data.detaylar.length > 0) {
-        setSeciliUrunler(data.detaylar.map((urun) => ({
-          ...urun,
-          secili: false,
-          iadeAdet: 0
-        })));
-        toast.success(`✅ ${data.detaylar.length} ürün bulundu!`);
+      if (data && data.siparisId) {
+        const odemeResponse = await paymentService.getAll();
+        const odeme = odemeResponse.data?.find(o => o.siparisId === parseInt(siparisId));
+        
+        setSiparisBilgisi({
+          ...data,
+          odeme: odeme || null
+        });
+        
+        if (data.detaylar && data.detaylar.length > 0) {
+          setSeciliUrunler(data.detaylar.map((urun) => ({
+            ...urun,
+            secili: false,
+            iadeAdet: 0
+          })));
+          toast.success(`✅ ${data.detaylar.length} ürün bulundu!`);
+        } else {
+          toast.warning('⚠️ Bu siparişe ait ürün detayı bulunamadı!');
+          setSeciliUrunler([]);
+        }
+        
+        if (!odeme) {
+          toast.warning('⚠️ Bu siparişe ait ödeme bulunamadı! İade işlemi yapılamaz.');
+        } else {
+          toast.success('✅ Sipariş bulundu!');
+        }
       } else {
-        toast.warning('⚠️ Bu siparişe ait ürün detayı bulunamadı!');
+        toast.error('❌ Sipariş bulunamadı!');
+        setSiparisBilgisi(null);
         setSeciliUrunler([]);
       }
-      
-      if (!odeme) {
-        toast.warning('⚠️ Bu siparişe ait ödeme bulunamadı! İade işlemi yapılamaz.');
-      } else {
-        toast.success('✅ Sipariş bulundu!');
-      }
-    } else {
+    } catch (error) {
+      console.error('Sipariş aranırken hata:', error);
       toast.error('❌ Sipariş bulunamadı!');
       setSiparisBilgisi(null);
       setSeciliUrunler([]);
+    } finally {
+      setLoading(false);
     }
-  } catch (error) {
-    console.error('Sipariş aranırken hata:', error);
-    toast.error('❌ Sipariş bulunamadı!');
-    setSiparisBilgisi(null);
-    setSeciliUrunler([]);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   // Ürün seçimini değiştir
   const toggleUrunSecim = (index) => {
@@ -167,78 +179,75 @@ const Iade = ({ acik, kapat }) => {
   const seciliUrunSayisi = seciliUrunler.filter(u => u.secili && u.iadeAdet > 0).length;
 
   // İade işlemi - Önce onay modalını aç
-  const handleIadeOnay = () => {
-    const secilenUrunler = seciliUrunler.filter(u => u.secili && u.iadeAdet > 0);
-    
-    if (secilenUrunler.length === 0) {
-      toast.warning('Lütfen iade edilecek en az bir ürün seçin!');
-      return;
-    }
+const handleIadeOnay = () => {
+  const secilenUrunler = seciliUrunler.filter(u => u.secili && u.iadeAdet > 0);
+  
+  if (secilenUrunler.length === 0) {
+    toast.warning('Lütfen iade edilecek en az bir ürün seçin!');
+    return;
+  }
 
-    // Ödeme kontrolü
-    if (!siparisBilgisi?.odeme) {
-      toast.error('❌ Bu siparişe ait ödeme bulunamadı! İade işlemi yapılamaz.');
-      return;
-    }
+  if (!siparisBilgisi?.odeme) {
+    toast.error('❌ Bu siparişe ait ödeme bulunamadı! İade işlemi yapılamaz.');
+    return;
+  }
 
-    // Onay modalını aç
-    setOnayModal({ acik: true });
-  };
+  setOnayModal({ acik: true });
+};
 
-  // İade işlemini onayla
-  const handleIadeOnayla = async () => {
-    setOnayModal({ acik: false });
-    
-    const secilenUrunler = seciliUrunler.filter(u => u.secili && u.iadeAdet > 0);
+const handleIadeOnayla = async () => {
+  setOnayModal({ acik: false });
+  
+  const secilenUrunler = seciliUrunler.filter(u => u.secili && u.iadeAdet > 0);
 
-    try {
-      setLoading(true);
-      
-      // ✅ SADECE ÖDEMEYİ SİL (İADE)
-      if (siparisBilgisi?.odeme?.odemeId) {
-        await paymentService.delete(siparisBilgisi.odeme.odemeId);
-        
-        // ✅ Sipariş durumunu "IADE" olarak güncelle
-        try {
-          await orderService.updateStatus(siparisId, 'IADE');
-        } catch (statusError) {
-          console.warn('Sipariş durumu güncellenirken hata:', statusError);
-        }
-        
-        toast.success(`✅ ${secilenUrunler.length} ürün iade edildi! Toplam: ₺${toplamIadeTutari.toFixed(2)}`);
-        
-        // Formu sıfırla
-        setSiparisId('');
-        setSiparisBilgisi(null);
-        setSeciliUrunler([]);
-        setIadeAciklama('');
-        kapat();
-      } else {
-        toast.error('❌ Bu siparişe ait ödeme bulunamadı! İade işlemi yapılamaz.');
+  try {
+    setLoading(true);
+
+    // 1. İade kayıtlarını oluştur VE hemen onayla
+    //    (Onay olmadan IadeDurumu "BEKLEMEDE" kalır, SiparisDetay.IadeEdildi hiç
+    //    true olmaz ve bu iade ciro raporunda hiç görünmez.)
+    for (const urun of secilenUrunler) {
+      const olusturulan = await iadeService.create({
+        siparisDetayId: urun.siparisDetayId || urun.SiparisDetayId,
+        urunId: urun.urunId,
+        iadeTutari: (urun.birimFiyat || 0) * (urun.iadeAdet || 0),
+        iadeSebebi: iadeAciklama || 'Ürün iadesi',
+        personelId: userData?.personelId || userData?.PersonelId || null
+      });
+
+      const yeniIadeId = olusturulan?.data?.iadeId || olusturulan?.data?.IadeId;
+      if (yeniIadeId) {
+        await iadeService.updateStatus(yeniIadeId, 'ONAYLANDI');
       }
-    } catch (error) {
-      console.error('İade yapılırken hata:', error);
-      
-      if (error.response?.status === 404) {
-        toast.error('❌ Ödeme bulunamadı! İade işlemi yapılamaz.');
-      } else if (error.response) {
-        const errorData = error.response.data;
-        if (errorData.message) {
-          toast.error(`❌ ${errorData.message}`);
-        } else if (errorData.title) {
-          toast.error(`❌ ${errorData.title}`);
-        } else {
-          toast.error('❌ İade yapılırken hata oluştu!');
-        }
-      } else if (error.request) {
-        toast.error('❌ Sunucuya bağlanılamıyor!');
-      } else {
-        toast.error('❌ Bir hata oluştu: ' + error.message);
-      }
-    } finally {
-      setLoading(false);
     }
-  };
+
+    // 2. Ödemeyi sil (SADECE iade edilen ürünün tutarı kadar)
+    if (siparisBilgisi?.odeme?.odemeId) {
+      await paymentService.delete(siparisBilgisi.odeme.odemeId);
+    }
+
+    // 3. Sipariş durumu artık burada zorlanmıyor.
+    //    IadeController.DurumGuncelle, iade ONAYLANDI olduğunda
+    //    siparişin KISMI_IADE mi yoksa IADE mi olacağına kendisi karar veriyor
+    //    (hepsiIadeEdildi kontrolü). Bunu burada elle ezmek, backend'deki
+    //    doğru mantığı devre dışı bırakıyor ve iki durumun senkronunu bozuyordu.
+    
+    toast.success(`✅ ${secilenUrunler.length} ürün iade edildi! Toplam: ₺${toplamIadeTutari.toFixed(2)}`);
+    
+    // Formu sıfırla
+    setSiparisId('');
+    setSiparisBilgisi(null);
+    setSeciliUrunler([]);
+    setIadeAciklama('');
+    kapat();
+    
+  } catch (error) {
+    console.error('İade yapılırken hata:', error);
+    toast.error('❌ İade yapılırken hata oluştu!');
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <>
