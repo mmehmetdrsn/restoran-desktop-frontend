@@ -20,7 +20,7 @@ import axios from 'axios';
 import {
   orderService, productService, categoryService, materialService,
   tableService, reservationService, personnelService, userService,
-  paymentService, cashService, reportService
+  paymentService, cashService, reportService, malzemeTalepAPI
 } from '../api/api';
 
 import Sidebar from './Bilesenler/Sidebar/Sidebar';
@@ -81,6 +81,7 @@ import StokDurumu from './Bilesenler/Stok/StokDurumu';
 import MalzemeGiris from './Bilesenler/Stok/MalzemeGiris';
 import MalzemeCikis from './Bilesenler/Stok/MalzemeCikis';
 import StokHareketleri from './Bilesenler/Stok/StokHareketleri';
+import MalzemeTalepleri from './Bilesenler/Stok/MalzemeTalepleri';
 
 import SiparisYonetimi from './Bilesenler/Siparis/SiparisYonetimi';
 import SiparisDetay from './Bilesenler/Siparis/SiparisDetay';
@@ -220,6 +221,11 @@ const AdminPanel = () => {
   const [showMalzemeCikis, setShowMalzemeCikis] = useState(false);
   const [stokLoading, setStokLoading] = useState(false);
   const [showStokHareket, setShowStokHareket] = useState(false);
+
+  //Eksik Malzeme Talep
+  const [showMalzemeTalepler, setShowMalzemeTalepler] = useState(false);
+  const [malzemeTalepler, setMalzemeTalepler] = useState([]);
+  const [talepLoading, setTalepLoading] = useState(false);
 
   // Kullanici Bilgileri
   const [userData, setUserData] = useState({
@@ -739,7 +745,6 @@ const AdminPanel = () => {
     if (!window.confirm('Siparisi tamamlamak istediginize emin misiniz?\n\nBu islem stoklari otomatik dusecektir!')) {
       return;
     }
-
     try {
       await axios.put(
         `${process.env.REACT_APP_API_URL}/Siparisler/${siparisId}/tamamla`,
@@ -762,6 +767,50 @@ const AdminPanel = () => {
       }
     }
   };
+
+  // eksik malzeme taleplerinin tümünü getir
+const fetchMalzemeTalepler = async () => {
+  try {
+    setTalepLoading(true);
+    const response = await malzemeTalepAPI.getAdminTalepler();
+    setMalzemeTalepler(response.data || []);
+    setShowMalzemeTalepler(true);
+    toast.info(`${response.data?.length || 0} talep bulundu`);
+  } catch (error) {
+    console.error('Talepler yüklenirken hata:', error);
+    toast.error('Talepler yüklenirken hata oluştu!');
+  } finally {
+    setTalepLoading(false);
+  }
+};
+
+// Talep onayla
+const handleTalepOnayla = async (talepId) => {
+  if (!window.confirm('Bu talebi onaylamak istediğinize emin misiniz?')) return;
+  
+  try {
+    await malzemeTalepAPI.adminOnayla(talepId);
+    toast.success('Talep onaylandı!');
+    fetchMalzemeTalepler(); // Listeyi yenile
+  } catch (error) {
+    console.error('Onay hatası:', error);
+    toast.error('Talep onaylanamadı!');
+  }
+};
+
+// Talep reddet
+const handleTalepReddet = async (talepId) => {
+  if (!window.confirm('Bu talebi reddetmek istediğinize emin misiniz?')) return;
+  
+  try {
+    await malzemeTalepAPI.adminReddet(talepId);
+    toast.success('Talep reddedildi!');
+    fetchMalzemeTalepler(); // Listeyi yenile
+  } catch (error) {
+    console.error('Reddetme hatası:', error);
+    toast.error('Talep reddedilemedi!');
+  }
+};
 
   // ============ RENDER FONKSIYONLARI ============
 
@@ -813,6 +862,7 @@ const AdminPanel = () => {
       setShowMalzemeGiris={setShowMalzemeGiris}
       setShowMalzemeCikis={setShowMalzemeCikis}
       setShowStokHareket={setShowStokHareket}
+      handleMalzemeTalepler={fetchMalzemeTalepler}
     />;
   };
 

@@ -8,7 +8,8 @@ const StokButonlari = ({
   handleStokDurumu, 
   setShowMalzemeGiris, 
   setShowMalzemeCikis, 
-  setShowStokHareket 
+  setShowStokHareket,
+  handleMalzemeTalepler
 }) => {
   return (
     <div className="bg-black/90 backdrop-blur-sm rounded-2xl p-6 border border-white/10 max-w-6xl mx-auto">
@@ -19,7 +20,7 @@ const StokButonlari = ({
         <Buton icon={<FaPlusCircle />} label="Malzeme Giriş" onClick={() => setShowMalzemeGiris(true)} />
         <Buton icon={<FaMinusCircle />} label="Malzeme Çıkış" onClick={() => setShowMalzemeCikis(true)} />
         <Buton icon={<FaHistory />} label="Stok Hareketleri" onClick={() => setShowStokHareket(true)} />
-        <Buton icon={<FaClipboardList />} label="Eksik Malzeme Talebi" onClick={() => toast.warning('⚠️ Malzeme sipariş işlemi henüz aktif değil.')} />
+        <Buton icon={<FaClipboardList />} label="Eksik Malzeme Talebi" onClick={handleMalzemeTalepler} />
       </div>
     </div>
   );
