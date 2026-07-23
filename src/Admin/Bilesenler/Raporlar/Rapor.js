@@ -5,7 +5,7 @@ import BolumBasligi from '../Ortak/BolumBasligi';
 import { toast } from 'react-toastify';
 import { reportService } from '../../../api/api';
 
-const RaporButonlari = () => {
+const Rapor = () => {
   const [modalAcik, setModalAcik] = useState(false);
   const [modalBaslik, setModalBaslik] = useState('');
   const [raporData, setRaporData] = useState([]);
@@ -77,7 +77,7 @@ const RaporButonlari = () => {
     }
   };
 
-  // Gelir Istatistikleri - DÜZELTİLDİ
+  // Gelir Istatistikleri
   const fetchGelirIstatistikleri = async () => {
     setModalBaslik('Gelir Istatistikleri');
     setLoading(true);
@@ -287,4 +287,4 @@ const RaporButonlari = () => {
   );
 };
 
-export default RaporButonlari;
+export default Rapor;

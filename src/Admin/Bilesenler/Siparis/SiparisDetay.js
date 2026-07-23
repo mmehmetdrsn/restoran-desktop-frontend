@@ -1,9 +1,9 @@
 // src/Admin/Bilesenler/Siparis/SiparisDetay.js
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   FaTimes, FaShoppingCart, FaUser, FaTable, FaMoneyBillWave, 
   FaCalendarAlt, FaClipboardList, FaBox, FaInfoCircle,
-  FaCheckCircle, FaClock, FaUtensils,FaExchangeAlt, FaReceipt, FaSearch
+  FaCheckCircle, FaClock, FaUtensils, FaExchangeAlt, FaReceipt, FaSearch
 } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import { orderService } from '../../../api/api';
@@ -55,14 +55,18 @@ const SiparisDetay = ({ acik, kapat }) => {
 
   const formatTarih = (tarih) => {
     if (!tarih) return '-';
-    const date = new Date(tarih);
-    return date.toLocaleString('tr-TR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    try {
+      const date = new Date(tarih);
+      return date.toLocaleString('tr-TR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch {
+      return tarih;
+    }
   };
 
   const getDurumRenk = (durum) => {
@@ -74,7 +78,7 @@ const SiparisDetay = ({ acik, kapat }) => {
     if (d === 'HAZIR') return 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30';
     if (d === 'TESLIM EDILDI') return 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30';
     if (d === 'IPTAL') return 'bg-red-500/20 text-red-400 border-red-500/30';
-    if (d == 'IADE') return 'bg-orange-500/20 text-orange-400 border-orange-500/30';
+    if (d === 'IADE') return 'bg-orange-500/20 text-orange-400 border-orange-500/30';
     return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
   };
 
@@ -91,8 +95,19 @@ const SiparisDetay = ({ acik, kapat }) => {
     return <FaInfoCircle className="text-gray-400" />;
   };
 
-  // Toplam ürün sayısını hesapla
   const toplamUrun = siparis?.detaylar?.reduce((sum, d) => sum + (d.adet || 0), 0) || 0;
+
+  // Müşteri adını göster - Üye varsa üye adı, yoksa Ziyaretçi
+  const getMusteriAdi = () => {
+    if (!siparis) return 'Ziyaretçi';
+    if (siparis.uyeAdi) {
+      return siparis.uyeAdi;
+    }
+    if (siparis.uyeId) {
+      return `Üye #${siparis.uyeId}`;
+    }
+    return 'Ziyaretçi';
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
@@ -118,7 +133,7 @@ const SiparisDetay = ({ acik, kapat }) => {
                 onChange={(e) => {
                   setSiparisId(e.target.value);
                   setSiparis(null);
-                  setSiparisBulundu(false);  // ✅ YENİ
+                  setSiparisBulundu(false);
                 }}
                 className="flex-1 py-2.5 px-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-gray-500 focus:ring-2 focus:ring-white/20 outline-none"
                 placeholder="Sipariş ID girin (Örn: 1)"
@@ -130,14 +145,13 @@ const SiparisDetay = ({ acik, kapat }) => {
                 disabled={loading || !siparisId}
                 className="px-4 py-2.5 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-all"
               >
-                {araniyor ? (  // ✅ YENİ
+                {araniyor ? (
                   <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> Aranıyor...</>
                 ) : (
                   <><FaSearch /> Ara</>
                 )}
               </button>
             </form>
-            {/* ✅ Başarılı arama mesajı - YENİ */}
             {siparisBulundu && (
               <p className="text-green-400 text-xs mt-2 flex items-center gap-1">
                 <FaCheckCircle className="text-green-400" /> Sipariş bulundu! Detaylar aşağıda.
@@ -147,7 +161,7 @@ const SiparisDetay = ({ acik, kapat }) => {
 
           {siparis ? (
             <div className="space-y-4">
-              {/* Sipariş Başlığı - Kart */}
+              {/* Sipariş Başlığı */}
               <div className="bg-gradient-to-r from-yellow-500/10 to-orange-500/10 rounded-xl p-4 border border-yellow-500/20">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
@@ -155,9 +169,7 @@ const SiparisDetay = ({ acik, kapat }) => {
                       <FaShoppingCart />
                     </div>
                     <div>
-                      <h3 className="text-white text-xl font-bold">
-                        Sipariş #{siparis.siparisId}
-                      </h3>
+                      <h3 className="text-white text-xl font-bold">Sipariş #{siparis.siparisId}</h3>
                       <div className="flex items-center gap-2 mt-1">
                         <span className={`px-2 py-0.5 rounded text-xs flex items-center gap-1 ${getDurumRenk(siparis.siparisDurumu)}`}>
                           {getDurumIcon(siparis.siparisDurumu)}
@@ -178,42 +190,26 @@ const SiparisDetay = ({ acik, kapat }) => {
                 </div>
               </div>
 
-              {/* Sipariş Bilgileri - Grid */}
+              {/* Sipariş Bilgileri */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div className="bg-white/5 rounded-xl p-3 border border-white/10">
-                  <p className="text-gray-400 text-xs flex items-center gap-1">
-                    <FaTable size={12} /> Masa
-                  </p>
-                  <p className="text-white font-medium mt-1">
-                    {siparis.masaNo || 'Paket / Gel-Al'}
-                  </p>
+                  <p className="text-gray-400 text-xs flex items-center gap-1"><FaTable size={12} /> Masa</p>
+                  <p className="text-white font-medium mt-1">{siparis.masaNo || 'Paket / Gel-Al'}</p>
                 </div>
-
                 <div className="bg-white/5 rounded-xl p-3 border border-white/10">
-                  <p className="text-gray-400 text-xs flex items-center gap-1">
-                    <FaUser size={12} /> Müşteri
-                  </p>
-                  <p className="text-white font-medium mt-1">
-                    {siparis.uyeAdi || 'Ziyaretçi'}
-                  </p>
+                  <p className="text-gray-400 text-xs flex items-center gap-1"><FaUser size={12} /> Müşteri</p>
+                  <p className="text-white font-medium mt-1">{getMusteriAdi()}</p>
+                  {siparis.uyeId && (
+                    <p className="text-gray-500 text-xs">Üye ID: #{siparis.uyeId}</p>
+                  )}
                 </div>
-
                 <div className="bg-white/5 rounded-xl p-3 border border-white/10">
-                  <p className="text-gray-400 text-xs flex items-center gap-1">
-                    <FaCalendarAlt size={12} /> Tarih
-                  </p>
-                  <p className="text-white font-medium mt-1 text-sm">
-                    {formatTarih(siparis.siparisTarihi)}
-                  </p>
+                  <p className="text-gray-400 text-xs flex items-center gap-1"><FaCalendarAlt size={12} /> Tarih</p>
+                  <p className="text-white font-medium mt-1 text-sm">{formatTarih(siparis.siparisTarihi)}</p>
                 </div>
-
                 <div className="bg-white/5 rounded-xl p-3 border border-white/10">
-                  <p className="text-gray-400 text-xs flex items-center gap-1">
-                    <FaReceipt size={12} /> Ürün
-                  </p>
-                  <p className="text-white font-medium mt-1">
-                    {siparis.detaylar?.length || 0} ürün ({toplamUrun} adet)
-                  </p>
+                  <p className="text-gray-400 text-xs flex items-center gap-1"><FaReceipt size={12} /> Ürün</p>
+                  <p className="text-white font-medium mt-1">{siparis.detaylar?.length || 0} ürün ({toplamUrun} adet)</p>
                 </div>
               </div>
 
@@ -226,10 +222,8 @@ const SiparisDetay = ({ acik, kapat }) => {
                     {siparis.detaylar?.length || 0} ürün
                   </span>
                 </div>
-                
                 {siparis.detaylar && siparis.detaylar.length > 0 ? (
                   <div className="p-3 space-y-2">
-                    {/* Tablo Başlığı */}
                     <div className="grid grid-cols-12 gap-2 text-gray-500 text-xs px-2 py-1 border-b border-white/5">
                       <span className="col-span-1">#</span>
                       <span className="col-span-5">Ürün Adı</span>
@@ -237,7 +231,6 @@ const SiparisDetay = ({ acik, kapat }) => {
                       <span className="col-span-2 text-right">Birim Fiyat</span>
                       <span className="col-span-2 text-right">Toplam</span>
                     </div>
-                    
                     {siparis.detaylar.map((detay, index) => (
                       <div key={index} className="grid grid-cols-12 gap-2 items-center p-2 bg-white/5 rounded-lg hover:bg-white/10 transition-colors">
                         <span className="col-span-1 text-gray-500 text-xs">{index + 1}</span>
@@ -256,22 +249,15 @@ const SiparisDetay = ({ acik, kapat }) => {
                         </span>
                       </div>
                     ))}
-                    
-                    {/* Toplam Satırı */}
                     <div className="bg-yellow-500/10 rounded-lg p-3 border border-yellow-500/20 flex items-center justify-between mt-2">
                       <span className="text-white font-bold flex items-center gap-2">
-                        <FaMoneyBillWave className="text-yellow-400" />
-                        GENEL TOPLAM
+                        <FaMoneyBillWave className="text-yellow-400" /> GENEL TOPLAM
                       </span>
-                      <span className="text-yellow-400 font-bold text-xl">
-                        ₺{siparis.toplamTutar?.toFixed(2) || 0}
-                      </span>
+                      <span className="text-yellow-400 font-bold text-xl">₺{siparis.toplamTutar?.toFixed(2) || 0}</span>
                     </div>
                   </div>
                 ) : (
-                  <p className="text-gray-400 text-center py-8">
-                    Bu siparişe ait ürün bulunmuyor.
-                  </p>
+                  <p className="text-gray-400 text-center py-8">Bu siparişe ait ürün bulunmuyor.</p>
                 )}
               </div>
             </div>
@@ -284,7 +270,6 @@ const SiparisDetay = ({ acik, kapat }) => {
           )}
         </div>
 
-        {/* Alt Kısım */}
         <div className="p-4 border-t border-white/10 flex justify-end">
           <button onClick={kapat} className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm transition-all">
             Kapat

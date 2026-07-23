@@ -414,6 +414,11 @@ export const kuryeAPI = {
     siparisKabulEt: (data) => apiRequest('/Kurye/siparis-kabul-et', 'POST', data),
     teslimEt: (siparisId, data) => apiRequest(`/Kurye/teslim-et/${siparisId}`, 'PUT', data),
     getMusaitKuryeler: () => apiRequest('/Kurye/musait-kuryeler'),
+<<<<<<< HEAD
+=======
+    
+    // ✅ DÜZELTİLDİ: Siparişi kuryeye ata
+>>>>>>> 9c3ec6798f35772834ff05f9d3f509748daad53b
     siparisKuryeyeAta: (siparisId, kuryeId) => {
         console.log(`📦 Sipariş #${siparisId} kurye #${kuryeId}'a atanıyor...`);
         return apiRequest(`/Kurye/siparis-ata/${siparisId}`, 'POST', {
@@ -438,6 +443,36 @@ export const kuryeAPI = {
     getTeslimGecmisi: (personelId) => {
         console.log(`📦 Kurye #${personelId} teslim geçmişi çekiliyor...`);
         return apiRequest(`/Kurye/${personelId}/gecmis`);
+    },
+
+    // ============================================================
+    // 🔥🔥🔥 KURYE PANELİ İÇİN EKSİK FONKSİYONLAR 🔥🔥🔥
+    // ============================================================
+
+    // 🆕 Sipariş durumunu güncelle (Kurye paneli için)
+    updateSiparisDurum: async (siparisId, data) => {
+        console.log(`🔄 Sipariş #${siparisId} durumu güncelleniyor:`, data);
+        const response = await apiRequest(`/Kurye/siparis-durum/${siparisId}`, 'PUT', data);
+        return response;
+    },
+
+    // 🆕 Sipariş teslim al (HAZIR → KURYEDE) - Alternatif
+    siparisTeslimAl: async (siparisId, personelId) => {
+        console.log(`📦 Sipariş #${siparisId} teslim alınıyor...`);
+        const response = await apiRequest(`/Kurye/siparis-kabul-et`, 'POST', {
+            siparisId: siparisId,
+            personelId: personelId
+        });
+        return response;
+    },
+
+    // 🆕 Sipariş teslim et (YOLDA → TESLIM EDILDI) - Alternatif
+    siparisTeslimEt: async (siparisId, personelId) => {
+        console.log(`✅ Sipariş #${siparisId} teslim ediliyor...`);
+        const response = await apiRequest(`/Kurye/teslim-et/${siparisId}`, 'PUT', {
+            personelId: personelId
+        });
+        return response;
     }
 };
 

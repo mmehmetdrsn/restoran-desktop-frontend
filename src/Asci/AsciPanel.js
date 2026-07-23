@@ -1,14 +1,18 @@
-// src/Asci/AsciPanel.js
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   FaSignOutAlt, FaKey,
   FaTimes, FaBars, FaUtensils,
-  FaCheck, FaSpinner,
-  FaSync
+  FaCheck, FaSpinner, FaSync,
+  FaMotorcycle, FaUser,
+  FaExclamationTriangle
 } from 'react-icons/fa';
 import { toast } from 'react-toastify';
+<<<<<<< HEAD
 import { asciAPI, authService, orderService, paymentService } from '../api/api';
+=======
+import { asciAPI, authService, malzemeTalepAPI } from '../api/api';
+>>>>>>> 9c3ec6798f35772834ff05f9d3f509748daad53b
 
 // Arka plan resmi
 const backgroundImage = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80';
@@ -32,6 +36,17 @@ const AsciPanel = () => {
     personelId: null
   });
 
+  // ========== EKSİK MALZEME TALEBİ STATE'LERİ ==========
+  const [showMalzemeTalep, setShowMalzemeTalep] = useState(false);
+  const [malzemeler, setMalzemeler] = useState([]);
+  const [talepForm, setTalepForm] = useState({
+    malzemeId: '',
+    miktar: '',
+    birim: 'adet',
+    aciklama: ''
+  });
+  const [talepLoading, setTalepLoading] = useState(false);
+
   // ========== KULLANICI BİLGİLERİNİ AL ==========
   const fetchUserData = useCallback(() => {
     try {
@@ -49,6 +64,47 @@ const AsciPanel = () => {
       console.error('Kullanıcı verileri alınamadı:', error);
     }
   }, []);
+
+  // ========== MALZEME LİSTESİNİ ÇEK ==========
+  const fetchMalzemeler = async () => {
+    try {
+      const response = await fetch('/api/Malzemeler');
+      const data = await response.json();
+      setMalzemeler(data || []);
+    } catch (error) {
+      console.error('Malzemeler yüklenirken hata:', error);
+      toast.error('Malzemeler yüklenemedi!');
+    }
+  };
+
+  // ========== MALZEME TALEBİ GÖNDER ==========
+  const handleMalzemeTalep = async (e) => {
+    e.preventDefault();
+    if (!talepForm.malzemeId || !talepForm.miktar) {
+      toast.warning('Lütfen tüm alanları doldurun!');
+      return;
+    }
+
+    setTalepLoading(true);
+    try {
+      await malzemeTalepAPI.talepOlustur({
+        malzemeId: parseInt(talepForm.malzemeId),
+        miktar: parseInt(talepForm.miktar),
+        birim: talepForm.birim,
+        aciklama: talepForm.aciklama || '',
+        personelId: userData.personelId
+      });
+      
+      toast.success('✅ Malzeme talebi gönderildi! Admin onay bekleniyor.');
+      setShowMalzemeTalep(false);
+      setTalepForm({ malzemeId: '', miktar: '', birim: 'adet', aciklama: '' });
+    } catch (error) {
+      console.error('Talep gönderilirken hata:', error);
+      toast.error('❌ Talep gönderilemedi!');
+    } finally {
+      setTalepLoading(false);
+    }
+  };
 
   // ========== SİPARİŞ DURUMUNU MAP ET ==========
   const mapStatus = (backendStatus) => {
@@ -97,7 +153,8 @@ const AsciPanel = () => {
           rawStatus: s.siparisDurumu,
           customer: s.uyeAdi || 'Ziyaretçi',
           totalAmount: s.toplamTutar || 0,
-          personelAdi: s.personelAdi || null
+          personelAdi: s.personelAdi || null,
+          siparisTuru: s.siparisTuru || (s.masaNo ? 'salon' : 'online')
         }));
 
       setOrders(filteredOrders);
@@ -136,14 +193,42 @@ const AsciPanel = () => {
       setUpdatingOrderId(orderId);
       
       if (newStatus === 'ready') {
+<<<<<<< HEAD
         const result = await asciAPI.siparisHazirVeKuryeAta(orderId);
         
         if (result.success) {
           setOrders(prev => prev.filter(o => o.id !== orderId));
           toast.success(`✅ ${result.message}`);
         } else {
+=======
+        const order = orders.find(o => o.id === orderId);
+        if (!order) {
+          toast.error('Sipariş bulunamadı!');
+          return;
+        }
+
+        if (order.siparisTuru === 'online') {
+          const result = await asciAPI.siparisHazirVeKuryeAta(orderId);
+          
+          if (result.success) {
+            setOrders(prev => prev.filter(o => o.id !== orderId));
+            toast.success(`✅ ${result.message}`);
+          } else {
+            setOrders(prev => prev.filter(o => o.id !== orderId));
+            toast.warning(`⚠️ ${result.message}`);
+          }
+        } else {
+          await asciAPI.siparisHazir(orderId);
+>>>>>>> 9c3ec6798f35772834ff05f9d3f509748daad53b
           setOrders(prev => prev.filter(o => o.id !== orderId));
-          toast.warning(`⚠️ ${result.message}`);
+          toast.success(`✅ Sipariş #${orderId} hazır! Garsona bildirim gönderildi.`);
+          
+          try {
+            await asciAPI.garsonaBildirimGonder(orderId);
+            console.log(`📢 Garsona bildirim gönderildi: Sipariş #${orderId}`);
+          } catch (err) {
+            console.warn('Garson bildirimi gönderilemedi:', err);
+          }
         }
         
         setTimeout(() => {
@@ -297,6 +382,14 @@ const AsciPanel = () => {
     }
   };
 
+  // ========== SİPARİŞ TÜRÜNE GÖRE RENK ==========
+  const getSiparisTuruBadge = (tur) => {
+    if (tur === 'online') {
+      return { bg: 'bg-blue-500/20', text: 'text-blue-400', icon: <FaMotorcycle className="inline mr-1" size={12} />, label: 'Online' };
+    }
+    return { bg: 'bg-green-500/20', text: 'text-green-400', icon: <FaUser className="inline mr-1" size={12} />, label: 'Salon' };
+  };
+
   // ========== EFFECT'LER ==========
   useEffect(() => {
     fetchUserData();
@@ -371,6 +464,18 @@ const AsciPanel = () => {
 
             <div className="border-t border-white/10 my-3"></div>
 
+            {/* EKSİK MALZEME TALEBİ BUTONU */}
+            <button
+              onClick={() => { 
+                fetchMalzemeler(); 
+                setShowMalzemeTalep(true); 
+              }}
+              className="w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all text-yellow-400 hover:text-yellow-300 hover:bg-yellow-500/10"
+            >
+              <FaExclamationTriangle size={18} />
+              {sidebarOpen && <span className="text-sm">Eksik Malzeme Talebi</span>}
+            </button>
+
             <button
               onClick={() => setShowPasswordModal(true)}
               className="w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all text-gray-400 hover:text-white hover:bg-white/5"
@@ -389,7 +494,6 @@ const AsciPanel = () => {
           </div>
         </div>
 
-        {/* Mobile Sidebar Toggle */}
         <button
           onClick={() => setMobileSidebarOpen(true)}
           className="lg:hidden fixed top-4 left-4 z-40 p-2.5 bg-black/80 backdrop-blur-sm rounded-lg text-white"
@@ -406,7 +510,6 @@ const AsciPanel = () => {
 
         {/* Ana İçerik */}
         <div className="flex-1">
-          {/* Üst Navbar */}
           <div className="bg-black/80 backdrop-blur-sm border-b border-white/10 sticky top-0 z-30">
             <div className="max-w-7xl mx-auto px-4 py-3">
               <div className="flex items-center justify-end gap-4">
@@ -425,9 +528,7 @@ const AsciPanel = () => {
             </div>
           </div>
 
-          {/* İçerik */}
           <div className="max-w-7xl mx-auto px-4 py-6">
-            {/* Başlık */}
             <div className="flex items-center justify-between mb-6 flex-wrap gap-2">
               <div>
                 <h1 className="text-2xl font-bold text-white">Mutfak Yönetimi</h1>
@@ -443,24 +544,30 @@ const AsciPanel = () => {
               </div>
             </div>
 
-            {/* Loading State */}
             {loading && orders.length === 0 ? (
               <div className="bg-black/80 backdrop-blur-sm rounded-2xl p-12 border border-white/10 flex flex-col items-center justify-center">
                 <FaSpinner className="animate-spin text-yellow-400 text-4xl mb-4" />
                 <p className="text-gray-400">Siparişler yükleniyor...</p>
               </div>
             ) : (
-              /* Sipariş Listesi */
               <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
                 {orders.map((order) => {
                   const status = getStatusBadge(order.status);
                   const isUpdating = updatingOrderId === order.id;
+                  const turBadge = getSiparisTuruBadge(order.siparisTuru);
+                  const isOnline = order.siparisTuru === 'online';
                   
                   return (
                     <div key={order.id} className="bg-black/80 backdrop-blur-sm rounded-2xl border border-white/10 p-4 hover:border-white/20 transition-all">
                       <div className="flex items-start justify-between mb-3">
                         <div>
-                          <h3 className="text-white font-bold text-lg">{order.table}</h3>
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-white font-bold text-lg">{order.table}</h3>
+                            <span className={`text-[10px] px-2 py-0.5 rounded ${turBadge.bg} ${turBadge.text}`}>
+                              {turBadge.icon}
+                              {turBadge.label}
+                            </span>
+                          </div>
                           <p className="text-gray-400 text-sm">{order.time}</p>
                           <p className="text-gray-500 text-xs mt-1">Müşteri: {order.customer}</p>
                           {order.personelAdi && (
@@ -538,6 +645,7 @@ const AsciPanel = () => {
                           >
                             ❌ İptal Et
                           </button>
+<<<<<<< HEAD
                           <button
                             onClick={() => handleRefundOrder(order.id)}
                             disabled={isUpdating || order.status !== 'pending'}
@@ -546,6 +654,40 @@ const AsciPanel = () => {
                             ↩️ İade Et
                           </button>
                         </div>
+=======
+                        )}
+                        {order.status === 'preparing' && (
+                          <>
+                            {isOnline ? (
+                              <button
+                                onClick={() => updateOrderStatus(order.id, 'ready')}
+                                disabled={isUpdating}
+                                className="flex-1 px-3 py-2 bg-green-500/20 hover:bg-green-500/30 disabled:opacity-50 disabled:cursor-not-allowed text-green-400 rounded-lg text-sm transition-all flex items-center justify-center gap-2"
+                              >
+                                {isUpdating ? (
+                                  <FaSpinner className="animate-spin" size={14} />
+                                ) : (
+                                  <FaMotorcycle size={14} />
+                                )}
+                                Hazır (Kurye Ata)
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => updateOrderStatus(order.id, 'ready')}
+                                disabled={isUpdating}
+                                className="flex-1 px-3 py-2 bg-green-500/20 hover:bg-green-500/30 disabled:opacity-50 disabled:cursor-not-allowed text-green-400 rounded-lg text-sm transition-all flex items-center justify-center gap-2"
+                              >
+                                {isUpdating ? (
+                                  <FaSpinner className="animate-spin" size={14} />
+                                ) : (
+                                  <FaCheck size={14} />
+                                )}
+                                Hazır (Garsona Bildir)
+                              </button>
+                            )}
+                          </>
+                        )}
+>>>>>>> 9c3ec6798f35772834ff05f9d3f509748daad53b
                       </div>
                     </div>
                   );
@@ -562,7 +704,6 @@ const AsciPanel = () => {
             )}
           </div>
 
-          {/* Alt Bilgi */}
           <div className="border-t border-white/10 bg-black/30 backdrop-blur-sm">
             <div className="max-w-7xl mx-auto px-4 py-3">
               <p className="text-gray-400 text-[10px] text-center">
@@ -642,6 +783,112 @@ const AsciPanel = () => {
                     </>
                   ) : (
                     'Şifreyi Değiştir'
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/*  EKSİK MALZEME TALEBİ MODALI */}
+      {showMalzemeTalep && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="bg-black/95 backdrop-blur-sm rounded-2xl border border-white/10 shadow-2xl max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="text-2xl text-yellow-400">📦</div>
+                <div>
+                  <h2 className="text-white font-bold text-lg">Eksik Malzeme Talebi</h2>
+                  <p className="text-gray-400 text-xs">Eksik malzemeleri admin'e bildirin</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowMalzemeTalep(false)} 
+                className="text-gray-400 hover:text-white"
+              >
+                <FaTimes size={20} />
+              </button>
+            </div>
+            
+            <form onSubmit={handleMalzemeTalep} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1.5">Malzeme *</label>
+                <select
+                  value={talepForm.malzemeId}
+                  onChange={(e) => setTalepForm({...talepForm, malzemeId: e.target.value})}
+                  className="w-full py-2.5 px-3 bg-white/5 border border-white/10 rounded-lg text-white focus:ring-2 focus:ring-white/20 outline-none"
+                  required
+                >
+                  <option value="">Malzeme Seçin</option>
+                  {malzemeler.map(m => (
+                    <option key={m.malzemeId} value={m.malzemeId}>
+                      {m.malzemeAdi} (Mevcut: {m.stokMiktari || 0} {m.birim})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1.5">Miktar *</label>
+                <input
+                  type="number"
+                  value={talepForm.miktar}
+                  onChange={(e) => setTalepForm({...talepForm, miktar: e.target.value})}
+                  className="w-full py-2.5 px-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-gray-500 focus:ring-2 focus:ring-white/20 outline-none"
+                  placeholder="Kaç adet/kg?"
+                  required
+                  min="1"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1.5">Birim</label>
+                <select
+                  value={talepForm.birim}
+                  onChange={(e) => setTalepForm({...talepForm, birim: e.target.value})}
+                  className="w-full py-2.5 px-3 bg-white/5 border border-white/10 rounded-lg text-white focus:ring-2 focus:ring-white/20 outline-none"
+                >
+                  <option value="adet">Adet</option>
+                  <option value="kg">Kg</option>
+                  <option value="gr">Gr</option>
+                  <option value="lt">Litre</option>
+                  <option value="paket">Paket</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1.5">Açıklama</label>
+                <textarea
+                  value={talepForm.aciklama}
+                  onChange={(e) => setTalepForm({...talepForm, aciklama: e.target.value})}
+                  className="w-full py-2.5 px-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-gray-500 focus:ring-2 focus:ring-white/20 outline-none resize-none"
+                  placeholder="Neden ihtiyacınız var?"
+                  rows="2"
+                />
+              </div>
+              
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowMalzemeTalep(false)}
+                  className="flex-1 px-4 py-2 bg-white/5 hover:bg-white/10 text-gray-300 rounded-lg"
+                  disabled={talepLoading}
+                >
+                  İptal
+                </button>
+                <button
+                  type="submit"
+                  disabled={talepLoading}
+                  className="flex-1 px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-black font-semibold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {talepLoading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin"></div>
+                      Gönderiliyor...
+                    </>
+                  ) : (
+                    'Talebi Gönder'
                   )}
                 </button>
               </div>

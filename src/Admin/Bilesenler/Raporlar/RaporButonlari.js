@@ -1,5 +1,5 @@
 import React from 'react';
-import { FaChartLine, FaPizzaSlice, FaCalendarCheck, FaMoneyBillWave , FaChartBar} from 'react-icons/fa';
+import { FaChartLine, FaPizzaSlice, FaCalendarCheck, FaMoneyBillWave, FaChartBar } from 'react-icons/fa';
 import BolumBasligi from '../Ortak/BolumBasligi';
 import Buton from '../Ortak/Buton';
 

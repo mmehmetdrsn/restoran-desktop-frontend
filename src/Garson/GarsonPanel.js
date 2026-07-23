@@ -44,6 +44,7 @@ const GarsonPanel = () => {
   // Modallar
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentProcessing, setPaymentProcessing] = useState(false);
   const [showOrderDetailModal, setShowOrderDetailModal] = useState(false);
   const [selectedOrderTable, setSelectedOrderTable] = useState(null);
   const [showMoveTableModal, setShowMoveTableModal] = useState(false);
@@ -302,7 +303,6 @@ const GarsonPanel = () => {
     return tableOrOrder;
   };
 
-  // handleOpenOrderDetail - Sipariş detaylarını getir
   const handleOpenOrderDetail = async (table) => {
     setSelectedTable(table);
     
@@ -342,7 +342,6 @@ const GarsonPanel = () => {
     }
   };
 
-  // handleTableClick - Masa tıklandığında
   const handleTableClick = async (table) => {
     setSelectedTable(table);
     
@@ -365,11 +364,58 @@ const GarsonPanel = () => {
     setShowOrderDetailModal(false);
   };
 
+  // 🔑 Sipariş detayından "Ödeme Al" butonuna basılınca çalışan fonksiyon
   const handlePaymentFromDetail = () => {
     if (!selectedOrderTable) return;
-    setSelectedTable(selectedOrderTable);
+    setSelectedTable({
+      ...selectedOrderTable,
+      order: getOrderObject(selectedOrderTable)
+    });
     setShowPaymentModal(true);
     setShowOrderDetailModal(false);
+  };
+
+  // 🔑 Ödeme İşleme Fonksiyonu (SADECE TEK TANIMLAMA)
+  const processPayment = async (tableId, method) => {
+    if (paymentProcessing) return;
+    setPaymentProcessing(true);
+
+    const table = tables.find(t => t.id === tableId) || selectedTable;
+    const siparisId = table?.order?.siparisId || table?.order?.id;
+
+    if (!table || !siparisId) {
+      toast.error('Ödeme alınacak sipariş bilgisi bulunamadı.');
+      setPaymentProcessing(false);
+      return;
+    }
+
+    try {
+      const paymentData = {
+        siparisId: siparisId,
+        odemeTipi: method === 'Nakit' ? 'NAKIT' : 'KREDI KARTI',
+        personelId: 1,
+        kasaId: 1
+      };
+
+      const res = await paymentService.processPayment(paymentData);
+
+      if (res?.error) {
+        toast.error(res.error?.Mesaj || 'Ödeme alınamadı!');
+        return;
+      }
+
+      toast.success(`${table.name} için ödeme başarıyla alındı! 🎉`);
+
+      setShowPaymentModal(false);
+      setSelectedTable(null);
+      setSelectedOrderTable(null);
+      await verileriYukle();
+    } catch (error) {
+      console.error('Ödeme hatası:', error);
+      toast.error(error.response?.data?.Mesaj || 'Ödeme işlemi başarısız oldu!');
+    } finally {
+      setPaymentProcessing(false);
+    }
   };
 
   const handleCancelNewOrder = () => {
@@ -389,6 +435,7 @@ const GarsonPanel = () => {
     return table.status === filter;
   });
 
+<<<<<<< HEAD
   // ============================================================
   // ✅ DOLU MASALARI SIPARIŞLERLE EŞLEŞTİR
   // ============================================================
@@ -409,6 +456,8 @@ const GarsonPanel = () => {
     });
 
   // Sepet İşlemleri
+=======
+>>>>>>> 9c3ec6798f35772834ff05f9d3f509748daad53b
   const addToCart = (item) => {
     const note = prompt(`📝 ${item.name} için özel not (isteğe bağlı):`, '');
     const existing = cart.find(c => c.id === item.id);
@@ -500,6 +549,7 @@ const GarsonPanel = () => {
           t.id === updatedTable.id ? updatedTable : t
         ));
       }
+<<<<<<< HEAD
 
       await verileriYukle();
       setActiveTab('masa');
@@ -586,6 +636,17 @@ const GarsonPanel = () => {
       }
       
       toast.error(`❌ ${errorMsg}`);
+=======
+
+      await verileriYukle();
+      setActiveTab('masa');
+      setShowOrderModal(false);
+      setCart([]);
+      
+    } catch (error) {
+      console.error('Sipariş hatası:', error);
+      toast.error(error.response?.data?.Mesaj || error.message || 'Sipariş oluşturulamadı!');
+>>>>>>> 9c3ec6798f35772834ff05f9d3f509748daad53b
     }
   };
 
@@ -612,7 +673,6 @@ const GarsonPanel = () => {
     }
   };
 
-  // İade Masa Seçimi
   const handleRefundSelect = async (tableId) => {
     if (!tableId) return;
 
@@ -659,7 +719,6 @@ const GarsonPanel = () => {
     }
   };
 
-  // İade Talebi Gönderme
   const processRefund = async () => {
     if (!refundTable?.order?.siparisId) {
       toast.error('İade edilecek sipariş bilgisi bulunamadı.');
@@ -931,13 +990,20 @@ const GarsonPanel = () => {
 
       {showPaymentModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <div className="bg-black/95 backdrop-blur-sm rounded-2xl border border-white/10 shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
+          <div className="bg-black/95 backdrop-blur-sm rounded-2xl border border-white/10 shadow-2xl max-w-xl w-full p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-white font-bold text-lg">💰 Ödeme Al</h2>
-              <button onClick={() => setShowPaymentModal(false)} className="text-gray-400 hover:text-white">
+              <button 
+                onClick={() => {
+                  setShowPaymentModal(false);
+                  setSelectedTable(null);
+                }} 
+                className="text-gray-400 hover:text-white"
+              >
                 <FaTimes size={20} />
               </button>
             </div>
+<<<<<<< HEAD
             <HesapIslemleri 
               occupiedTables={occupiedTables} 
               processPayment={processPayment} 
@@ -946,6 +1012,14 @@ const GarsonPanel = () => {
                 console.log(`✅ Masa ${masaId} ödemesi başarılı!`);
                 verileriYukle();
               }}
+=======
+            
+            <HesapIslemleri 
+              occupiedTables={occupiedTables} 
+              processPayment={processPayment} 
+              isDayMode={isDayMode} 
+              selectedTable={selectedTable}
+>>>>>>> 9c3ec6798f35772834ff05f9d3f509748daad53b
             />
           </div>
         </div>

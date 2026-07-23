@@ -1,3 +1,4 @@
+// src/Admin/Bilesenler/Siparis/SiparisButonlari.js
 import React from 'react';
 import { FaClipboardList, FaList, FaShoppingCart, FaUndo, FaEye } from 'react-icons/fa';
 import BolumBasligi from '../Ortak/BolumBasligi';
@@ -19,7 +20,7 @@ const SiparisButonlari = ({
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <Buton 
           icon={<FaList />} 
-          label={`📋 Tüm Siparişler (${tumSiparisler.length})`}
+          label={`Tüm Siparişler (${tumSiparisler.length})`}
           onClick={() => {
             setSiparisGosterimModu('all');
             handleSiparisListele();
@@ -27,7 +28,7 @@ const SiparisButonlari = ({
         />
         <Buton 
           icon={<FaShoppingCart />} 
-          label={`🛒 Aktif (${aktifSiparisler.length})`}
+          label={`Aktif (${aktifSiparisler.length})`}
           onClick={() => {
             setSiparisGosterimModu('active');
             handleSiparisListele();
@@ -35,7 +36,7 @@ const SiparisButonlari = ({
         />
         <Buton 
           icon={<FaUndo />} 
-          label={`🔄 İptal/İade (${iptalIadeSiparisler.length})`}
+          label={`İptal/İade (${iptalIadeSiparisler.length})`}
           onClick={() => {
             setSiparisGosterimModu('iptal_iade');
             handleSiparisListele();
@@ -43,7 +44,7 @@ const SiparisButonlari = ({
         />
         <Buton 
           icon={<FaEye />} 
-          label="👁️ Sipariş Detay" 
+          label="Sipariş Detay" 
           onClick={() => setShowSiparisDetay(true)} 
         />
       </div>
