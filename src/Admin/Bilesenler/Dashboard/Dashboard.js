@@ -2,13 +2,28 @@
 import React from 'react';
 import { FaSpinner, FaFire, FaArrowRight } from 'react-icons/fa';
 
+// 🔥 Dashboard'a özel durum renkleri
+const getDashboardStatusColor = (durum) => {
+  switch (durum) {
+    case 'Bekliyor': return 'bg-yellow-500/20 text-yellow-400';
+    case 'Hazırlanıyor': return 'bg-blue-500/20 text-blue-400';
+    case 'Hazır': return 'bg-green-500/20 text-green-400';
+    case 'Tamamlandı': return 'bg-green-500/20 text-green-400';
+    case 'Teslim Edildi': return 'bg-purple-500/20 text-purple-400';
+    case 'İptal': return 'bg-red-500/20 text-red-400';
+    case 'İade': return 'bg-red-500/20 text-red-400';
+    case 'Kısmi İade': return 'bg-orange-500/20 text-orange-400';
+    case 'Ödendi': return 'bg-gray-500/20 text-gray-400';
+    default: return 'bg-gray-500/20 text-gray-400';
+  }
+};
+
 const Dashboard = ({ 
   loading, 
   dashboardData, 
   topProducts, 
   recentOrders, 
-  getStatusColor,
-  onMenuGor  // ← YENİ PROP
+  onMenuGor 
 }) => {
   if (loading) {
     return (
@@ -74,9 +89,8 @@ const Dashboard = ({
               ))
             )}
           </div>
-          {/* ✅ BUTON ÇALIŞIR HALE GELDİ */}
           <button 
-            onClick={onMenuGor}  // ← PROP EKLENDİ
+            onClick={onMenuGor}
             className="w-full mt-4 flex items-center justify-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl text-white text-sm transition-all"
           >
             Tüm Menüyü Gör
@@ -102,20 +116,25 @@ const Dashboard = ({
                 {recentOrders.length === 0 ? (
                   <tr><td colSpan="6" className="text-center py-4 text-gray-400">Henüz sipariş yok</td></tr>
                 ) : (
-                  recentOrders.map((order, index) => (
-                    <tr key={index} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                      <td className="py-2 px-2 text-white text-xs">{order.siparisNo}</td>
-                      <td className="py-2 px-2 text-gray-300 text-xs">{order.masa}</td>
-                      <td className="py-2 px-2 text-gray-400 text-xs">{order.icerik}</td>
-                      <td className="py-2 px-2 text-gray-400 text-xs">{order.saat}</td>
-                      <td className="py-2 px-2 text-white text-xs font-medium">₺{order.tutar}</td>
-                      <td className="py-2 px-2">
-                        <span className={`px-2 py-1 rounded text-[10px] ${getStatusColor(order.durum)}`}>
-                          {order.durum}
-                        </span>
-                      </td>
-                    </tr>
-                  ))
+                  recentOrders.map((order, index) => {
+                    const durumRenk = getDashboardStatusColor(order.durum);
+                    const isIade = order.durum === 'İade' || order.durum === 'IADE' || order.iadeMi;
+                    return (
+                      <tr key={index} className={`border-b border-white/5 hover:bg-white/5 transition-colors ${isIade ? 'bg-red-500/5' : ''}`}>
+                        <td className="py-2 px-2 text-white text-xs">{order.siparisNo}</td>
+                        <td className="py-2 px-2 text-gray-300 text-xs">{order.masa}</td>
+                        <td className="py-2 px-2 text-gray-400 text-xs">{order.icerik}</td>
+                        <td className="py-2 px-2 text-gray-400 text-xs">{order.saat}</td>
+                        <td className="py-2 px-2 text-white text-xs font-medium">₺{order.tutar}</td>
+                        <td className="py-2 px-2">
+                          <span className={`px-2 py-1 rounded text-[10px] ${durumRenk}`}>
+                            {order.durum}
+                            {isIade && ' 🔄'}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>

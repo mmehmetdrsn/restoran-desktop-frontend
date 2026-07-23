@@ -81,7 +81,7 @@ import StokDurumu from './Bilesenler/Stok/StokDurumu';
 import MalzemeGiris from './Bilesenler/Stok/MalzemeGiris';
 import MalzemeCikis from './Bilesenler/Stok/MalzemeCikis';
 import StokHareketleri from './Bilesenler/Stok/StokHareketleri';
-import MalzemeTalepleri from './Bilesenler/Stok/MalzemeTalepleri';
+import MalzemeTalepleri from './Bilesenler/Stok/MalzemeTalepleri'; // 🔥 EKLE
 
 import SiparisYonetimi from './Bilesenler/Siparis/SiparisYonetimi';
 import SiparisDetay from './Bilesenler/Siparis/SiparisDetay';
@@ -222,7 +222,7 @@ const AdminPanel = () => {
   const [stokLoading, setStokLoading] = useState(false);
   const [showStokHareket, setShowStokHareket] = useState(false);
 
-  //Eksik Malzeme Talep
+  // 🔥 Eksik Malzeme Talep - State'ler zaten var, sadece show state'i eklenecek
   const [showMalzemeTalepler, setShowMalzemeTalepler] = useState(false);
   const [malzemeTalepler, setMalzemeTalepler] = useState([]);
   const [talepLoading, setTalepLoading] = useState(false);
@@ -768,49 +768,21 @@ const AdminPanel = () => {
     }
   };
 
-  // eksik malzeme taleplerinin tümünü getir
-const fetchMalzemeTalepler = async () => {
-  try {
-    setTalepLoading(true);
-    const response = await malzemeTalepAPI.getAdminTalepler();
-    setMalzemeTalepler(response.data || []);
-    setShowMalzemeTalepler(true);
-    toast.info(`${response.data?.length || 0} talep bulundu`);
-  } catch (error) {
-    console.error('Talepler yüklenirken hata:', error);
-    toast.error('Talepler yüklenirken hata oluştu!');
-  } finally {
-    setTalepLoading(false);
-  }
-};
-
-// Talep onayla
-const handleTalepOnayla = async (talepId) => {
-  if (!window.confirm('Bu talebi onaylamak istediğinize emin misiniz?')) return;
-  
-  try {
-    await malzemeTalepAPI.adminOnayla(talepId);
-    toast.success('Talep onaylandı!');
-    fetchMalzemeTalepler(); // Listeyi yenile
-  } catch (error) {
-    console.error('Onay hatası:', error);
-    toast.error('Talep onaylanamadı!');
-  }
-};
-
-// Talep reddet
-const handleTalepReddet = async (talepId) => {
-  if (!window.confirm('Bu talebi reddetmek istediğinize emin misiniz?')) return;
-  
-  try {
-    await malzemeTalepAPI.adminReddet(talepId);
-    toast.success('Talep reddedildi!');
-    fetchMalzemeTalepler(); // Listeyi yenile
-  } catch (error) {
-    console.error('Reddetme hatası:', error);
-    toast.error('Talep reddedilemedi!');
-  }
-};
+  // ========== EKSİK MALZEME TALEPLERİ FONKSİYONLARI ==========
+  const fetchMalzemeTalepler = async () => {
+    try {
+      setTalepLoading(true);
+      const response = await malzemeTalepAPI.getAdminTalepler();
+      setMalzemeTalepler(response.data || []);
+      setShowMalzemeTalepler(true);
+      toast.info(`${response.data?.length || 0} talep bulundu`);
+    } catch (error) {
+      console.error('Talepler yüklenirken hata:', error);
+      toast.error('Talepler yüklenirken hata oluştu!');
+    } finally {
+      setTalepLoading(false);
+    }
+  };
 
   // ============ RENDER FONKSIYONLARI ============
 
@@ -976,7 +948,8 @@ const handleTalepReddet = async (talepId) => {
           setShowMalzemeGiris={setShowMalzemeGiris}
           setShowMalzemeCikis={setShowMalzemeCikis}
           setShowStokHareket={setShowStokHareket}
-        />;
+          handleMalzemeTalepler={fetchMalzemeTalepler}
+        />; 
       case 'orders':
         return renderOrders();
       case 'tables':
@@ -1295,10 +1268,16 @@ const handleTalepReddet = async (talepId) => {
         onSuccess={handleStokDurumu}
         malzemeler={materials}
       />
-
       <StokHareketleri
         acik={showStokHareket}
         kapat={() => setShowStokHareket(false)}
+      />
+
+      {/* ========== EKSİK MALZEME TALEPLERİ MODALI ========== */}
+      <MalzemeTalepleri
+        acik={showMalzemeTalepler}
+        kapat={() => setShowMalzemeTalepler(false)}
+        onSuccess={handleStokDurumu}
       />
 
       {/* Siparis Detay Modal */}
