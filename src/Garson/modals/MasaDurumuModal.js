@@ -42,6 +42,28 @@ const MasaDurumuModal = ({
     }
   };
 
+  const handleTeslimat = async () => {
+    if (busy) return;
+    const siparisId = selectedTable.order?.siparisId ?? selectedTable.order?.id;
+    if (!siparisId) {
+      toast.warning('Teslim edilecek aktif sipariş bulunamadı.');
+      return;
+    }
+
+    setBusy(true);
+    try {
+      await orderService.updateStatus(siparisId, 'TESLIM EDILDI');
+      toast.success('Sipariş teslim edildi olarak işaretlendi.');
+      await verileriYukle();
+      onClose();
+    } catch (err) {
+      console.error('Teslimat güncelleme hatası:', err);
+      toast.error(err.response?.data?.Mesaj || 'Teslimat durumu güncellenemedi.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
       <div className="bg-black/95 backdrop-blur-sm rounded-2xl border border-white/10 shadow-2xl max-w-md w-full p-6">
@@ -78,17 +100,24 @@ const MasaDurumuModal = ({
               <div className="grid grid-cols-2 gap-2">
                 <button
                   disabled={busy}
-                  onClick={() => { onClose(); onOpenPaymentModal?.(selectedTable); }}
-                  className="py-2.5 px-3 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition disabled:opacity-50"
+                  onClick={handleTeslimat}
+                  className="py-2.5 px-3 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition disabled:opacity-50"
                 >
-                  <FaCreditCard /> Ödeme Al
+                  <FaCheckCircle /> Teslimat
                 </button>
-                   <button
+                <button
                   disabled={busy}
                   onClick={() => { onClose(); onOpenMoveModal?.(selectedTable); }}
                   className="py-2.5 px-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition disabled:opacity-50"
                 >
                   <FaExchangeAlt /> Masa Taşı
+                </button>
+                <button
+                  disabled={busy}
+                  onClick={() => { onClose(); onOpenPaymentModal?.(selectedTable); }}
+                  className="py-2.5 px-3 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition disabled:opacity-50"
+                >
+                  <FaCreditCard /> Ödeme Yap
                 </button>
                 <button
                   disabled={busy}
