@@ -904,11 +904,10 @@ const GarsonPanel = () => {
   `}
         >
           <div
-            className={`flex items-center justify-between p-4 border-b ${isDayMode ? "border-slate-200/60" : "border-white/10"}`}
+            className={`relative flex items-center justify-center p-4 border-b ${isDayMode ? "border-slate-200/60" : "border-white/10"}`}
           >
             {sidebarOpen ? (
-              <div className="flex items-center gap-3">
-                <div className="text-2xl">🍽️</div>
+              <div className="text-center">
                 <div>
                   <h1
                     className={`${isDayMode ? "text-slate-900" : "text-white"} font-bold text-sm`}
@@ -922,12 +921,10 @@ const GarsonPanel = () => {
                   </p>
                 </div>
               </div>
-            ) : (
-              <div className="text-2xl mx-auto">🍽️</div>
-            )}
+            ) : null}
             <button
               onClick={toggleSidebar}
-              className={`${isDayMode ? "text-slate-700 hover:text-slate-900" : "text-gray-400 hover:text-white"} hidden lg:block`}
+              className={`${isDayMode ? "text-slate-700 hover:text-slate-900" : "text-gray-400 hover:text-white"} hidden lg:block ${sidebarOpen ? "absolute right-4" : "absolute left-1/2 -translate-x-1/2"}`}
             >
               {sidebarOpen ? <FaTimes size={16} /> : <FaBars size={16} />}
             </button>
