@@ -84,11 +84,11 @@ const MasaYonetimi = ({
         <button onClick={() => setFilter('broken')} className={`px-4 py-2 rounded-lg text-sm transition-all ${filter === 'broken' ? 'bg-gray-500/30 text-gray-400' : `${isDayMode ? 'bg-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-200' : 'bg-white/5 text-gray-400 hover:text-white hover:bg-white/10'}`}`}>Arızalı ({tables.filter(t => t.status === 'broken').length})</button>
       </div>
 
-<div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-7 gap-3">        {filteredTables.map((table) => (
+<div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-7 gap-3 items-start">        {filteredTables.map((table) => (
           <div 
             key={table.id} 
             onClick={() => handleTableClick(table)} 
-            className={`rounded-xl p-3 h-43 cursor-pointer transition-all duration-300 flex flex-col justify-between ${getTableStatusColor(table.status)} shadow-lg hover:shadow-xl hover:scale-105 border ${isDayMode ? 'border-slate-200/50' : 'border-white/10'} relative`}
+            className={`rounded-xl p-3 cursor-pointer transition-all duration-300 flex flex-col justify-between ${(table.status === 'occupied' || table.status === 'broken') ? 'h-56' : 'h-48'} ${getTableStatusColor(table.status)} shadow-lg hover:shadow-xl hover:scale-105 border ${isDayMode ? 'border-slate-200/50' : 'border-white/10'} relative`}
           >
             
 <div className="h-full flex flex-col items-center text-center">              <h3 className={`${isDayMode ? 'text-slate-900' : 'text-white'} font-bold text-lg`}>{table.name}</h3>

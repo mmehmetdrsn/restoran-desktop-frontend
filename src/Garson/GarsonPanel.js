@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   FaSignOutAlt,
@@ -40,6 +40,7 @@ import {
   FaStickyNote,
   FaSun,
   FaMoon,
+  FaChevronDown,
 } from "react-icons/fa";
 import { toast } from "react-toastify";
 
@@ -83,6 +84,8 @@ const GarsonPanel = () => {
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [selectedStatusTable, setSelectedStatusTable] = useState(null);
   const [activeTab, setActiveTab] = useState("masa");
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const userMenuRef = useRef(null);
 
   // Şifre değiştirme state'leri
   const [currentPassword, setCurrentPassword] = useState("");
@@ -125,6 +128,17 @@ const GarsonPanel = () => {
   useEffect(() => {
     fetchUserData();
     verileriYukle();
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+        setIsUserMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const verileriYukle = async () => {
@@ -1065,17 +1079,81 @@ const GarsonPanel = () => {
           >
             <div className="max-w-7xl mx-auto px-4 py-3">
               <div className="flex items-center justify-end gap-4">
-                <div className="text-right hidden sm:block">
-                  <p
-                    className={`${isDayMode ? "text-slate-900" : "text-white"} text-sm font-medium`}
+                <div ref={userMenuRef} className="relative text-right hidden sm:block">
+                  <button
+                    onClick={() => setIsUserMenuOpen((prev) => !prev)}
+                    title="Kullanıcı menüsü"
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${
+                      isDayMode
+                        ? "hover:bg-slate-100"
+                        : "hover:bg-white/10"
+                    }`}
                   >
-                    {userData.name}
-                  </p>
-                  <p
-                    className={`${isDayMode ? "text-slate-500" : "text-gray-400"} text-[10px]`}
-                  >
-                    {userData.email}
-                  </p>
+                    <span
+                      className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                        isDayMode ? "bg-slate-200 text-slate-700" : "bg-white/10 text-gray-200"
+                      }`}
+                    >
+                      <FaUser size={12} />
+                    </span>
+                    <span>
+                      <p
+                        className={`${isDayMode ? "text-slate-900" : "text-white"} text-sm font-medium`}
+                      >
+                        {userData.name}
+                      </p>
+                      <p
+                        className={`${isDayMode ? "text-slate-500" : "text-gray-400"} text-[10px]`}
+                      >
+                        {userData.email}
+                      </p>
+                    </span>
+                    <FaChevronDown
+                      size={11}
+                      className={`transition-transform duration-200 ${
+                        isUserMenuOpen ? "rotate-180" : "rotate-0"
+                      } ${isDayMode ? "text-slate-500" : "text-gray-400"}`}
+                    />
+                  </button>
+
+                  {isUserMenuOpen && (
+                    <div
+                      className={`absolute right-0 mt-2 min-w-[180px] rounded-xl border shadow-xl z-50 overflow-hidden ${
+                        isDayMode
+                          ? "bg-white border-slate-200"
+                          : "bg-black/95 border-white/10"
+                      }`}
+                    >
+                      <button
+                        onClick={() => {
+                          setShowPasswordModal(true);
+                          setIsUserMenuOpen(false);
+                        }}
+                        className={`w-full flex items-center gap-2 px-4 py-3 text-sm transition-all ${
+                          isDayMode
+                            ? "text-slate-700 hover:bg-slate-100"
+                            : "text-gray-200 hover:bg-white/10"
+                        }`}
+                      >
+                        <FaKey size={13} />
+                        Şifre Değiştir
+                      </button>
+                      <button
+                        onClick={() => {
+                          setIsUserMenuOpen(false);
+                          handleLogout();
+                        }}
+                        className={`w-full flex items-center gap-2 px-4 py-3 text-sm transition-all ${
+                          isDayMode
+                            ? "text-red-700 hover:bg-red-50"
+                            : "text-red-300 hover:bg-red-500/15"
+                        }`}
+                      >
+                        <FaSignOutAlt size={13} />
+                        Çıkış
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
