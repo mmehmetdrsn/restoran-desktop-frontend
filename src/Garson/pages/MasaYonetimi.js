@@ -132,7 +132,7 @@ const MasaYonetimi = ({
                   e.stopPropagation();
                   onOpenStatusModal(table);
                 }}
-                className={`w-full h-12 flex items-center justify-center px-4 text-sm rounded-xl transition ${isDayMode ? 'bg-slate-200 hover:bg-slate-300 text-slate-900' : 'bg-white/10 hover:bg-white/15 text-white'}`}
+                className="w-full h-12 flex items-center justify-center px-4 text-sm rounded-xl transition border border-white/30 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-slate-700 shadow-sm"
               >
                 Durum Değiştir
               </button>
