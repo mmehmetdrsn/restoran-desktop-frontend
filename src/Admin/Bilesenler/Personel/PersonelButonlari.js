@@ -8,7 +8,8 @@ const PersonelButonlari = ({
   setShowPersonelEkle, 
   setShowPersonelDuzenle, 
   setShowPersonelSil, 
-  handlePersonelListele 
+  handlePersonelListele,
+  setShowPersonelIzin
 }) => {
   return (
     <div className="bg-black/90 backdrop-blur-sm rounded-2xl p-6 border border-white/10 max-w-6xl mx-auto">
@@ -19,8 +20,7 @@ const PersonelButonlari = ({
         <Buton icon={<FaUserEdit />} label="Personel Düzenle" onClick={() => setShowPersonelDuzenle(true)} />
         <Buton icon={<FaUserMinus />} label="Personel Sil" onClick={() => setShowPersonelSil(true)} />
         <Buton icon={<FaList />} label="Personel Listele" onClick={handlePersonelListele} />
-        <Buton icon={<FaShieldAlt />} label="Rol / Yetki Yönetimi" onClick={() => toast.warning('⚠️ Rol/yetki yönetimi henüz aktif değil.')} />
-        <Buton icon={<FaUmbrella />} label="İzin Yönetimi" onClick={() => toast.warning('⚠️ İzin yönetimi henüz aktif değil.')} />
+        <Buton icon={<FaUmbrella />} label="İzin Yönetimi" onClick={() => setShowPersonelIzin(true)} />
       </div>
     </div>
   );

@@ -46,6 +46,7 @@ import PersonelEkle from './Bilesenler/Personel/PersonelEkle';
 import PersonelSil from './Bilesenler/Personel/PersonelSil';
 import PersonelDuzenle from './Bilesenler/Personel/PersonelDuzenle';
 import PersonelListele from './Bilesenler/Personel/PersonelListele';
+import PersonelIzin from './Bilesenler/Personel/PersonelIzin';
 
 import UrunEkle from './Bilesenler/Urun/UrunEkle';
 import UrunSil from './Bilesenler/Urun/UrunSil';
@@ -81,7 +82,7 @@ import StokDurumu from './Bilesenler/Stok/StokDurumu';
 import MalzemeGiris from './Bilesenler/Stok/MalzemeGiris';
 import MalzemeCikis from './Bilesenler/Stok/MalzemeCikis';
 import StokHareketleri from './Bilesenler/Stok/StokHareketleri';
-import MalzemeTalepleri from './Bilesenler/Stok/MalzemeTalepleri'; // 🔥 EKLE
+import MalzemeTalepleri from './Bilesenler/Stok/MalzemeTalepleri';
 
 import SiparisYonetimi from './Bilesenler/Siparis/SiparisYonetimi';
 import SiparisDetay from './Bilesenler/Siparis/SiparisDetay';
@@ -132,6 +133,7 @@ const AdminPanel = () => {
   const [showPersonelDuzenle, setShowPersonelDuzenle] = useState(false);
   const [showPersonelListele, setShowPersonelListele] = useState(false);
   const [personelEkleLoading, setPersonelEkleLoading] = useState(false);
+  const [showPersonelIzin, setShowPersonelIzin] = useState(false);
   const [yeniPersonel, setYeniPersonel] = useState({
     PersonelAdi: '',
     PersonelSoyadi: '',
@@ -222,7 +224,7 @@ const AdminPanel = () => {
   const [stokLoading, setStokLoading] = useState(false);
   const [showStokHareket, setShowStokHareket] = useState(false);
 
-  // 🔥 Eksik Malzeme Talep - State'ler zaten var, sadece show state'i eklenecek
+  // Malzeme Talep
   const [showMalzemeTalepler, setShowMalzemeTalepler] = useState(false);
   const [malzemeTalepler, setMalzemeTalepler] = useState([]);
   const [talepLoading, setTalepLoading] = useState(false);
@@ -793,6 +795,7 @@ const AdminPanel = () => {
       setShowPersonelDuzenle={setShowPersonelDuzenle}
       setShowPersonelSil={setShowPersonelSil}
       handlePersonelListele={handlePersonelListele}
+      setShowPersonelIzin={setShowPersonelIzin}
     />;
   };
 
@@ -949,7 +952,7 @@ const AdminPanel = () => {
           setShowMalzemeCikis={setShowMalzemeCikis}
           setShowStokHareket={setShowStokHareket}
           handleMalzemeTalepler={fetchMalzemeTalepler}
-        />; 
+        />;
       case 'orders':
         return renderOrders();
       case 'tables':
@@ -1077,6 +1080,12 @@ const AdminPanel = () => {
         acik={showPersonelListele}
         kapat={() => setShowPersonelListele(false)}
         personeller={personelListesi}
+      />
+
+      <PersonelIzin
+        acik={showPersonelIzin}
+        kapat={() => setShowPersonelIzin(false)}
+        onSuccess={fetchAllData}
       />
 
       {/* Urun Modallari */}
@@ -1287,6 +1296,6 @@ const AdminPanel = () => {
       />
     </div>
   );
-};
+};  
 
 export default AdminPanel;

@@ -166,7 +166,7 @@ const UrunSil = ({ acik, kapat, onSuccess }) => {
               <div className="text-2xl text-red-400"><FaTrash /></div>
               <div>
                 <h2 className="text-white font-bold text-lg">Ürünü Pasife Al</h2>
-                <p className="text-gray-400 text-xs">Ürün menüde görünmez, veritabanında kalır</p>
+                <p className="text-gray-400 text-xs">Silmek istediğiniz Ürün ID'sini girin</p>
               </div>
             </div>
             <button onClick={kapat} className="text-gray-400 hover:text-white">
