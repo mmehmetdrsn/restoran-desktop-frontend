@@ -481,8 +481,14 @@ const GarsonPanel = () => {
   };
 
   const handleEditOrderFromDetail = () => {
-    const order = getOrderObject(selectedOrderTable);
-    setCart(order ? buildCartFromOrder(order) : []);
+    // 🔑 ÖNEMLİ: Sepeti mevcut sipariş ürünleriyle DOLDURMUYORUZ.
+    // Backend, gönderilen her ürünü siparişe YENİ SATIR olarak ekliyor
+    // (var olanı güncellemiyor). Sepete eski ürünleri de koyup onaylarsak,
+    // onlar da tekrar tekrar eklenip sipariş satırlarını çoğaltıyor.
+    // Bu ekran sadece siparişe "yeni ürün eklemek" için kullanılmalı;
+    // mevcut ürünler zaten sipariş detay modalında (ve artık sepet ekranında
+    // salt okunur olarak) görünüyor.
+    setCart([]);
     setSelectedTable(selectedOrderTable);
     setShowOrderModal(true);
     setShowOrderDetailModal(false);
@@ -605,7 +611,13 @@ const GarsonPanel = () => {
   console.log(`🛒 Sepet: ${cartSummary}`);
 
   try {
+    // 🔑 Masada zaten aktif bir sipariş varsa ID'sini gönder ki backend
+    // yeni sipariş açmak yerine ona eklesin (backend ayrıca MasaId üzerinden
+    // de bir güvenlik kontrolü yapıyor, ama bunu göndermek en doğrusu).
+    const activeOrderId = selectedTable.order?.siparisId || selectedTable.order?.id;
+
     const siparisData = {
+      siparisId: activeOrderId || null,
       masaId: selectedTable.id,
       siparisTipi: "SALON",
       personelId: 1,
