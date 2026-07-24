@@ -1004,7 +1004,7 @@ const GarsonPanel = () => {
               {sidebarOpen && (
                 <div className="flex-1 text-left">
                   <p
-                    className={`${isDayMode ? "text-slate-900" : "text-sm font-medium text-white"}`}
+                    className={`text-sm font-medium ${isDayMode ? (activeTab === "masa" ? "text-white" : "text-slate-900") : "text-white"}`}
                   >
                     Masa Yönetimi
                   </p>
@@ -1024,7 +1024,7 @@ const GarsonPanel = () => {
               {sidebarOpen && (
                 <div className="flex-1 text-left">
                   <p
-                    className={`${isDayMode ? "text-slate-900" : "text-sm font-medium text-white"}`}
+                    className={`text-sm font-medium ${isDayMode ? (activeTab === "yeni" ? "text-white" : "text-slate-900") : "text-white"}`}
                   >
                     Yeni Sipariş
                   </p>
@@ -1044,7 +1044,7 @@ const GarsonPanel = () => {
               {sidebarOpen && (
                 <div className="flex-1 text-left">
                   <p
-                    className={`${isDayMode ? "text-slate-900" : "text-sm font-medium text-white"}`}
+                    className={`text-sm font-medium ${isDayMode ? (activeTab === "hesap" ? "text-white" : "text-slate-900") : "text-white"}`}
                   >
                     Hesap İşlemleri
                   </p>
