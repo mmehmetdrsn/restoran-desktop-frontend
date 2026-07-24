@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-3
+import * as signalR from '@microsoft/signalr';
 import { toast } from 'react-toastify'; // 👈 Toast import edildi
 
 const SiparisTakip = ({ uyeId }) => {
