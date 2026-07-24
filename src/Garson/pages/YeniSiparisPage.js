@@ -157,6 +157,12 @@ const YeniSiparisPage = ({
                     -
                   </button>
                   <button 
+                    onClick={() => onAddToCart(it)} 
+                    className={`${isDayMode ? 'text-slate-900 text-sm px-3 py-1 bg-slate-200 hover:bg-slate-300 rounded-lg' : 'text-sm px-3 py-1 bg-white/10 hover:bg-white/20 rounded-lg'} transition`}
+                  >
+                    +
+                  </button>
+                  <button 
                     onClick={() => onUpdateItemNote(it.id)} 
                     className={`${isDayMode ? 'text-slate-900 text-sm px-3 py-1 bg-slate-200 hover:bg-slate-300 rounded-lg' : 'text-sm px-3 py-1 bg-white/10 hover:bg-white/20 rounded-lg'} transition`}
                   >
