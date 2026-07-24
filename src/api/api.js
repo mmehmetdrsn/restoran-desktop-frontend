@@ -437,31 +437,34 @@ export const notificationService = {
 // ============================================================
 export const malzemeTalepAPI = {
     // Tüm talepleri getir
-    getAll: () => apiRequest('/MalzemeTalep'),
+    getAll: () => apiRequest('/MalzemeTalep/tum-talepler'),
+
+    // Admin için tüm talepleri getir (getAdminTalepler olarak)
+    getAdminTalepler: () => apiRequest('/MalzemeTalep/tum-talepler'),
+
+    // Bekleyen talepleri getir
+    getBekleyenler: () => apiRequest('/MalzemeTalep/bekleyen-talepler'),
 
     // Tek bir talebi getir
     getById: (id) => apiRequest(`/MalzemeTalep/${id}`),
 
-    // Yeni talep oluştur
-    create: (data) => apiRequest('/MalzemeTalep', 'POST', data),
+    //  Yeni talep oluştur (Aşçı için) - FONKSİYONU EKLE
+    talepOlustur: (data) => {
+        console.log('📦 Malzeme talebi oluşturuluyor:', data);
+        return apiRequest('/MalzemeTalep/talep-olustur', 'POST', data);
+    },
 
     // Talep durumunu güncelle (Onayla/Reddet)
-    updateStatus: (id, data) => apiRequest(`/MalzemeTalep/${id}/durum`, 'PUT', data),
+    updateStatus: (id, data) => apiRequest(`/MalzemeTalep/talep-cevapla/${id}`, 'PUT', data),
 
     // Talep sil
-    delete: (id) => apiRequest(`/MalzemeTalep/${id}`, 'DELETE'),
-
-    // Aşçı tarafından talep oluştur
-    asciTalepOlustur: (data) => apiRequest('/MalzemeTalep/asci-talep', 'POST', data),
-
-    // Admin tarafından tüm talepleri getir
-    getAdminTalepler: () => apiRequest('/MalzemeTalep/admin/talepler'),
+    delete: (id) => apiRequest(`/MalzemeTalep/talep-sil/${id}`, 'DELETE'),
 
     // Admin tarafından talep onayla
-    adminOnayla: (id) => apiRequest(`/MalzemeTalep/admin/onayla/${id}`, 'PUT'),
+    adminOnayla: (id) => apiRequest(`/MalzemeTalep/talep-cevapla/${id}`, 'PUT', { durum: 'ONAYLANDI', cevaplayan: 'Admin' }),
 
     // Admin tarafından talep reddet
-    adminReddet: (id) => apiRequest(`/MalzemeTalep/admin/reddet/${id}`, 'PUT')
+    adminReddet: (id) => apiRequest(`/MalzemeTalep/talep-cevapla/${id}`, 'PUT', { durum: 'REDDEDILDI', cevaplayan: 'Admin' })
 };
 
 

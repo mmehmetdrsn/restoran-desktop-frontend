@@ -1,3 +1,4 @@
+// AsciPanel.js - IMPORT KISMI
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -9,7 +10,8 @@ import {
   FaClock
 } from 'react-icons/fa';
 import { toast } from 'react-toastify';
-import { asciAPI, authService, malzemeTalepAPI } from '../api/api';
+// ✅ materialService'i de ekleyin
+import { asciAPI, authService, malzemeTalepAPI, materialService } from '../api/api'; // 
 
 // Arka plan resmi
 const backgroundImage = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80';
@@ -64,45 +66,100 @@ const AsciPanel = () => {
   }, []);
 
   // ========== MALZEME LİSTESİNİ ÇEK ==========
-  const fetchMalzemeler = async () => {
-    try {
-      const response = await fetch('/api/Malzemeler');
-      const data = await response.json();
-      setMalzemeler(data || []);
-    } catch (error) {
-      console.error('Malzemeler yüklenirken hata:', error);
-      toast.error('Malzemeler yüklenemedi!');
-    }
-  };
 
-  // ========== MALZEME TALEBİ GÖNDER ==========
-  const handleMalzemeTalep = async (e) => {
+const fetchMalzemeler = async () => {
+    try {
+        console.log('📦 Malzemeler çekiliyor...');
+        const response = await materialService.getAll();
+        console.log('📦 Malzeme response:', response);
+        
+        let malzemeListesi = [];
+        if (response && response.data) {
+            malzemeListesi = Array.isArray(response.data) ? response.data : [];
+        } else if (Array.isArray(response)) {
+            malzemeListesi = response;
+        }
+        
+        console.log('📦 Malzeme listesi:', malzemeListesi);
+        setMalzemeler(malzemeListesi);
+        
+        if (malzemeListesi.length === 0) {
+            toast.warning('⚠️ Hiç malzeme bulunamadı!');
+        }
+    } catch (error) {
+        console.error('❌ Malzemeler yüklenirken hata:', error);
+        toast.error('Malzemeler yüklenemedi!');
+        setMalzemeler([]);
+    }
+};
+
+// ========== MALZEME TALEBİ GÖNDER (DÜZELTİLMİŞ) ==========
+const handleMalzemeTalep = async (e) => {
     e.preventDefault();
+    
     if (!talepForm.malzemeId || !talepForm.miktar) {
-      toast.warning('Lütfen tüm alanları doldurun!');
-      return;
+        toast.warning(' Lütfen tüm alanları doldurun!');
+        return;
+    }
+
+    if (parseFloat(talepForm.miktar) <= 0) {
+        toast.warning(' Miktar 0\'dan büyük olmalı!');
+        return;
     }
 
     setTalepLoading(true);
     try {
-      await malzemeTalepAPI.talepOlustur({
-        malzemeId: parseInt(talepForm.malzemeId),
-        miktar: parseInt(talepForm.miktar),
-        birim: talepForm.birim,
-        aciklama: talepForm.aciklama || '',
-        personelId: userData.personelId
-      });
-      
-      toast.success('✅ Malzeme talebi gönderildi! Admin onay bekleniyor.');
-      setShowMalzemeTalep(false);
-      setTalepForm({ malzemeId: '', miktar: '', birim: 'adet', aciklama: '' });
+        const talepData = {
+            malzemeId: parseInt(talepForm.malzemeId),
+            miktar: parseFloat(talepForm.miktar),
+            birim: talepForm.birim || 'adet',
+            aciklama: talepForm.aciklama || '',
+            personelId: userData.personelId || null
+        };
+
+        console.log(' Talep gönderiliyor:', talepData);
+        const response = await malzemeTalepAPI.talepOlustur(talepData); 
+        console.log(' Talep yanıtı:', response);
+        toast.success(' Malzeme talebi gönderildi! Admin onay bekleniyor.');
+        
+        setShowMalzemeTalep(false);
+        setTalepForm({ 
+            malzemeId: '', 
+            miktar: '', 
+            birim: 'adet', 
+            aciklama: '' 
+        });
+        
     } catch (error) {
-      console.error('Talep gönderilirken hata:', error);
-      toast.error('❌ Talep gönderilemedi!');
+        console.error(' Talep gönderilirken hata:', error);
+        
+        const errorMsg = error?.response?.data?.message || 
+                         error?.response?.data?.Mesaj ||
+                         error?.message || 
+                         'Talep gönderilemedi!';
+        toast.error(` ${errorMsg}`);
     } finally {
-      setTalepLoading(false);
+        setTalepLoading(false);
     }
-  };
+};
+
+// SELECT OPTION KISMI (Modal içinde) - DÜZELTİLDİ
+<select
+    value={talepForm.malzemeId}
+    onChange={(e) => setTalepForm({...talepForm, malzemeId: e.target.value})}
+    className="w-full py-2.5 px-3 bg-white/5 border border-white/10 rounded-lg text-white focus:ring-2 focus:ring-white/20 outline-none"
+    required
+>
+    <option value="">Malzeme Seçin</option>
+    {malzemeler.map(m => (
+        <option key={m.malzemeId} value={m.malzemeId}>
+            {m.malzemeAdi} (Mevcut: {m.stokMiktari || 0} {m.birim})
+        </option>
+    ))}
+</select>
+
+ 
+
 
   // ========== SİPARİŞ DURUMUNU MAP ET ==========
   const mapStatus = (backendStatus) => {
