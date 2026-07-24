@@ -486,20 +486,20 @@ export const asciAPI = {
     // Tek sipariş detaylarını getir
     getSiparisDetay: (id) => apiRequest(`/Siparisler/${id}`),
 
-   // Sipariş durumunu güncelle - direkt string gönder
-updateSiparisDurum: (id, durum) => 
-    apiRequest(`/Asci/siparis/${id}/durum`, 'PUT', durum),
+    // Sipariş durumunu güncelle - direkt string gönder
+    updateSiparisDurum: (id, durum) =>
+        apiRequest(`/Asci/siparis/${id}/durum`, 'PUT', durum),
 
     // Sipariş hazır ve kurye ata
-    siparisHazirVeKuryeAta: (id) => 
+    siparisHazirVeKuryeAta: (id) =>
         apiRequest(`/Asci/siparis/${id}/hazir-ve-kurye-ata`, 'POST'),
 
     // Garsona bildirim gönder
-    garsonaBildirimGonder: (id) => 
+    garsonaBildirimGonder: (id) =>
         apiRequest(`/Asci/siparis/${id}/garson-bildirim`, 'POST'),
 
     // Sipariş tamamla (stok düşüşü ile)
-    siparisTamamla: (id) => 
+    siparisTamamla: (id) =>
         apiRequest(`/Asci/siparis/${id}/tamamla`, 'PUT'),
 };
 
@@ -548,7 +548,7 @@ const api = {
     kuryeAPI,
     asciAPI,
     notificationService,
-    malzemeTalepAPI, 
+    malzemeTalepAPI,
     getKategoriler,
     kategoriEkle,
     kategoriSil,

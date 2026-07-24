@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FaChartLine, FaPizzaSlice, FaCalendarCheck, FaMoneyBillWave, FaTimes, FaChartBar } from 'react-icons/fa';
 import Buton from '../Ortak/Buton';
 import BolumBasligi from '../Ortak/BolumBasligi';
@@ -10,115 +10,21 @@ const Rapor = () => {
   const [modalBaslik, setModalBaslik] = useState('');
   const [raporData, setRaporData] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [seciliTarih, setSeciliTarih] = useState(new Date().toISOString().split('T')[0]);
   const [seciliGun, setSeciliGun] = useState(30);
   const [seciliYil, setSeciliYil] = useState(new Date().getFullYear());
 
-  // Gunluk Satis Raporu
-  const fetchGunlukSatis = async () => {
-    setModalBaslik('Gunluk Satis Raporu');
-    setLoading(true);
-    setModalAcik(true);
-    try {
-      const response = await reportService.getGunlukSatis(seciliTarih);
-      console.log('Gunluk satis:', response);
-      setRaporData(response.data?.siparisler || []);
-      if (response.data?.siparisler?.length === 0) {
-        toast.info('Bu tarihte siparis bulunamadi');
-      }
-    } catch (error) {
-      console.error('Gunluk satis raporu hatasi:', error);
-      toast.error('Gunluk satis raporu alinamadi!');
-      setModalAcik(false);
-    } finally {
-      setLoading(false);
-    }
+  const getToday = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   };
 
-  // Urun Satis Raporu
-  const fetchUrunSatis = async () => {
-    setModalBaslik('Urun Satis Raporu');
-    setLoading(true);
-    setModalAcik(true);
-    try {
-      const response = await reportService.getUrunSatis(seciliGun);
-      console.log('Urun satis:', response);
-      setRaporData(response.data?.data || []);
-      if (response.data?.data?.length === 0) {
-        toast.info('Urun satis verisi bulunamadi');
-      }
-    } catch (error) {
-      console.error('Urun satis raporu hatasi:', error);
-      toast.error('Urun satis raporu alinamadi!');
-      setModalAcik(false);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [seciliTarih, setSeciliTarih] = useState(getToday());
+  const [aktifRapor, setAktifRapor] = useState(null);
 
-  // Rezervasyon Raporu
-  const fetchRezervasyonRaporu = async () => {
-    setModalBaslik('Rezervasyon Raporu');
-    setLoading(true);
-    setModalAcik(true);
-    try {
-      const response = await reportService.getRezervasyonRaporu();
-      console.log('Rezervasyon raporu:', response);
-      setRaporData(response.data?.data || []);
-      if (response.data?.data?.length === 0) {
-        toast.info('Rezervasyon verisi bulunamadi');
-      }
-    } catch (error) {
-      console.error('Rezervasyon raporu hatasi:', error);
-      toast.error('Rezervasyon raporu alinamadi!');
-      setModalAcik(false);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Gelir Istatistikleri
-  const fetchGelirIstatistikleri = async () => {
-    setModalBaslik('Gelir Istatistikleri');
-    setLoading(true);
-    setModalAcik(true);
-    try {
-      const response = await reportService.getGelirIstatistikleri(seciliYil);
-      console.log('Gelir istatistikleri:', response);
-
-      let veri = [];
-      if (response.data?.data) {
-        veri = response.data.data;
-      } else if (response.data?.Data) {
-        veri = response.data.Data;
-      } else if (Array.isArray(response.data)) {
-        veri = response.data;
-      }
-
-      console.log('Gelir istatistikleri islenmis veri:', veri);
-      setRaporData(veri);
-
-      if (veri.length === 0) {
-        toast.info(`${seciliYil} yili icin gelir verisi bulunamadi`);
-      } else {
-        toast.success(`${veri.length} ay verisi bulundu`);
-      }
-    } catch (error) {
-      console.error('Gelir istatistikleri hatasi:', error);
-      toast.error('Gelir istatistikleri alinamadi!');
-      setModalAcik(false);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Modal Kapat
-  const modalKapat = () => {
-    setModalAcik(false);
-    setRaporData([]);
-  };
-
-  // Tarih formatlama
+  // ========== TARİH FORMATLAMA ==========
   const formatDate = (dateString) => {
     if (!dateString) return '-';
     try {
@@ -135,112 +41,261 @@ const Rapor = () => {
     }
   };
 
-  // Filtreler componenti
-  const Filtreler = () => (
-    <div className="bg-white/5 rounded-xl p-4 border border-white/10 flex flex-wrap gap-4 items-center">
-      <div>
-        <label className="text-gray-400 text-xs block mb-1">Tarih</label>
-        <input
-          type="date"
-          value={seciliTarih}
-          onChange={(e) => setSeciliTarih(e.target.value)}
-          className="py-1.5 px-3 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:ring-2 focus:ring-white/20 outline-none"
-        />
+  // ========== GÜNLÜK SATIŞ RAPORU ==========
+  const fetchGunlukSatis = async () => {
+    setAktifRapor('gunluk');
+    const tarih = seciliTarih;
+    setModalBaslik(`Günlük Satış Raporu (${tarih})`);
+    setLoading(true);
+    setModalAcik(true);
+    
+    try {
+      const response = await reportService.getGunlukSatis(tarih);
+      const veri = response?.data?.siparisler || 
+                   response?.data?.data || 
+                   response?.data || 
+                   [];
+      setRaporData(veri);
+      
+      if (veri.length === 0) {
+        toast.info(`${tarih} tarihinde sipariş bulunamadı`);
+      } else {
+        toast.success(`${veri.length} sipariş bulundu`);
+      }
+    } catch (error) {
+      console.error('Günlük satış raporu hatası:', error);
+      toast.error('Günlük satış raporu alınamadı!');
+      setRaporData([]);
+      setModalAcik(false);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ========== ÜRÜN SATIŞ RAPORU ==========
+  const fetchUrunSatis = async () => {
+    setAktifRapor('urun');
+    setModalBaslik(`Ürün Satış Raporu (Son ${seciliGun} Gün)`);
+    setLoading(true);
+    setModalAcik(true);
+    try {
+      const response = await reportService.getUrunSatis(seciliGun);
+      const veri = Array.isArray(response.data?.data) ? response.data.data :
+                   Array.isArray(response.data) ? response.data : [];
+      setRaporData(veri);
+      if (veri.length === 0) {
+        toast.info('Ürün satış verisi bulunamadı');
+      } else {
+        toast.success(`${veri.length} ürün bulundu`);
+      }
+    } catch (error) {
+      console.error('Ürün satış raporu hatası:', error);
+      toast.error('Ürün satış raporu alınamadı!');
+      setRaporData([]);
+      setModalAcik(false);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ========== REZERVASYON RAPORU ==========
+  const fetchRezervasyonRaporu = async () => {
+    setAktifRapor('rezervasyon');
+    setModalBaslik('Rezervasyon Raporu');
+    setLoading(true);
+    setModalAcik(true);
+    try {
+      const response = await reportService.getRezervasyonRaporu();
+      const veri = Array.isArray(response.data?.data) ? response.data.data :
+                   Array.isArray(response.data) ? response.data : [];
+      setRaporData(veri);
+      if (veri.length === 0) {
+        toast.info('Rezervasyon verisi bulunamadı');
+      } else {
+        toast.success(`${veri.length} rezervasyon bulundu`);
+      }
+    } catch (error) {
+      console.error('Rezervasyon raporu hatası:', error);
+      toast.error('Rezervasyon raporu alınamadı!');
+      setRaporData([]);
+      setModalAcik(false);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ========== GELİR İSTATİSTİKLERİ ==========
+  const fetchGelirIstatistikleri = async () => {
+    setAktifRapor('gelir');
+    setModalBaslik(`Gelir İstatistikleri (${seciliYil})`);
+    setLoading(true);
+    setModalAcik(true);
+    try {
+      const response = await reportService.getGelirIstatistikleri(seciliYil);
+      let veri = [];
+      if (Array.isArray(response.data?.data)) {
+        veri = response.data.data;
+      } else if (Array.isArray(response.data?.Data)) {
+        veri = response.data.Data;
+      } else if (Array.isArray(response.data)) {
+        veri = response.data;
+      }
+      setRaporData(veri);
+      if (veri.length === 0) {
+        toast.info(`${seciliYil} yılı için gelir verisi bulunamadı`);
+      } else {
+        toast.success(`${veri.length} ay verisi bulundu`);
+      }
+    } catch (error) {
+      console.error('Gelir istatistikleri hatası:', error);
+      toast.error('Gelir istatistikleri alınamadı!');
+      setRaporData([]);
+      setModalAcik(false);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ========== OTOMATİK YENİLEME ==========
+  
+  // Günlük Satış - Tarih değişince
+  useEffect(() => {
+    if (modalAcik && aktifRapor === 'gunluk') {
+      fetchGunlukSatis();
+    }
+  }, [seciliTarih]);
+
+  // Ürün Satış - Gün sayısı değişince
+  useEffect(() => {
+    if (modalAcik && aktifRapor === 'urun') {
+      fetchUrunSatis();
+    }
+  }, [seciliGun]);
+
+  // Gelir İstatistikleri - Yıl değişince
+  useEffect(() => {
+    if (modalAcik && aktifRapor === 'gelir') {
+      fetchGelirIstatistikleri();
+    }
+  }, [seciliYil]);
+
+  // ========== MODAL KAPAT ==========
+  const modalKapat = () => {
+    setModalAcik(false);
+    setRaporData([]);
+    setAktifRapor(null);
+  };
+
+  // ========== FİLTRELER ==========
+  const Filtreler = () => {
+    // 🔥 Sadece Günlük Satış Raporu açıkken Tarih filtresini göster
+    const showTarih = aktifRapor === 'gunluk';
+    const showGun = aktifRapor === 'urun';
+    const showYil = aktifRapor === 'gelir';
+
+    return (
+      <div className="bg-white/5 rounded-xl p-4 border border-white/10 flex flex-wrap gap-4 items-center">
+        {/* 🔥 SADECE GÜNLÜK SATIŞ RAPORU'NDA TARİH FİLTRESİ */}
+        {showTarih && (
+          <div>
+            <label className="text-gray-400 text-xs block mb-1">Tarih</label>
+            <input
+              type="date"
+              value={seciliTarih}
+              onChange={(e) => setSeciliTarih(e.target.value)}
+              className="py-1.5 px-3 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:ring-2 focus:ring-white/20 outline-none"
+            />
+          </div>
+        )}
+
+        {/* 🔥 SADECE ÜRÜN SATIŞ RAPORU'NDA GÜN FİLTRESİ */}
+        {showGun && (
+          <div>
+            <label className="text-gray-400 text-xs block mb-1">Gün Sayısı</label>
+            <select
+              value={seciliGun}
+              onChange={(e) => setSeciliGun(parseInt(e.target.value))}
+              className="py-1.5 px-3 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:ring-2 focus:ring-white/20 outline-none"
+            >
+              <option value="7">7 Gün</option>
+              <option value="15">15 Gün</option>
+              <option value="30">30 Gün</option>
+              <option value="60">60 Gün</option>
+              <option value="90">90 Gün</option>
+            </select>
+          </div>
+        )}
+
+        {/* 🔥 SADECE GELİR İSTATİSTİKLERİ'NDE YIL FİLTRESİ */}
+        {showYil && (
+          <div>
+            <label className="text-gray-400 text-xs block mb-1">Yıl</label>
+            <select
+              value={seciliYil}
+              onChange={(e) => setSeciliYil(parseInt(e.target.value))}
+              className="py-1.5 px-3 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:ring-2 focus:ring-white/20 outline-none"
+            >
+              {[2023, 2024, 2025, 2026, 2027].map(y => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {/* 🔥 REZERVASYON'DA FİLTRE YOK */}
+        {aktifRapor === 'rezervasyon' && (
+          <div className="text-gray-400 text-sm">
+            <FaCalendarCheck className="inline mr-2" />
+            Tüm rezervasyonlar
+          </div>
+        )}
       </div>
-      <div>
-        <label className="text-gray-400 text-xs block mb-1">Gun Sayisi</label>
-        <select
-          value={seciliGun}
-          onChange={(e) => setSeciliGun(parseInt(e.target.value))}
-          className="py-1.5 px-3 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:ring-2 focus:ring-white/20 outline-none"
-        >
-          <option value="7">7 Gun</option>
-          <option value="15">15 Gun</option>
-          <option value="30">30 Gun</option>
-          <option value="60">60 Gun</option>
-          <option value="90">90 Gun</option>
-        </select>
-      </div>
-      <div>
-        <label className="text-gray-400 text-xs block mb-1">Yil</label>
-        <select
-          value={seciliYil}
-          onChange={(e) => setSeciliYil(parseInt(e.target.value))}
-          className="py-1.5 px-3 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:ring-2 focus:ring-white/20 outline-none"
-        >
-          {[2023, 2024, 2025, 2026, 2027].map(y => (
-            <option key={y} value={y}>{y}</option>
-          ))}
-        </select>
-      </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <>
-      {/* Butonlar */}
       <div className="bg-black/90 backdrop-blur-sm rounded-2xl p-6 border border-white/10 max-w-6xl mx-auto">
-        <BolumBasligi icon={<FaChartBar />} title="Raporlar ve Istatistikler" />
-        <p className="text-gray-400 text-sm mb-6">Rapor butonlarina tiklayarak detayli raporlari goruntuleyin.</p>
+        <BolumBasligi icon={<FaChartBar />} title="Raporlar ve İstatistikler" />
+        <p className="text-gray-400 text-sm mb-6">Rapor butonlarına tıklayarak detaylı raporları görüntüleyin.</p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          <Buton
-            icon={<FaChartLine />}
-            label="Gunluk Satis Raporlari"
-            onClick={fetchGunlukSatis}
-          />
-          <Buton
-            icon={<FaPizzaSlice />}
-            label="Urun Satis Raporu"
-            onClick={fetchUrunSatis}
-          />
-          <Buton
-            icon={<FaCalendarCheck />}
-            label="Rezervasyon Raporu"
-            onClick={fetchRezervasyonRaporu}
-          />
-          <Buton
-            icon={<FaMoneyBillWave />}
-            label="Gelir Istatistikleri"
-            onClick={fetchGelirIstatistikleri}
-          />
+          <Buton icon={<FaChartLine />} label="Günlük Satış Raporları" onClick={fetchGunlukSatis} />
+          <Buton icon={<FaPizzaSlice />} label="Ürün Satış Raporu" onClick={fetchUrunSatis} />
+          <Buton icon={<FaCalendarCheck />} label="Rezervasyon Raporu" onClick={fetchRezervasyonRaporu} />
+          <Buton icon={<FaMoneyBillWave />} label="Gelir İstatistikleri" onClick={fetchGelirIstatistikleri} />
         </div>
       </div>
 
-      {/* Rapor Modal */}
       {modalAcik && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
           <div className="bg-black/95 backdrop-blur-sm rounded-2xl border border-white/10 shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-
-            {/* Modal Baslik */}
             <div className="flex items-center justify-between p-4 border-b border-white/10 flex-shrink-0">
               <div>
                 <h2 className="text-white font-bold text-lg">{modalBaslik}</h2>
-                <p className="text-gray-400 text-xs">{raporData.length} kayit bulundu</p>
+                <p className="text-gray-400 text-xs">{Array.isArray(raporData) ? raporData.length : 0} kayıt bulundu</p>
               </div>
               <button onClick={modalKapat} className="text-gray-400 hover:text-white">
                 <FaTimes size={20} />
               </button>
             </div>
 
-            {/* Filtreler */}
             <div className="p-4 border-b border-white/10 flex-shrink-0">
               <Filtreler />
             </div>
 
-            {/* Rapor Icerigi */}
             <div className="flex-1 overflow-y-auto p-4">
               {loading ? (
                 <div className="flex items-center justify-center h-64">
                   <div className="flex flex-col items-center gap-3">
                     <div className="animate-spin inline-block w-8 h-8 border-4 border-blue-500/30 border-t-blue-500 rounded-full"></div>
-                    <p className="text-gray-400">Rapor yukleniyor...</p>
+                    <p className="text-gray-400">Rapor yükleniyor...</p>
                   </div>
                 </div>
-              ) : raporData.length === 0 ? (
+              ) : !Array.isArray(raporData) || raporData.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-64 text-gray-400">
-                  <p className="text-lg">Veri bulunamadi</p>
-                  <p className="text-sm text-gray-500">Filtreleri degistirerek tekrar deneyin</p>
+                  <p className="text-lg">Veri bulunamadı</p>
+                  <p className="text-sm text-gray-500">Filtreleri değiştirerek tekrar deneyin</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
@@ -259,10 +314,11 @@ const Rapor = () => {
                         <tr key={index} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                           {Object.values(item).map((value, idx) => (
                             <td key={idx} className="py-3 px-2 text-gray-300">
-                              {typeof value === 'boolean' ? (value ? 'Evet' : 'Hayir') :
-                                value instanceof Date ? formatDate(value) :
-                                  typeof value === 'object' ? JSON.stringify(value) :
-                                    value || '-'}
+                              {value === null || value === undefined || value === '' ? '--' :
+                                typeof value === 'boolean' ? (value ? 'Evet' : 'Hayır') :
+                                  value instanceof Date ? formatDate(value) :
+                                    typeof value === 'object' ? JSON.stringify(value) :
+                                      value}
                             </td>
                           ))}
                         </tr>
@@ -273,9 +329,8 @@ const Rapor = () => {
               )}
             </div>
 
-            {/* Modal Footer */}
             <div className="p-4 border-t border-white/10 flex justify-between items-center flex-shrink-0">
-              <span className="text-gray-400 text-xs">Toplam {raporData.length} kayit</span>
+              <span className="text-gray-400 text-xs">Toplam {Array.isArray(raporData) ? raporData.length : 0} kayıt</span>
               <button onClick={modalKapat} className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm transition-all">
                 Kapat
               </button>
