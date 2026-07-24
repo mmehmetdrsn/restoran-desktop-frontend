@@ -1,7 +1,7 @@
-// AsciPanel.js - IMPORT KISMI
+// src/Asci/AsciPanel.js
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
+import {
   FaSignOutAlt, FaKey,
   FaTimes, FaBars, FaUtensils,
   FaCheck, FaSpinner, FaSync,
@@ -10,10 +10,9 @@ import {
   FaClock
 } from 'react-icons/fa';
 import { toast } from 'react-toastify';
-// ✅ materialService'i de ekleyin
-import { asciAPI, authService, malzemeTalepAPI, materialService } from '../api/api'; // 
+import { asciAPI, authService, malzemeTalepAPI, materialService } from '../api/api';
 
-// Arka plan resmi
+const API_BASE_URL = process.env.REACT_APP_API_URL;
 const backgroundImage = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80';
 
 const AsciPanel = () => {
@@ -66,100 +65,80 @@ const AsciPanel = () => {
   }, []);
 
   // ========== MALZEME LİSTESİNİ ÇEK ==========
-
-const fetchMalzemeler = async () => {
+  const fetchMalzemeler = async () => {
     try {
-        console.log('📦 Malzemeler çekiliyor...');
-        const response = await materialService.getAll();
-        console.log('📦 Malzeme response:', response);
-        
-        let malzemeListesi = [];
-        if (response && response.data) {
-            malzemeListesi = Array.isArray(response.data) ? response.data : [];
-        } else if (Array.isArray(response)) {
-            malzemeListesi = response;
-        }
-        
-        console.log('📦 Malzeme listesi:', malzemeListesi);
-        setMalzemeler(malzemeListesi);
-        
-        if (malzemeListesi.length === 0) {
-            toast.warning('⚠️ Hiç malzeme bulunamadı!');
-        }
-    } catch (error) {
-        console.error('❌ Malzemeler yüklenirken hata:', error);
-        toast.error('Malzemeler yüklenemedi!');
-        setMalzemeler([]);
-    }
-};
+      console.log('📦 Malzemeler çekiliyor...');
+      const response = await materialService.getAll();
+      console.log('📦 Malzeme response:', response);
 
-// ========== MALZEME TALEBİ GÖNDER (DÜZELTİLMİŞ) ==========
-const handleMalzemeTalep = async (e) => {
+      let malzemeListesi = [];
+      if (response && response.data) {
+        malzemeListesi = Array.isArray(response.data) ? response.data : [];
+      } else if (Array.isArray(response)) {
+        malzemeListesi = response;
+      }
+
+      console.log('📦 Malzeme listesi:', malzemeListesi);
+      setMalzemeler(malzemeListesi);
+
+      if (malzemeListesi.length === 0) {
+        toast.warning('⚠️ Hiç malzeme bulunamadı!');
+      }
+    } catch (error) {
+      console.error('❌ Malzemeler yüklenirken hata:', error);
+      toast.error('Malzemeler yüklenemedi!');
+      setMalzemeler([]);
+    }
+  };
+
+  // ========== MALZEME TALEBİ GÖNDER ==========
+  const handleMalzemeTalep = async (e) => {
     e.preventDefault();
-    
+
     if (!talepForm.malzemeId || !talepForm.miktar) {
-        toast.warning(' Lütfen tüm alanları doldurun!');
-        return;
+      toast.warning('Lütfen tüm alanları doldurun!');
+      return;
     }
 
     if (parseFloat(talepForm.miktar) <= 0) {
-        toast.warning(' Miktar 0\'dan büyük olmalı!');
-        return;
+      toast.warning('Miktar 0\'dan büyük olmalı!');
+      return;
     }
 
     setTalepLoading(true);
     try {
-        const talepData = {
-            malzemeId: parseInt(talepForm.malzemeId),
-            miktar: parseFloat(talepForm.miktar),
-            birim: talepForm.birim || 'adet',
-            aciklama: talepForm.aciklama || '',
-            personelId: userData.personelId || null
-        };
+      const talepData = {
+        malzemeId: parseInt(talepForm.malzemeId),
+        miktar: parseFloat(talepForm.miktar),
+        birim: talepForm.birim || 'adet',
+        aciklama: talepForm.aciklama || '',
+        personelId: userData.personelId || null
+      };
 
-        console.log(' Talep gönderiliyor:', talepData);
-        const response = await malzemeTalepAPI.talepOlustur(talepData); 
-        console.log(' Talep yanıtı:', response);
-        toast.success(' Malzeme talebi gönderildi! Admin onay bekleniyor.');
-        
-        setShowMalzemeTalep(false);
-        setTalepForm({ 
-            malzemeId: '', 
-            miktar: '', 
-            birim: 'adet', 
-            aciklama: '' 
-        });
-        
+      console.log('Talep gönderiliyor:', talepData);
+      const response = await malzemeTalepAPI.talepOlustur(talepData);
+      console.log('Talep yanıtı:', response);
+      toast.success('Malzeme talebi gönderildi! Admin onay bekleniyor.');
+
+      setShowMalzemeTalep(false);
+      setTalepForm({
+        malzemeId: '',
+        miktar: '',
+        birim: 'adet',
+        aciklama: ''
+      });
+
     } catch (error) {
-        console.error(' Talep gönderilirken hata:', error);
-        
-        const errorMsg = error?.response?.data?.message || 
-                         error?.response?.data?.Mesaj ||
-                         error?.message || 
-                         'Talep gönderilemedi!';
-        toast.error(` ${errorMsg}`);
+      console.error('Talep gönderilirken hata:', error);
+      const errorMsg = error?.response?.data?.message ||
+        error?.response?.data?.Mesaj ||
+        error?.message ||
+        'Talep gönderilemedi!';
+      toast.error(`❌ ${errorMsg}`);
     } finally {
-        setTalepLoading(false);
+      setTalepLoading(false);
     }
-};
-
-// SELECT OPTION KISMI (Modal içinde) - DÜZELTİLDİ
-<select
-    value={talepForm.malzemeId}
-    onChange={(e) => setTalepForm({...talepForm, malzemeId: e.target.value})}
-    className="w-full py-2.5 px-3 bg-white/5 border border-white/10 rounded-lg text-white focus:ring-2 focus:ring-white/20 outline-none"
-    required
->
-    <option value="">Malzeme Seçin</option>
-    {malzemeler.map(m => (
-        <option key={m.malzemeId} value={m.malzemeId}>
-            {m.malzemeAdi} (Mevcut: {m.stokMiktari || 0} {m.birim})
-        </option>
-    ))}
-</select>
-
- 
-
+  };
 
   // ========== SİPARİŞ DURUMUNU MAP ET ==========
   const mapStatus = (backendStatus) => {
@@ -202,7 +181,7 @@ const handleMalzemeTalep = async (e) => {
     try {
       setLoading(true);
       const response = await asciAPI.getAsciSiparisleri();
-      
+
       let data = [];
       if (response?.data) {
         data = Array.isArray(response.data) ? response.data : [];
@@ -212,20 +191,16 @@ const handleMalzemeTalep = async (e) => {
 
       console.log('📦 Gelen siparişler:', data);
 
-      // Bugünün siparişlerini filtrele
       const todayData = data.filter(s => isToday(s.siparisTarihi));
 
-      // Aktif siparişler (BEKLEMEDE ve HAZIRLANIYOR)
-      const aktifData = todayData.filter(s => 
+      const aktifData = todayData.filter(s =>
         s.siparisDurumu === "BEKLEMEDE" || s.siparisDurumu === "HAZIRLANIYOR"
       );
 
-      // Hazır siparişler (HAZIR)
-      const hazirData = todayData.filter(s => 
+      const hazirData = todayData.filter(s =>
         s.siparisDurumu === "HAZIR"
       );
 
-      // Aktif siparişleri map'le
       const aktifOrders = aktifData.map(s => ({
         id: s.siparisId,
         table: s.masaNo ? `Masa ${s.masaNo}` : 'Paket Servis',
@@ -241,7 +216,6 @@ const handleMalzemeTalep = async (e) => {
         siparisTuru: s.siparisTuru || (s.masaNo ? 'salon' : 'online')
       }));
 
-      // Hazır siparişleri map'le
       const hazirOrdersMapped = hazirData.map(s => ({
         id: s.siparisId,
         table: s.masaNo ? `Masa ${s.masaNo}` : 'Paket Servis',
@@ -259,9 +233,9 @@ const handleMalzemeTalep = async (e) => {
 
       setOrders(aktifOrders);
       setHazirOrders(hazirOrdersMapped);
-      
+
       console.log(`📊 Aktif: ${aktifOrders.length}, Hazır: ${hazirOrdersMapped.length}`);
-      
+
     } catch (error) {
       console.error('Siparişler yüklenirken hata:', error);
       toast.error('❌ Siparişler yüklenirken bir hata oluştu!');
@@ -271,110 +245,97 @@ const handleMalzemeTalep = async (e) => {
   }, []);
 
   // ========== SİPARİŞ DURUMUNU GÜNCELLE ==========
-const updateOrderStatus = async (orderId, newStatus) => {
-  if (updatingOrderId === orderId) return;
-  
-  try {
-    setUpdatingOrderId(orderId);
-    
-    if (newStatus === 'ready') {
-      const order = orders.find(o => o.id === orderId);
-      if (!order) {
-        toast.error('Sipariş bulunamadı!');
+  const updateOrderStatus = async (orderId, newStatus) => {
+    if (updatingOrderId === orderId) return;
+
+    try {
+      setUpdatingOrderId(orderId);
+
+      if (newStatus === 'ready') {
+        const order = orders.find(o => o.id === orderId);
+        if (!order) {
+          toast.error('Sipariş bulunamadı!');
+          return;
+        }
+
+        await asciAPI.updateSiparisDurum(orderId, 'HAZIR');
+        console.log(`✅ Sipariş #${orderId} backend'de HAZIR yapıldı`);
+
+        if (order.siparisTuru === 'online') {
+          try {
+            const response = await fetch(`${API_BASE_URL}/Asci/siparis/${orderId}/hazir-ve-kurye-ata`, {
+              method: 'POST',
+              headers: {
+                'Authorization': 'Bearer ' + localStorage.getItem('token'),
+                'Content-Type': 'application/json'
+              }
+            });
+
+            const apiResult = await response.json();
+            console.log('📦 API Sonucu:', apiResult);
+
+            if (apiResult.success) {
+              toast.success(`✅ ${apiResult.message}`);
+            } else {
+              toast.warning(`⚠️ ${apiResult.message}`);
+            }
+          } catch (error) {
+            console.error('❌ Kurye atama hatası:', error);
+            toast.error('❌ Kurye atama başarısız!');
+          }
+        } else {
+          try {
+            await asciAPI.garsonaBildirimGonder(orderId);
+            toast.success(`✅ Sipariş #${orderId} hazır! Garsona bildirim gönderildi.`);
+          } catch (err) {
+            console.warn('Garson bildirimi gönderilemedi:', err);
+            toast.success(`✅ Sipariş #${orderId} hazır!`);
+          }
+        }
+
+        const completedOrder = orders.find(o => o.id === orderId);
+        if (completedOrder) {
+          setOrders(prev => prev.filter(o => o.id !== orderId));
+          setHazirOrders(prev => {
+            if (prev.some(o => o.id === orderId)) return prev;
+            return [...prev, { ...completedOrder, status: 'ready', rawStatus: 'HAZIR' }];
+          });
+          console.log(`📦 Sipariş #${orderId} hazır listesine taşındı`);
+        }
+
+        setTimeout(() => fetchOrders(), 3000);
         return;
       }
 
-      // 1. Backend'de HAZIR yap
-      await asciAPI.updateSiparisDurum(orderId, 'HAZIR');
-      console.log(`✅ Sipariş #${orderId} backend'de HAZIR yapıldı`);
-
-      // 2. Online sipariş kontrolü
-      if (order.siparisTuru === 'online') {
-        const result = await asciAPI.siparisHazirVeKuryeAta(orderId);
-        if (result.success) {
-          toast.success(`✅ ${result.message}`);
-        } else {
-          toast.warning(`⚠️ ${result.message}`);
-        }
-      } else {
-        // 3. Garsona bildirim gönder
-        try {
-          await asciAPI.garsonaBildirimGonder(orderId);
-          toast.success(`✅ Sipariş #${orderId} hazır! Garsona bildirim gönderildi.`);
-          console.log(`📢 Garsona bildirim gönderildi: Sipariş #${orderId}`);
-        } catch (err) {
-          console.warn('Garson bildirimi gönderilemedi:', err);
-          toast.success(`✅ Sipariş #${orderId} hazır!`);
-        }
+      const statusMap = { 'preparing': 'HAZIRLANIYOR' };
+      const backendStatus = statusMap[newStatus];
+      if (!backendStatus) {
+        toast.error('Geçersiz durum!');
+        return;
       }
 
-      // 4. Siparişi aktif listeden kaldır
-      const completedOrder = orders.find(o => o.id === orderId);
-      if (completedOrder) {
-        // Aktif listeden kaldır
-        setOrders(prev => prev.filter(o => o.id !== orderId));
-        
-        // 🔥 Hazır listesine EKLE (backend'den silinene kadar kalsın)
-        setHazirOrders(prev => {
-          // Eğer zaten varsa ekleme
-          if (prev.some(o => o.id === orderId)) {
-            return prev;
-          }
-          return [...prev, { 
-            ...completedOrder, 
-            status: 'ready', 
-            rawStatus: 'HAZIR' 
-          }];
-        });
-        
-        console.log(`📦 Sipariş #${orderId} hazır listesine taşındı`);
-      }
+      console.log(`🔄 Sipariş #${orderId} durumu güncelleniyor: ${backendStatus}`);
+      await asciAPI.updateSiparisDurum(orderId, backendStatus);
 
-      // 5. 3 saniye sonra backend'den yeniden çek (senkronizasyon için)
-      setTimeout(() => {
-        fetchOrders();
-      }, 3000);
-      
-      return;
+      setOrders(prev => prev.map(order =>
+        order.id === orderId ? { ...order, status: newStatus, rawStatus: backendStatus } : order
+      ));
+
+      toast.success(`✅ Sipariş #${orderId} hazırlanmaya başlandı 🍳`);
+      setTimeout(() => fetchOrders(), 2000);
+
+    } catch (error) {
+      console.error('Sipariş durumu güncellenirken hata:', error);
+      const errorMsg = error?.response?.data?.message ||
+        error?.response?.data?.Mesaj ||
+        error?.message ||
+        'Sipariş durumu güncellenirken bir hata oluştu!';
+      toast.error(`❌ ${errorMsg}`);
+    } finally {
+      setUpdatingOrderId(null);
     }
-    
-    // Hazırlamaya Başla işlemi
-    const statusMap = {
-      'preparing': 'HAZIRLANIYOR'
-    };
-    
-    const backendStatus = statusMap[newStatus];
-    if (!backendStatus) {
-      toast.error('Geçersiz durum!');
-      return;
-    }
+  };
 
-    console.log(`🔄 Sipariş #${orderId} durumu güncelleniyor: ${backendStatus}`);
-
-    await asciAPI.updateSiparisDurum(orderId, backendStatus);
-
-    // Frontend'de durumu güncelle
-    setOrders(prev => prev.map(order => 
-      order.id === orderId ? { ...order, status: newStatus, rawStatus: backendStatus } : order
-    ));
-
-    toast.success(`✅ Sipariş #${orderId} hazırlanmaya başlandı 🍳`);
-
-    setTimeout(() => {
-      fetchOrders();
-    }, 2000);
-    
-  } catch (error) {
-    console.error('Sipariş durumu güncellenirken hata:', error);
-    const errorMsg = error?.response?.data?.message || 
-                     error?.response?.data?.Mesaj ||
-                     error?.message || 
-                     'Sipariş durumu güncellenirken bir hata oluştu!';
-    toast.error(`❌ ${errorMsg}`);
-  } finally {
-    setUpdatingOrderId(null);
-  }
-};
   // ========== ŞİFRE DEĞİŞTİR ==========
   const handlePasswordChange = async (e) => {
     e.preventDefault();
@@ -429,15 +390,11 @@ const updateOrderStatus = async (orderId, newStatus) => {
 
   // ========== DURUM RENKLERİ ==========
   const getStatusBadge = (status) => {
-    switch(status) {
-      case 'pending': 
-        return { bg: 'bg-yellow-500/20', text: 'text-yellow-400', label: 'Bekliyor' };
-      case 'preparing': 
-        return { bg: 'bg-blue-500/20', text: 'text-blue-400', label: 'Hazırlanıyor' };
-      case 'ready': 
-        return { bg: 'bg-green-500/20', text: 'text-green-400', label: 'Hazır' };
-      default: 
-        return { bg: 'bg-gray-500/20', text: 'text-gray-400', label: 'Bilinmiyor' };
+    switch (status) {
+      case 'pending': return { bg: 'bg-yellow-500/20', text: 'text-yellow-400', label: 'Bekliyor' };
+      case 'preparing': return { bg: 'bg-blue-500/20', text: 'text-blue-400', label: 'Hazırlanıyor' };
+      case 'ready': return { bg: 'bg-green-500/20', text: 'text-green-400', label: 'Hazır' };
+      default: return { bg: 'bg-gray-500/20', text: 'text-gray-400', label: 'Bilinmiyor' };
     }
   };
 
@@ -450,17 +407,17 @@ const updateOrderStatus = async (orderId, newStatus) => {
   };
 
   // ========== EFFECT'LER ==========
-useEffect(() => {
-  fetchUserData();
-  fetchOrders();
-
-  // Her 10 saniyede bir yenile - ama hazirOrders state'ini koru
-  const interval = setInterval(() => {
+  useEffect(() => {
+    fetchUserData();
     fetchOrders();
-  }, 10000);
-  
-  return () => clearInterval(interval);
-}, [fetchUserData]); // ⬅️ fetchOrders dependency'den çıkarıldı
+
+    const interval = setInterval(() => {
+      fetchOrders();
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [fetchUserData]);
+
   // ========== SIDEBAR TOGGLE ==========
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
 
@@ -478,8 +435,7 @@ useEffect(() => {
             <div className="flex items-center gap-2">
               <h3 className="text-white font-bold text-lg">{order.table}</h3>
               <span className={`text-[10px] px-2 py-0.5 rounded ${turBadge.bg} ${turBadge.text}`}>
-                {turBadge.icon}
-                {turBadge.label}
+                {turBadge.icon} {turBadge.label}
               </span>
             </div>
             <p className="text-gray-400 text-sm">{order.time}</p>
@@ -517,7 +473,6 @@ useEffect(() => {
           </div>
         )}
 
-        {/* Hazır siparişlerde buton gösterilmez, sadece bilgi */}
         {!isHazir && (
           <div className="flex gap-2 mt-3">
             {order.status === 'pending' && (
@@ -548,7 +503,7 @@ useEffect(() => {
             )}
           </div>
         )}
-        
+
         {isHazir && (
           <div className="mt-3 text-center">
             <span className="text-green-400 text-xs flex items-center justify-center gap-2">
@@ -563,27 +518,12 @@ useEffect(() => {
 
   // ========== RENDER ==========
   return (
-    <div 
-      className="min-h-screen relative"
-      style={{
-        backgroundImage: `url(${backgroundImage})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundAttachment: 'fixed'
-      }}
-    >
+    <div className="min-h-screen relative" style={{ backgroundImage: `url(${backgroundImage})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }}>
       <div className="absolute inset-0 bg-black/40 backdrop-blur-xl"></div>
-      
+
       <div className="relative z-10 flex">
         {/* Sidebar */}
-        <div className={`
-          fixed lg:relative lg:flex lg:flex-col
-          ${sidebarOpen ? 'w-64' : 'w-20'}
-          bg-black/90 backdrop-blur-sm border-r border-white/10
-          h-screen transition-all duration-300 overflow-y-auto
-          ${mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-          z-50 flex-shrink-0
-        `}>
+        <div className={`fixed lg:relative lg:flex lg:flex-col ${sidebarOpen ? 'w-64' : 'w-20'} bg-black/90 backdrop-blur-sm border-r border-white/10 h-screen transition-all duration-300 overflow-y-auto ${mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} z-50 flex-shrink-0`}>
           <div className="flex items-center justify-between p-4 border-b border-white/10">
             {sidebarOpen ? (
               <div className="flex items-center gap-3">
@@ -596,16 +536,10 @@ useEffect(() => {
             ) : (
               <div className="text-2xl mx-auto">🍽️</div>
             )}
-            <button 
-              onClick={toggleSidebar}
-              className="text-gray-400 hover:text-white hidden lg:block"
-            >
+            <button onClick={toggleSidebar} className="text-gray-400 hover:text-white hidden lg:block">
               {sidebarOpen ? <FaTimes size={16} /> : <FaBars size={16} />}
             </button>
-            <button 
-              onClick={() => setMobileSidebarOpen(false)}
-              className="text-gray-400 hover:text-white lg:hidden"
-            >
+            <button onClick={() => setMobileSidebarOpen(false)} className="text-gray-400 hover:text-white lg:hidden">
               <FaTimes size={20} />
             </button>
           </div>
@@ -623,12 +557,8 @@ useEffect(() => {
 
             <div className="border-t border-white/10 my-3"></div>
 
-            {/* EKSİK MALZEME TALEBİ BUTONU */}
             <button
-              onClick={() => { 
-                fetchMalzemeler(); 
-                setShowMalzemeTalep(true); 
-              }}
+              onClick={() => { fetchMalzemeler(); setShowMalzemeTalep(true); }}
               className="w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all text-yellow-400 hover:text-yellow-300 hover:bg-yellow-500/10"
             >
               <FaExclamationTriangle size={18} />
@@ -653,18 +583,12 @@ useEffect(() => {
           </div>
         </div>
 
-        <button
-          onClick={() => setMobileSidebarOpen(true)}
-          className="lg:hidden fixed top-4 left-4 z-40 p-2.5 bg-black/80 backdrop-blur-sm rounded-lg text-white"
-        >
+        <button onClick={() => setMobileSidebarOpen(true)} className="lg:hidden fixed top-4 left-4 z-40 p-2.5 bg-black/80 backdrop-blur-sm rounded-lg text-white">
           <FaBars size={20} />
         </button>
 
         {mobileSidebarOpen && (
-          <div 
-            className="lg:hidden fixed inset-0 bg-black/50 z-40"
-            onClick={() => setMobileSidebarOpen(false)}
-          />
+          <div className="lg:hidden fixed inset-0 bg-black/50 z-40" onClick={() => setMobileSidebarOpen(false)} />
         )}
 
         {/* Ana İçerik */}
@@ -672,11 +596,7 @@ useEffect(() => {
           <div className="bg-black/80 backdrop-blur-sm border-b border-white/10 sticky top-0 z-30">
             <div className="max-w-7xl mx-auto px-4 py-3">
               <div className="flex items-center justify-end gap-4">
-                <button 
-                  onClick={fetchOrders}
-                  className="text-gray-400 hover:text-white transition-colors relative"
-                  title="Yenile"
-                >
+                <button onClick={fetchOrders} className="text-gray-400 hover:text-white transition-colors relative" title="Yenile">
                   <FaSync size={18} className={loading ? 'animate-spin' : ''} />
                 </button>
                 <div className="text-right hidden sm:block">
@@ -713,12 +633,10 @@ useEffect(() => {
               </div>
             ) : (
               <>
-                {/* ========== AKTİF SİPARİŞLER ========== */}
                 <div className="mb-8">
                   <h2 className="text-white font-semibold text-lg mb-3 flex items-center gap-2">
                     <FaUtensils className="text-yellow-400" size={16} />
-                    Aktif Siparişler
-                    <span className="text-sm text-gray-400 ml-2">({orders.length})</span>
+                    Aktif Siparişler <span className="text-sm text-gray-400 ml-2">({orders.length})</span>
                   </h2>
                   {orders.length > 0 ? (
                     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -734,12 +652,10 @@ useEffect(() => {
                   )}
                 </div>
 
-                {/* ========== HAZIR SİPARİŞLER ========== */}
                 <div>
                   <h2 className="text-white font-semibold text-lg mb-3 flex items-center gap-2">
                     <FaClipboardCheck className="text-green-400" size={16} />
-                    Hazır Siparişler (Teslim Bekliyor)
-                    <span className="text-sm text-gray-400 ml-2">({hazirOrders.length})</span>
+                    Hazır Siparişler (Teslim Bekliyor) <span className="text-sm text-gray-400 ml-2">({hazirOrders.length})</span>
                   </h2>
                   {hazirOrders.length > 0 ? (
                     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -768,9 +684,7 @@ useEffect(() => {
 
           <div className="border-t border-white/10 bg-black/30 backdrop-blur-sm">
             <div className="max-w-7xl mx-auto px-4 py-3">
-              <p className="text-gray-400 text-[10px] text-center">
-                © 2024 SekerRestoran Yönetim Sistemi | Aşçı Paneli
-              </p>
+              <p className="text-gray-400 text-[10px] text-center">© 2024 SekerRestoran Yönetim Sistemi | Aşçı Paneli</p>
             </div>
           </div>
         </div>
@@ -786,66 +700,23 @@ useEffect(() => {
                 <FaTimes size={20} />
               </button>
             </div>
-            
             <form onSubmit={handlePasswordChange} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1.5">Mevcut Şifre</label>
-                <input
-                  type="password"
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-gray-500 focus:ring-2 focus:ring-white/20 focus:border-transparent outline-none transition-all"
-                  placeholder="Mevcut şifreniz"
-                  disabled={passwordLoading}
-                  required
-                />
+                <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-gray-500 focus:ring-2 focus:ring-white/20 focus:border-transparent outline-none transition-all" placeholder="Mevcut şifreniz" disabled={passwordLoading} required />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1.5">Yeni Şifre</label>
-                <input
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-gray-500 focus:ring-2 focus:ring-white/20 focus:border-transparent outline-none transition-all"
-                  placeholder="Yeni şifreniz (min 6 karakter)"
-                  disabled={passwordLoading}
-                  required
-                  minLength={6}
-                />
+                <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-gray-500 focus:ring-2 focus:ring-white/20 focus:border-transparent outline-none transition-all" placeholder="Yeni şifreniz (min 6 karakter)" disabled={passwordLoading} required minLength={6} />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1.5">Yeni Şifre Tekrar</label>
-                <input
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-gray-500 focus:ring-2 focus:ring-white/20 focus:border-transparent outline-none transition-all"
-                  placeholder="Yeni şifrenizi tekrar girin"
-                  disabled={passwordLoading}
-                  required
-                />
+                <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-gray-500 focus:ring-2 focus:ring-white/20 focus:border-transparent outline-none transition-all" placeholder="Yeni şifrenizi tekrar girin" disabled={passwordLoading} required />
               </div>
               <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setShowPasswordModal(false)}
-                  className="flex-1 px-4 py-2 bg-white/5 hover:bg-white/10 text-gray-300 rounded-lg transition-all text-sm"
-                >
-                  İptal
-                </button>
-                <button
-                  type="submit"
-                  disabled={passwordLoading}
-                  className="flex-1 px-4 py-2 bg-white hover:bg-gray-200 text-black font-semibold rounded-lg transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {passwordLoading ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin"></div>
-                      Değiştiriliyor...
-                    </>
-                  ) : (
-                    'Şifreyi Değiştir'
-                  )}
+                <button type="button" onClick={() => setShowPasswordModal(false)} className="flex-1 px-4 py-2 bg-white/5 hover:bg-white/10 text-gray-300 rounded-lg transition-all text-sm">İptal</button>
+                <button type="submit" disabled={passwordLoading} className="flex-1 px-4 py-2 bg-white hover:bg-gray-200 text-black font-semibold rounded-lg transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                  {passwordLoading ? (<><div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin"></div> Değiştiriliyor...</>) : ('Şifreyi Değiştir')}
                 </button>
               </div>
             </form>
@@ -865,23 +736,15 @@ useEffect(() => {
                   <p className="text-gray-400 text-xs">Eksik malzemeleri admin'e bildirin</p>
                 </div>
               </div>
-              <button 
-                onClick={() => setShowMalzemeTalep(false)} 
-                className="text-gray-400 hover:text-white"
-              >
+              <button onClick={() => setShowMalzemeTalep(false)} className="text-gray-400 hover:text-white">
                 <FaTimes size={20} />
               </button>
             </div>
-            
+
             <form onSubmit={handleMalzemeTalep} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1.5">Malzeme *</label>
-                <select
-                  value={talepForm.malzemeId}
-                  onChange={(e) => setTalepForm({...talepForm, malzemeId: e.target.value})}
-                  className="w-full py-2.5 px-3 bg-white/5 border border-white/10 rounded-lg text-white focus:ring-2 focus:ring-white/20 outline-none"
-                  required
-                >
+                <select value={talepForm.malzemeId} onChange={(e) => setTalepForm({ ...talepForm, malzemeId: e.target.value })} className="w-full py-2.5 px-3 bg-white/5 border border-white/10 rounded-lg text-white focus:ring-2 focus:ring-white/20 outline-none" required>
                   <option value="">Malzeme Seçin</option>
                   {malzemeler.map(m => (
                     <option key={m.malzemeId} value={m.malzemeId}>
@@ -890,27 +753,15 @@ useEffect(() => {
                   ))}
                 </select>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1.5">Miktar *</label>
-                <input
-                  type="number"
-                  value={talepForm.miktar}
-                  onChange={(e) => setTalepForm({...talepForm, miktar: e.target.value})}
-                  className="w-full py-2.5 px-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-gray-500 focus:ring-2 focus:ring-white/20 outline-none"
-                  placeholder="Kaç adet/kg?"
-                  required
-                  min="1"
-                />
+                <input type="number" value={talepForm.miktar} onChange={(e) => setTalepForm({ ...talepForm, miktar: e.target.value })} className="w-full py-2.5 px-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-gray-500 focus:ring-2 focus:ring-white/20 outline-none" placeholder="Kaç adet/kg?" required min="1" />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1.5">Birim</label>
-                <select
-                  value={talepForm.birim}
-                  onChange={(e) => setTalepForm({...talepForm, birim: e.target.value})}
-                  className="w-full py-2.5 px-3 bg-white/5 border border-white/10 rounded-lg text-white focus:ring-2 focus:ring-white/20 outline-none"
-                >
+                <select value={talepForm.birim} onChange={(e) => setTalepForm({ ...talepForm, birim: e.target.value })} className="w-full py-2.5 px-3 bg-white/5 border border-white/10 rounded-lg text-white focus:ring-2 focus:ring-white/20 outline-none">
                   <option value="adet">Adet</option>
                   <option value="kg">Kg</option>
                   <option value="gr">Gr</option>
@@ -918,40 +769,16 @@ useEffect(() => {
                   <option value="paket">Paket</option>
                 </select>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1.5">Açıklama</label>
-                <textarea
-                  value={talepForm.aciklama}
-                  onChange={(e) => setTalepForm({...talepForm, aciklama: e.target.value})}
-                  className="w-full py-2.5 px-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-gray-500 focus:ring-2 focus:ring-white/20 outline-none resize-none"
-                  placeholder="Neden ihtiyacınız var?"
-                  rows="2"
-                />
+                <textarea value={talepForm.aciklama} onChange={(e) => setTalepForm({ ...talepForm, aciklama: e.target.value })} className="w-full py-2.5 px-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-gray-500 focus:ring-2 focus:ring-white/20 outline-none resize-none" placeholder="Neden ihtiyacınız var?" rows="2" />
               </div>
-              
+
               <div className="flex gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowMalzemeTalep(false)}
-                  className="flex-1 px-4 py-2 bg-white/5 hover:bg-white/10 text-gray-300 rounded-lg"
-                  disabled={talepLoading}
-                >
-                  İptal
-                </button>
-                <button
-                  type="submit"
-                  disabled={talepLoading}
-                  className="flex-1 px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-black font-semibold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {talepLoading ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin"></div>
-                      Gönderiliyor...
-                    </>
-                  ) : (
-                    'Talebi Gönder'
-                  )}
+                <button type="button" onClick={() => setShowMalzemeTalep(false)} className="flex-1 px-4 py-2 bg-white/5 hover:bg-white/10 text-gray-300 rounded-lg" disabled={talepLoading}>İptal</button>
+                <button type="submit" disabled={talepLoading} className="flex-1 px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-black font-semibold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                  {talepLoading ? (<><div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin"></div> Gönderiliyor...</>) : ('Talebi Gönder')}
                 </button>
               </div>
             </form>
