@@ -309,15 +309,15 @@ const GarsonPanel = () => {
   const getTableStatusColor = (status) => {
     switch (status) {
       case "empty":
-        return "bg-green-500 hover:bg-green-600";
+        return "bg-[#96AE67] hover:bg-[#889F5D]";
       case "occupied":
-        return "bg-red-500 hover:bg-red-600";
+        return "bg-[#A84C52] hover:bg-[#944147]";
       case "reserved":
         return "bg-orange-500 hover:bg-orange-600";
       case "broken":
-        return "bg-gray-500 hover:bg-gray-600";
+        return "bg-[#C0C1BC] hover:bg-[#ACAEA8]";
       default:
-        return "bg-gray-500";
+        return "bg-[#C0C1BC]";
     }
   };
 
@@ -1046,25 +1046,6 @@ const GarsonPanel = () => {
     </div>
   )}
 </button>
-
-            <button
-              onClick={() => setIsDayMode((prev) => !prev)}
-              title={isDayMode ? "Gece Modu" : "Gündüz Modu"}
-              className={`
-    absolute bottom-5 left-5
-    w-12 h-12
-    rounded-full
-    flex items-center justify-center
-    transition-all duration-300
-    shadow-lg
-    ${isDayMode
-                  ? "bg-slate-800 text-yellow-400 hover:bg-slate-700"
-                  : "bg-white/10 text-white hover:bg-white/20"
-                }
-  `}
-            >
-              {isDayMode ? <FaMoon size={18} /> : <FaSun size={18} />}
-            </button>
           </div>
         </div>
 
@@ -1118,7 +1099,7 @@ const GarsonPanel = () => {
 
                   {isUserMenuOpen && (
                     <div
-                      className={`absolute right-0 mt-2 min-w-[180px] rounded-xl border shadow-xl z-50 overflow-hidden ${
+                      className={`absolute right-0 mt-2 min-w-[190px] rounded-xl border shadow-xl z-50 overflow-hidden ${
                         isDayMode
                           ? "bg-white border-slate-200"
                           : "bg-black/95 border-white/10"
@@ -1152,6 +1133,43 @@ const GarsonPanel = () => {
                         <FaSignOutAlt size={13} />
                         Çıkış
                       </button>
+                      <div className={`px-4 py-4 ${isDayMode ? "bg-slate-50" : "bg-black/20"}`}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsDayMode((prev) => !prev);
+                            setIsUserMenuOpen(false);
+                          }}
+                          title={isDayMode ? "Aydınlık moda geç" : "Karanlık moda geç"}
+                          className="w-full"
+                        >
+                          <div
+                            className={`relative h-20 rounded-[18px] border overflow-hidden transition-all ${
+                              isDayMode
+                                ? "bg-gradient-to-br from-amber-50 via-rose-50 to-sky-100 border-amber-100"
+                                : "bg-slate-800 border-slate-700"
+                            }`}
+                          >
+                            <div
+                              className={`absolute top-1 left-1 w-[calc(50%-0.25rem)] h-[calc(100%-0.5rem)] rounded-[14px] transition-all duration-300 shadow-lg ${
+                                isDayMode
+                                  ? "translate-x-full bg-white/90"
+                                  : "translate-x-0 bg-slate-900"
+                              }`}
+                            />
+                            <div className="relative z-10 h-full grid grid-cols-2">
+                              <div className={`flex flex-col items-center justify-center gap-1 ${isDayMode ? "text-slate-500" : "text-white"}`}>
+                                <FaMoon size={14} />
+                                <span className="text-[9px] font-semibold tracking-[0.14em]">KARANLIK</span>
+                              </div>
+                              <div className={`flex flex-col items-center justify-center gap-1 ${isDayMode ? "text-sky-900" : "text-slate-300"}`}>
+                                <FaSun size={14} />
+                                <span className="text-[9px] font-semibold tracking-[0.14em]">AYDINLIK</span>
+                              </div>
+                            </div>
+                          </div>
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -1249,6 +1267,7 @@ const GarsonPanel = () => {
               selectedTable={selectedTable}
               onSelectTable={(table) => setSelectedTable(table)}
               tables={tables}
+              isDayMode={isDayMode}
             />
           </div>
         </div>
