@@ -481,8 +481,14 @@ const GarsonPanel = () => {
   };
 
   const handleEditOrderFromDetail = () => {
-    const order = getOrderObject(selectedOrderTable);
-    setCart(order ? buildCartFromOrder(order) : []);
+    // 🔑 ÖNEMLİ: Sepeti mevcut sipariş ürünleriyle DOLDURMUYORUZ.
+    // Backend, gönderilen her ürünü siparişe YENİ SATIR olarak ekliyor
+    // (var olanı güncellemiyor). Sepete eski ürünleri de koyup onaylarsak,
+    // onlar da tekrar tekrar eklenip sipariş satırlarını çoğaltıyor.
+    // Bu ekran sadece siparişe "yeni ürün eklemek" için kullanılmalı;
+    // mevcut ürünler zaten sipariş detay modalında (ve artık sepet ekranında
+    // salt okunur olarak) görünüyor.
+    setCart([]);
     setSelectedTable(selectedOrderTable);
     setShowOrderModal(true);
     setShowOrderDetailModal(false);
@@ -591,76 +597,131 @@ const GarsonPanel = () => {
       return;
     }
 
-    try {
-      const siparisData = {
-        masaId: selectedTable.id,
-        siparisTipi: "SALON",
-        personelId: 1,
-        detaylar: cart.map((item) => ({
-          urunId: item.id,
-          adet: item.quantity,
-          detayNot: item.note || "",
-        })),
+      // Sepetteki ürünleri kontrol et
+  const cartItems = cart.map((item) => ({
+    urunId: item.id,
+    adet: item.quantity,
+    detayNot: item.note || "",
+  }));
+
+  // Sepet özetini göster
+  const cartSummary = cart
+    .map((item) => `${item.quantity}x ${item.name}`)
+    .join(", ");
+  console.log(`🛒 Sepet: ${cartSummary}`);
+
+  try {
+    // 🔑 Masada zaten aktif bir sipariş varsa ID'sini gönder ki backend
+    // yeni sipariş açmak yerine ona eklesin (backend ayrıca MasaId üzerinden
+    // de bir güvenlik kontrolü yapıyor, ama bunu göndermek en doğrusu).
+    const activeOrderId = selectedTable.order?.siparisId || selectedTable.order?.id;
+
+    const siparisData = {
+      siparisId: activeOrderId || null,
+      masaId: selectedTable.id,
+      siparisTipi: "SALON",
+      personelId: 1,
+      detaylar: cartItems,
+    };
+
+    console.log("📦 Sipariş verisi gönderiliyor:", siparisData);
+
+    const createdOrderResponse = await orderService.create(siparisData);
+    const responseData = createdOrderResponse?.data || createdOrderResponse;
+
+    console.log("✅ Sipariş yanıtı:", responseData);
+
+    toast.success("✅ Sipariş başarıyla mutfağa iletildi! 🍳");
+
+    const createdOrder = responseData?.Siparis || responseData;
+
+    if (createdOrder) {
+      const updatedTable = {
+        ...selectedTable,
+        status: "occupied",
+        order: {
+          siparisId: createdOrder.siparisId || responseData?.SiparisId,
+          toplam:
+            createdOrder.toplamTutar ||
+            responseData?.HesaplananToplamTutar ||
+            cart.reduce(
+              (sum, item) => sum + (item.price || 0) * (item.quantity || 1),
+              0
+            ),
+          siparisDurumu: createdOrder.siparisDurumu || "BEKLEMEDE",
+          siparisTarihi: createdOrder.siparisTarihi || new Date().toISOString(),
+          siparisUrunleri:
+            createdOrder.siparisUrunleri ||
+            cart.map((item) => ({
+              urunId: item.id,
+              urunAdi: item.name,
+              adet: item.quantity,
+              fiyat: item.price || 0,
+              detayNot: item.note || "",
+              satirToplami: (item.price || 0) * (item.quantity || 1),
+            })),
+        },
+        time: createdOrder.siparisTarihi || new Date().toISOString(),
       };
 
-      const createdOrderResponse = await orderService.create(siparisData);
-      const responseData = createdOrderResponse?.data || createdOrderResponse;
-
-      toast.success("Sipariş başarıyla mutfağa iletildi! 🍳");
-
-      const createdOrder = responseData?.Siparis || responseData;
-
-      if (createdOrder) {
-        const updatedTable = {
-          ...selectedTable,
-          status: "occupied",
-          order: {
-            siparisId: createdOrder.siparisId || responseData?.SiparisId,
-            toplam:
-              createdOrder.toplamTutar ||
-              responseData?.HesaplananToplamTutar ||
-              cart.reduce(
-                (sum, item) => sum + (item.price || 0) * (item.quantity || 1),
-                0,
-              ),
-            siparisDurumu: createdOrder.siparisDurumu || "BEKLEMEDE",
-            siparisTarihi:
-              createdOrder.siparisTarihi || new Date().toISOString(),
-            siparisUrunleri:
-              createdOrder.siparisUrunleri ||
-              cart.map((item) => ({
-                urunId: item.id,
-                urunAdi: item.name,
-                adet: item.quantity,
-                fiyat: item.price || 0,
-                detayNot: item.note || "",
-                satirToplami: (item.price || 0) * (item.quantity || 1),
-              })),
-          },
-          time: createdOrder.siparisTarihi || new Date().toISOString(),
-        };
-
-        setSelectedTable(updatedTable);
-        setTables((prev) =>
-          prev.map((t) => (t.id === updatedTable.id ? updatedTable : t)),
-        );
-      }
-
-      await verileriYukle();
-      setActiveTab("masa");
-      setShowOrderModal(false);
-      setCart([]);
-    } catch (error) {
-      console.error("Sipariş hatası:", error);
-      toast.error(
-        error.response?.data?.Mesaj ||
-        error.message ||
-        "Sipariş oluşturulamadı!",
+      setSelectedTable(updatedTable);
+      setTables((prev) =>
+        prev.map((t) => (t.id === updatedTable.id ? updatedTable : t))
       );
     }
+
+    await verileriYukle();
+    setActiveTab("masa");
+    setShowOrderModal(false);
+    setCart([]);
+    toast.success("✅ Sipariş başarıyla oluşturuldu!");
+  } catch (error) {
+    console.error("❌ Sipariş hatası:", error);
+
+    const errorData = error?.response?.data;
+    console.log("📦 Hata detayı:", errorData);
+
+    //  STOK HATASINI YAKALA
+    if (errorData?.HataKodu === "STOK_YETERSIZ") {
+      // Stok hata mesajlarını göster
+      const hataMesajlari = errorData?.Hatalar || [];
+
+      if (hataMesajlari.length > 0) {
+        // İlk hatayı ana mesaj olarak göster
+        toast.error(`❌ ${hataMesajlari[0]}`);
+
+        // Diğer hataları detaylı göster
+        if (hataMesajlari.length > 1) {
+          setTimeout(() => {
+            hataMesajlari.slice(1).forEach((msg, index) => {
+              setTimeout(() => {
+                toast.warning(`⚠️ ${msg}`);
+              }, index * 1000);
+            });
+          }, 500);
+        }
+      } else {
+        toast.error(" Stok yetersiz! Sipariş oluşturulamadı.");
+      }
+
+      // Detayları konsola yaz
+      if (errorData?.Detaylar) {
+        console.table(errorData.Detaylar);
+      }
+    } else if (errorData?.Mesaj) {
+      toast.error(`❌ ${errorData.Mesaj}`);
+    } else {
+      toast.error(
+        error.response?.data?.Mesaj ||
+          error.message ||
+          "Sipariş oluşturulamadı!"
+      );
+    }
+  }
+   
   };
 
-  // ✅ ÖDEME İŞLEMİ (masaOdeme ve processPayment çakışması çözüldü)
+  //  ÖDEME İŞLEMİ (masaOdeme ve processPayment çakışması çözüldü)
   const processPayment = async (tableId, method) => {
     if (paymentProcessing) return;
     setPaymentProcessing(true);
@@ -711,20 +772,20 @@ const GarsonPanel = () => {
         });
       }
 
-      toast.success("✅ Ödeme başarıyla alındı! Masa boşa çıkarıldı.");
+      toast.success(" Ödeme başarıyla alındı! Masa boşa çıkarıldı.");
       setShowPaymentModal(false);
       setSelectedTable(null);
       setSelectedOrderTable(null);
       if (showOrderDetailModal) setShowOrderDetailModal(false);
       await verileriYukle();
     } catch (error) {
-      console.error("❌ Ödeme hatası:", error);
+      console.error(" Ödeme hatası:", error);
       const errorMsg =
         error.response?.data?.mesaj ||
         error.response?.data?.Mesaj ||
         error.message ||
         "Ödeme alınamadı!";
-      toast.error(`❌ ${errorMsg}`);
+      toast.error(` ${errorMsg}`);
     } finally {
       setPaymentProcessing(false);
     }

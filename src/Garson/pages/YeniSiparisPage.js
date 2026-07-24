@@ -207,10 +207,13 @@ const YeniSiparisPage = ({
               </p>
             </div>
             {cart.length > 0 && (
-              <p className={`text-xs ${isDayMode ? 'text-slate-400' : 'text-gray-500'} mt-1`}>
-                {cart.length} ürün, {cart.reduce((sum, item) => sum + parseInt(item.quantity ?? 1), 0)} adet
-              </p>
-            )}
+  <div className={`mt-2 p-2 rounded-lg ${isDayMode ? 'bg-amber-50 border border-amber-200' : 'bg-yellow-500/10 border border-yellow-500/20'}`}>
+    <p className={`text-xs ${isDayMode ? 'text-amber-700' : 'text-yellow-400'}`}>
+       Sipariş oluşturulurken stok kontrolü yapılacaktır. 
+      Stokta yeterli malzeme yoksa sipariş oluşturulamaz.
+    </p>
+  </div>
+)}s
           </div>
 
           <button 

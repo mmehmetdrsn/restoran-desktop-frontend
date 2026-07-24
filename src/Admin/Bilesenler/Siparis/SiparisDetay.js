@@ -98,16 +98,27 @@ const SiparisDetay = ({ acik, kapat }) => {
   const toplamUrun = siparis?.detaylar?.reduce((sum, d) => sum + (d.adet || 0), 0) || 0;
 
   // Müşteri adını göster - Üye varsa üye adı, yoksa Ziyaretçi
-  const getMusteriAdi = () => {
+const getMusteriAdi = () => {
     if (!siparis) return 'Ziyaretçi';
+    
+    // 1. Önce uyeAdi kontrol et
     if (siparis.uyeAdi) {
-      return siparis.uyeAdi;
+        return siparis.uyeAdi;
     }
+    
+    // 2. uyeAdi yoksa uyeId kontrol et
     if (siparis.uyeId) {
-      return `Üye #${siparis.uyeId}`;
+        return `Üye #${siparis.uyeId}`;
     }
+    
+    // 3. Sipariş tipine göre kontrol et
+    if (siparis.siparisTipi === 'ONLINE' || siparis.siparisTipi === 'GEL-AL') {
+        return 'Online Müşteri';
+    }
+    
+    // 4. Hiçbiri yoksa Ziyaretçi
     return 'Ziyaretçi';
-  };
+};
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
