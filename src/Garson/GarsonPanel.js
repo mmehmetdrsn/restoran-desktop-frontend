@@ -313,7 +313,7 @@ const GarsonPanel = () => {
       case "occupied":
         return "bg-[#A84C52] hover:bg-[#944147]";
       case "reserved":
-        return "bg-orange-500 hover:bg-orange-600";
+        return "bg-[#6F8FA8] hover:bg-[#628198]";
       case "broken":
         return "bg-[#C0C1BC] hover:bg-[#ACAEA8]";
       default:

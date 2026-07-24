@@ -91,17 +91,22 @@ const MasaYonetimi = ({
             className={`rounded-xl p-3 cursor-pointer transition-all duration-300 flex flex-col justify-between ${(table.status === 'occupied' || table.status === 'broken') ? 'h-56' : 'h-48'} ${getTableStatusColor(table.status)} shadow-lg hover:shadow-xl hover:scale-105 border ${isDayMode ? 'border-slate-200/50' : 'border-white/10'} relative`}
           >
             
-<div className="h-full flex flex-col items-center text-center">              <h3 className={`${isDayMode ? 'text-slate-900' : 'text-white'} font-bold text-lg`}>{table.name}</h3>
+<div className="h-full flex flex-col items-center text-center">
+              <h3 className={`${isDayMode ? 'text-slate-900' : 'text-white'} font-bold text-lg`}>{table.name}</h3>
               
-              {/* Masa durumu metni - her zaman görünür */}
-              <div className={`mt-1 ${isDayMode ? 'text-slate-500' : 'text-white/60'} text-[10px] uppercase font-semibold`}>
-                {getTableStatusText(table.status)}
-              </div>
+              {/* Rezerve kartta tekrar yazıyı önlemek için üst etiket gizlenir */}
+              {table.status !== 'reserved' && (
+                <div className={`mt-3 ${isDayMode ? 'text-slate-500' : 'text-white/60'} text-[10px] uppercase font-semibold`}>
+                  {getTableStatusText(table.status)}
+                </div>
+              )}
+
+              <div className="mt-2 min-h-[42px] flex flex-col items-center justify-start">
 
               {/* Dolu masa için sipariş özeti */}
               {table.status === 'occupied' && table.order && (
                 <>
-                  <div className={`mt-2 ${isDayMode ? 'text-slate-900' : 'text-white/90'} text-sm font-medium`}>
+                  <div className={`${isDayMode ? 'text-slate-900' : 'text-white/90'} text-sm font-medium`}>
                     ₺{table.order?.toplam ?? table.order?.total ?? table.order?.tutar ?? 0}
                   </div>
                   {/* Tarih/saat gösterimi kaldırıldı */}
@@ -122,17 +127,18 @@ const MasaYonetimi = ({
 
               {/* Rezerve masa için zaman bilgisi */}
               {table.status === 'reserved' && (
-                <div className={`mt-2 ${isDayMode ? 'text-slate-600' : 'text-white/80'} text-sm`}>
+                <div className={`${isDayMode ? 'text-slate-600' : 'text-white/80'} text-sm`}>
                   {table.time || 'Rezerve'}
                 </div>
               )}
+              </div>
 
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   onOpenStatusModal(table);
                 }}
-                className="w-full h-12 flex items-center justify-center px-4 text-sm rounded-xl transition border border-white/30 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-slate-700 shadow-sm"
+                className="w-full h-12 mt-auto flex items-center justify-center px-4 text-sm rounded-xl transition border border-white/30 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-slate-700 shadow-sm"
               >
                 Durum Değiştir
               </button>
