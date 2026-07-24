@@ -987,7 +987,7 @@ const GarsonPanel = () => {
               onClick={toggleSidebar}
               className={`${isDayMode ? "text-slate-700 hover:text-slate-900" : "text-gray-400 hover:text-white"} hidden lg:block ${sidebarOpen ? "absolute right-4" : "absolute left-1/2 -translate-x-1/2"}`}
             >
-              {sidebarOpen ? <FaTimes size={16} /> : <FaBars size={16} />}
+              <FaBars size={16} />
             </button>
           </div>
 
