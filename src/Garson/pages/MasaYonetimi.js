@@ -84,18 +84,14 @@ const MasaYonetimi = ({
         <button onClick={() => setFilter('broken')} className={`px-4 py-2 rounded-lg text-sm transition-all ${filter === 'broken' ? 'bg-gray-500/30 text-gray-400' : `${isDayMode ? 'bg-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-200' : 'bg-white/5 text-gray-400 hover:text-white hover:bg-white/10'}`}`}>Arızalı ({tables.filter(t => t.status === 'broken').length})</button>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 auto-rows-fr">
-        {filteredTables.map((table) => (
+<div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-7 gap-3">        {filteredTables.map((table) => (
           <div 
             key={table.id} 
             onClick={() => handleTableClick(table)} 
-            className={`h-full rounded-2xl p-4 cursor-pointer transition-all duration-300 flex flex-col ${getTableStatusColor(table.status)} shadow-lg hover:shadow-xl hover:scale-105 border ${isDayMode ? 'border-slate-200/50' : 'border-white/10'} relative`}
+            className={`rounded-xl p-3 h-43 cursor-pointer transition-all duration-300 flex flex-col justify-between ${getTableStatusColor(table.status)} shadow-lg hover:shadow-xl hover:scale-105 border ${isDayMode ? 'border-slate-200/50' : 'border-white/10'} relative`}
           >
             
-            <div className="flex-1 flex flex-col items-center text-center justify-between">
-              <div className="text-3xl mb-2">{getStatusIcon(table.status)}</div>
-              <h3 className={`${isDayMode ? 'text-slate-900' : 'text-white'} font-bold text-lg`}>{table.name}</h3>
-              <div className={`flex items-center gap-1 ${isDayMode ? 'text-slate-600' : 'text-white/80'} text-sm`}><FaChair size={12} /><span>{table.capacity} Kişi</span></div>
+<div className="h-full flex flex-col items-center text-center">              <h3 className={`${isDayMode ? 'text-slate-900' : 'text-white'} font-bold text-lg`}>{table.name}</h3>
               
               {/* Masa durumu metni - her zaman görünür */}
               <div className={`mt-1 ${isDayMode ? 'text-slate-500' : 'text-white/60'} text-[10px] uppercase font-semibold`}>

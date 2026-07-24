@@ -83,6 +83,13 @@ const MasaDurumuModal = ({
                 >
                   <FaCreditCard /> Ödeme Al
                 </button>
+                   <button
+                  disabled={busy}
+                  onClick={() => { onClose(); onOpenMoveModal?.(selectedTable); }}
+                  className="py-2.5 px-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition disabled:opacity-50"
+                >
+                  <FaExchangeAlt /> Masa Taşı
+                </button>
                 <button
                   disabled={busy}
                   onClick={() => handleStatusChange("ARIZALI")}
@@ -108,13 +115,7 @@ const MasaDurumuModal = ({
                 >
                   <FaPlus /> Sipariş Ekle
                 </button>
-                <button
-                  disabled={busy}
-                  onClick={() => { onClose(); onOpenMoveModal?.(selectedTable); }}
-                  className="py-2.5 px-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition disabled:opacity-50"
-                >
-                  <FaExchangeAlt /> Masa Taşı
-                </button>
+             
               </div>
             </div>
           )}
@@ -159,15 +160,6 @@ const MasaDurumuModal = ({
               >
                 <FaCheckCircle /> {isKullanimDisi ? 'Tekrar Aktif Et' : 'Onarıldı, Kullanıma Aç'}
               </button>
-              {!isKullanimDisi && (
-                <button
-                  disabled={busy}
-                  onClick={() => handleStatusChange("KULLANIM DIŞI")}
-                  className="w-full py-2 text-orange-300 hover:text-orange-200 text-xs underline transition disabled:opacity-50"
-                >
-                  Kalıcı olarak kullanım dışı bırak
-                </button>
-              )}
             </div>
           )}
 {/* ⚠️ ARIZALI / 🚫 KULLANIM DIŞI MASA */}
@@ -220,8 +212,7 @@ const MasaDurumuModal = ({
           onClick={() => handleStatusChange("BOŞ")}
           className="w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl transition font-semibold flex items-center justify-center gap-2 disabled:opacity-50"
         >
-          <FaCheckCircle /> {isKullanimDisi ? 'Tekrar Aktif Et' : 'Onarıldı, Kullanıma Aç'}
-        </button>
+<FaCheckCircle /> Yenilendi Kullanıma Aç      </button>
       </>
     )}
   </div>
