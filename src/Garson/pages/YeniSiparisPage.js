@@ -42,7 +42,17 @@ const YeniSiparisPage = ({
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className={`relative rounded-[32px] p-3 ${isDayMode ? 'bg-slate-100/80 border border-slate-200/70 shadow-sm' : 'bg-white/[0.03] border border-white/10 shadow-2xl backdrop-blur-sm'}`}>
+      <div className="absolute top-4 right-4 z-20">
+        <button
+          onClick={onCancelSelection}
+          className={`${isDayMode ? 'text-slate-600 hover:text-slate-900 bg-slate-100 border border-slate-200' : 'text-gray-400 hover:text-white bg-white/5'} p-2 rounded-full transition`}
+          title="Siparişi iptal et"
+        >
+          <FaTimes />
+        </button>
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* Sol Taraf - Menü */}
       <div className={`${isDayMode ? 'bg-slate-50 shadow-sm border border-slate-200/60 text-slate-900' : 'bg-black/60 border-white/10'} p-4 rounded-3xl`}>
         <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -100,16 +110,6 @@ const YeniSiparisPage = ({
 
       {/* Sağ Taraf - Sepet */}
       <div className={`${isDayMode ? 'bg-slate-50 shadow-sm border border-slate-200/60 text-slate-900' : 'bg-black/60 border-white/10 text-white'} p-4 rounded-3xl relative`}>
-        <div className="absolute top-4 right-4">
-          <button 
-            onClick={onCancelSelection} 
-            className={`${isDayMode ? 'text-slate-600 hover:text-slate-900 bg-slate-100 border border-slate-200' : 'text-gray-400 hover:text-white bg-white/5'} p-2 rounded-full transition`}
-            title="Siparişi iptal et"
-          >
-            <FaTimes />
-          </button>
-        </div>
-
         <p className={`${isDayMode ? 'text-slate-900' : 'text-white'} font-semibold mb-3 flex items-center gap-2`}>
           🛒 Sepet
           {cart.length > 0 && (
@@ -245,6 +245,7 @@ const YeniSiparisPage = ({
             </p>
           )}
         </div>
+      </div>
       </div>
     </div>
   );
