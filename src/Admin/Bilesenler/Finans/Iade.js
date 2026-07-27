@@ -178,76 +178,70 @@ const Iade = ({ acik, kapat }) => {
 
   const seciliUrunSayisi = seciliUrunler.filter(u => u.secili && u.iadeAdet > 0).length;
 
-  // İade işlemi - Önce onay modalını aç
-const handleIadeOnay = () => {
-  const secilenUrunler = seciliUrunler.filter(u => u.secili && u.iadeAdet > 0);
-  
-  if (secilenUrunler.length === 0) {
-    toast.warning('Lütfen iade edilecek en az bir ürün seçin!');
-    return;
-  }
+  const handleIadeOnayla = async () => {
+    setOnayModal({ acik: false });
 
-  if (!siparisBilgisi?.odeme) {
-    toast.error('❌ Bu siparişe ait ödeme bulunamadı! İade işlemi yapılamaz.');
-    return;
-  }
+    const secilenUrunler = seciliUrunler.filter(u => u.secili && u.iadeAdet > 0);
 
-  setOnayModal({ acik: true });
-};
+    try {
+      setLoading(true);
 
-const handleIadeOnayla = async () => {
-  setOnayModal({ acik: false });
-  
-  const secilenUrunler = seciliUrunler.filter(u => u.secili && u.iadeAdet > 0);
+      // ============================================================
+      // ✅ 1. Her ürün için iade işlemini TEK TEK yap
+      // ============================================================
+      for (const urun of secilenUrunler) {
+        const iadeTutari = (urun.birimFiyat || 0) * (urun.iadeAdet || 0);
 
-  try {
-    setLoading(true);
+        console.log('🔄 İade ediliyor:', {
+          siparisDetayId: urun.siparisDetayId || urun.SiparisDetayId,
+          urunId: urun.urunId,
+          iadeTutari: iadeTutari,
+          iadeSebebi: iadeAciklama || 'Ürün iadesi',
+          personelId: userData?.personelId || userData?.PersonelId || null
+        });
 
-    // 1. İade kayıtlarını oluştur VE hemen onayla
-    //    (Onay olmadan IadeDurumu "BEKLEMEDE" kalır, SiparisDetay.IadeEdildi hiç
-    //    true olmaz ve bu iade ciro raporunda hiç görünmez.)
-    for (const urun of secilenUrunler) {
-      const olusturulan = await iadeService.create({
-        siparisDetayId: urun.siparisDetayId || urun.SiparisDetayId,
-        urunId: urun.urunId,
-        iadeTutari: (urun.birimFiyat || 0) * (urun.iadeAdet || 0),
-        iadeSebebi: iadeAciklama || 'Ürün iadesi',
-        personelId: userData?.personelId || userData?.PersonelId || null
-      });
+        // ✅ TEK SEFERDE iade oluştur + onayla (processRefund kullan)
+        const response = await iadeService.processRefund({
+          siparisDetayId: urun.siparisDetayId || urun.SiparisDetayId,
+          urunId: urun.urunId,
+          iadeTutari: iadeTutari,
+          iadeSebebi: iadeAciklama || 'Ürün iadesi',
+          personelId: userData?.personelId || userData?.PersonelId || null,
+          iadeDurumu: 'ONAYLANDI' // ✅ Direkt onaylı olarak oluştur
+        });
 
-      const yeniIadeId = olusturulan?.data?.iadeId || olusturulan?.data?.IadeId;
-      if (yeniIadeId) {
-        await iadeService.updateStatus(yeniIadeId, 'ONAYLANDI');
+        console.log('✅ İade başarılı:', response.data);
       }
-    }
 
-    // 2. Ödemeyi sil (SADECE iade edilen ürünün tutarı kadar)
-    if (siparisBilgisi?.odeme?.odemeId) {
-      await paymentService.delete(siparisBilgisi.odeme.odemeId);
-    }
+      // ============================================================
+      // ❌ ÖDEMEYİ SAKIN SİLME! (Bu satırı KALDIR veya YORUM SATIRI YAP)
+      // ============================================================
+      // if (siparisBilgisi?.odeme?.odemeId) {
+      //     await paymentService.delete(siparisBilgisi.odeme.odemeId);
+      // }
 
-    // 3. Sipariş durumu artık burada zorlanmıyor.
-    //    IadeController.DurumGuncelle, iade ONAYLANDI olduğunda
-    //    siparişin KISMI_IADE mi yoksa IADE mi olacağına kendisi karar veriyor
-    //    (hepsiIadeEdildi kontrolü). Bunu burada elle ezmek, backend'deki
-    //    doğru mantığı devre dışı bırakıyor ve iki durumun senkronunu bozuyordu.
-    
-    toast.success(`✅ ${secilenUrunler.length} ürün iade edildi! Toplam: ₺${toplamIadeTutari.toFixed(2)}`);
-    
-    // Formu sıfırla
-    setSiparisId('');
-    setSiparisBilgisi(null);
-    setSeciliUrunler([]);
-    setIadeAciklama('');
-    kapat();
-    
-  } catch (error) {
-    console.error('İade yapılırken hata:', error);
-    toast.error('❌ İade yapılırken hata oluştu!');
-  } finally {
-    setLoading(false);
-  }
-};
+      // ============================================================
+      // ✅ 2. Başarılı mesajı göster
+      // ============================================================
+      toast.success(`✅ ${secilenUrunler.length} ürün iade edildi! Toplam: ₺${toplamIadeTutari.toFixed(2)}`);
+
+      // Formu sıfırla
+      setSiparisId('');
+      setSiparisBilgisi(null);
+      setSeciliUrunler([]);
+      setIadeAciklama('');
+      kapat();
+
+    } catch (error) {
+      console.error('İade yapılırken hata:', error);
+      
+      // Hata mesajını daha anlaşılır göster
+      const hataMesaji = error.message || 'İade yapılırken hata oluştu!';
+      toast.error(`❌ ${hataMesaji}`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <>
@@ -415,9 +409,9 @@ const handleIadeOnayla = async () => {
                   />
                 </div>
 
-                {/* İade Butonu */}
+                {/* ✅ İade Butonu - DÜZELTİLDİ: handleIadeOnay → handleIadeOnayla */}
                 <button
-                  onClick={handleIadeOnay}
+                  onClick={handleIadeOnayla}
                   disabled={loading || seciliUrunSayisi === 0 || !siparisBilgisi?.odeme}
                   className={`w-full py-3 font-semibold rounded-lg transition-all flex items-center justify-center gap-2 ${
                     seciliUrunSayisi > 0 && siparisBilgisi?.odeme

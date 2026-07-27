@@ -110,6 +110,9 @@ const GarsonPanel = () => {
 
   // Sepet
   const [cart, setCart] = useState([]);
+  // 🔑 Çift tıklama/çift dokunma sonucu aynı siparişin iki kez gönderilmesini
+  // (ve aynı ürünün iki ayrı satır olarak eklenmesini) önlemek için kilit.
+  const [orderSubmitting, setOrderSubmitting] = useState(false);
   const [currentOrder, setCurrentOrder] = useState({
     tableId: null,
     items: [],
@@ -394,7 +397,7 @@ const GarsonPanel = () => {
   };
 
   const getOrderStatusLabel = (order) =>
-    order?.status || order?.durum || order?.siparisDurumu || "Beklemede";
+    order?.status || order?.durum || order?.siparisDurumu || "Hazırlanıyor";
   const getOrderTimeText = (order) =>
     order?.time ||
     order?.siparisZamani ||
@@ -588,6 +591,7 @@ const GarsonPanel = () => {
   };
 
   const confirmOrder = async () => {
+    if (orderSubmitting) return; // 🔒 Zaten gönderim yapılıyorsa ikinci tıklamayı yok say
     if (cart.length === 0) {
       toast.warning("Sepet boş!");
       return;
@@ -596,6 +600,8 @@ const GarsonPanel = () => {
       toast.warning("Lütfen bir masa seçin!");
       return;
     }
+
+    setOrderSubmitting(true);
 
       // Sepetteki ürünleri kontrol et
   const cartItems = cart.map((item) => ({
@@ -648,7 +654,7 @@ const GarsonPanel = () => {
               (sum, item) => sum + (item.price || 0) * (item.quantity || 1),
               0
             ),
-          siparisDurumu: createdOrder.siparisDurumu || "BEKLEMEDE",
+          siparisDurumu: createdOrder.siparisDurumu || "HAZIRLANIYOR",
           siparisTarihi: createdOrder.siparisTarihi || new Date().toISOString(),
           siparisUrunleri:
             createdOrder.siparisUrunleri ||
@@ -682,9 +688,9 @@ const GarsonPanel = () => {
     console.log("📦 Hata detayı:", errorData);
 
     //  STOK HATASINI YAKALA
-    if (errorData?.HataKodu === "STOK_YETERSIZ") {
+    if ((errorData?.HataKodu || errorData?.hataKodu) === "STOK_YETERSIZ") {
       // Stok hata mesajlarını göster
-      const hataMesajlari = errorData?.Hatalar || [];
+      const hataMesajlari = errorData?.Hatalar || errorData?.hatalar || [];
 
       if (hataMesajlari.length > 0) {
         // İlk hatayı ana mesaj olarak göster
@@ -705,8 +711,8 @@ const GarsonPanel = () => {
       }
 
       // Detayları konsola yaz
-      if (errorData?.Detaylar) {
-        console.table(errorData.Detaylar);
+      if (errorData?.Detaylar || errorData?.detaylar) {
+        console.table(errorData.Detaylar || errorData.detaylar);
       }
     } else if (errorData?.Mesaj) {
       toast.error(`❌ ${errorData.Mesaj}`);
@@ -717,8 +723,15 @@ const GarsonPanel = () => {
           "Sipariş oluşturulamadı!"
       );
     }
+
+    // 🔑 Sipariş oluşturma başarısız olsa bile (stok yetersiz vb.), masa/sipariş
+    // verisini backend'den tazele. Böylece garson ekranındaki masa durumu her
+    // zaman admin panelindeki (yani veritabanındaki) gerçek durumla birebir
+    // eşleşir; başarısız denemeden sonra ekranda "sanki eklenmiş gibi" bir iz kalmaz.
+    await verileriYukle();
+  } finally {
+    setOrderSubmitting(false);
   }
-   
   };
 
   //  ÖDEME İŞLEMİ (masaOdeme ve processPayment çakışması çözüldü)
@@ -1109,7 +1122,7 @@ const GarsonPanel = () => {
 
         {/* İçerik */}
         <div
-          className={`flex-1 min-h-screen ${sidebarOpen ? "ml-64" : "ml-20"} ${isDayMode ? "bg-slate-50 text-slate-900" : ""
+          className={`flex-1 ${sidebarOpen ? "ml-64" : "ml-20"} ${isDayMode ? "bg-slate-50 text-slate-900" : ""
             } transition-all duration-300`}
         >
           {" "}
@@ -1270,6 +1283,7 @@ const GarsonPanel = () => {
                     onRemoveFromCart={removeFromCart}
                     onUpdateItemNote={updateItemNote}
                     onConfirmOrder={confirmOrder}
+                    submitting={orderSubmitting}
                     selectedTable={selectedTable}
                     onSelectTable={(table) => setSelectedTable(table)}
                     onCancelSelection={handleCancelNewOrder}
@@ -1322,6 +1336,7 @@ const GarsonPanel = () => {
               onRemoveFromCart={removeFromCart}
               onUpdateItemNote={updateItemNote}
               onConfirmOrder={confirmOrder}
+              submitting={orderSubmitting}
               selectedTable={selectedTable}
               onSelectTable={(table) => setSelectedTable(table)}
               tables={tables}
@@ -1539,7 +1554,6 @@ const GarsonPanel = () => {
         setMoveFromTable={setMoveFromTable}
         setMoveToTable={setMoveToTable}
         handleMoveTable={handleMoveTable}
-        isDayMode={isDayMode}
       />
 
       <IadeModal
@@ -1558,7 +1572,6 @@ const GarsonPanel = () => {
         onTableSelect={handleRefundSelect}
         toggleRefundItem={toggleRefundItem}
         processRefund={processRefund}
-        isDayMode={isDayMode}
       />
 
       <MasaDurumuModal

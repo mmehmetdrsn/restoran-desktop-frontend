@@ -325,7 +325,7 @@ export const receteService = {
 };
 
 // ============================================================
-// ✅ İADE SERVİSİ
+// ✅ İADE SERVİSİ -
 // ============================================================
 export const iadeService = {
     getAll: () => apiRequest('/Iade'),
@@ -333,6 +333,12 @@ export const iadeService = {
     create: (data) => apiRequest('/Iade', 'POST', data),
     delete: (id) => apiRequest(`/Iade/${id}`, 'DELETE'),
     updateStatus: (id, status) => apiRequest(`/Iade/${id}/durum`, 'PUT', { iadeDurumu: status }),
+    
+    //  YENİ: Tek seferde iade oluştur + onayla (KISMİ İADE için)
+    processRefund: (data) => {
+        console.log('↩️ Kısmi iade işleniyor:', data);
+        return apiRequest('/Iade/siparis-iade', 'POST', data);
+    }
 };
 
 // ============================================================
@@ -406,6 +412,7 @@ export const kuryeAPI = {
         const response = await apiRequest(`/Kurye/siparis-kabul-et`, 'POST', {
             siparisId: siparisId,
             personelId: personelId
+            
         });
         return response;
     },

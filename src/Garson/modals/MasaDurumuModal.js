@@ -26,6 +26,11 @@ const MasaDurumuModal = ({
   const isBroken = selectedTable.status === 'broken';
   const isKullanimDisi = selectedTable.rawStatus === 'KULLANIM DIŞI';
 
+  // 🔑 Sipariş zaten teslim edilmişse "Teslimat" butonu tekrar tetiklenmesin,
+  // bunun yerine zaten teslim edildiğini göstersin.
+  const siparisDurumu = String(selectedTable.order?.siparisDurumu || '').toUpperCase().trim();
+  const isTeslimEdildi = siparisDurumu === 'TESLIM EDILDI' || siparisDurumu === 'TESLİM EDİLDİ';
+
   const handleStatusChange = async (yeniDurum, ekBilgi = '') => {
     if (busy) return;
     setBusy(true);
@@ -99,11 +104,11 @@ const MasaDurumuModal = ({
               </p>
               <div className="grid grid-cols-2 gap-2">
                 <button
-                  disabled={busy}
+                  disabled={busy || isTeslimEdildi}
                   onClick={handleTeslimat}
-                  className="py-2.5 px-3 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition disabled:opacity-50"
+                  className={`py-2.5 px-3 ${isTeslimEdildi ? 'bg-sky-900/50 text-sky-300' : 'bg-sky-600 hover:bg-sky-700 text-white'} rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition disabled:opacity-70 disabled:cursor-not-allowed`}
                 >
-                  <FaCheckCircle /> Teslimat
+                  <FaCheckCircle /> {isTeslimEdildi ? 'Teslim Edildi ✓' : 'Teslimat'}
                 </button>
                 <button
                   disabled={busy}
