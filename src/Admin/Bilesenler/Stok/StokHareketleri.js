@@ -212,13 +212,6 @@ const StokHareketleri = ({ acik, kapat }) => {
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className={`text-lg font-bold ${
-                        h.stokIslemTipi?.toUpperCase() === 'GIRIS' ? 'text-green-400' :
-                        h.stokIslemTipi?.toUpperCase() === 'CIKIS' ? 'text-red-400' :
-                        'text-orange-400'
-                      }`}>
-                        {h.stokIslemTipi?.toUpperCase() === 'GIRIS' ? '+' : '-'}{h.stokMiktari}
-                      </p>
                       <p className="text-gray-400 text-xs">
                         {formatTarih(h.isleminTarihSaati)}
                       </p>
