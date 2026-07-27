@@ -1,5 +1,5 @@
 // src/Asci/AsciPanel.js
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   FaSignOutAlt, FaKey,
@@ -7,7 +7,7 @@ import {
   FaCheck, FaSpinner, FaSync,
   FaMotorcycle, FaUser,
   FaExclamationTriangle, FaClipboardCheck,
-  FaClock
+  FaClock, FaChevronDown, FaMoon, FaSun
 } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import { asciAPI, authService, malzemeTalepAPI, materialService } from '../api/api';
@@ -19,6 +19,9 @@ const AsciPanel = () => {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [isDayMode, setIsDayMode] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const userMenuRef = useRef(null);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -447,6 +450,17 @@ const AsciPanel = () => {
     return () => clearInterval(interval);
   }, [fetchUserData]);
 
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+        setIsUserMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   // ========== SIDEBAR TOGGLE ==========
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
 
@@ -551,72 +565,64 @@ const AsciPanel = () => {
 
   // ========== RENDER ==========
   return (
-    <div className="min-h-screen relative" style={{ backgroundImage: `url(${backgroundImage})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }}>
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-xl"></div>
+    <div className={`min-h-screen relative ${isDayMode ? 'asci-day' : ''}`} style={{ backgroundImage: `url(${backgroundImage})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }}>
+      <div className={`absolute inset-0 ${isDayMode ? 'bg-white/30' : 'bg-black/40'} backdrop-blur-xl`}></div>
 
       <div className="relative z-10 flex">
         {/* Sidebar */}
-        <div className={`fixed lg:relative lg:flex lg:flex-col ${sidebarOpen ? 'w-64' : 'w-20'} bg-black/90 backdrop-blur-sm border-r border-white/10 h-screen transition-all duration-300 overflow-y-auto ${mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} z-50 flex-shrink-0`}>
-          <div className="flex items-center justify-between p-4 border-b border-white/10">
+        <div className={`fixed lg:relative lg:flex lg:flex-col ${sidebarOpen ? 'w-64' : 'w-20'} ${isDayMode ? 'bg-white border-r border-slate-200' : 'bg-black/90 border-r border-white/10'} backdrop-blur-sm h-screen transition-all duration-300 overflow-y-auto ${mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} z-50 flex-shrink-0`}>
+          <div className={`flex items-center justify-between p-4 border-b ${isDayMode ? 'border-slate-200/80' : 'border-white/10'}`}>
             {sidebarOpen ? (
               <div className="flex items-center gap-3">
-                <div className="text-2xl">🍽️</div>
+                <img
+                  src={`${process.env.PUBLIC_URL}/brand-logo.jpeg`}
+                  alt="SekerRestoran Logo"
+                  className="w-10 h-10 rounded-full object-cover"
+                />
                 <div>
-                  <h1 className="text-white font-bold text-sm">SekerRestoran</h1>
-                  <p className="text-gray-400 text-[9px]">Aşçı Paneli</p>
+                  <h1 className={`${isDayMode ? 'text-slate-900' : 'text-white'} font-bold text-sm`}>SekerRestoran</h1>
+                  <p className={`${isDayMode ? 'text-slate-500' : 'text-gray-400'} text-[9px]`}>Aşçı Paneli</p>
                 </div>
               </div>
             ) : (
-              <div className="text-2xl mx-auto">🍽️</div>
+              <img
+                src={`${process.env.PUBLIC_URL}/brand-logo.jpeg`}
+                alt="SekerRestoran Logo"
+                className="w-10 h-10 rounded-full object-cover mx-auto"
+              />
             )}
-            <button onClick={toggleSidebar} className="text-gray-400 hover:text-white hidden lg:block">
+            <button onClick={toggleSidebar} className={`${isDayMode ? 'text-slate-500 hover:text-slate-900' : 'text-gray-400 hover:text-white'} hidden lg:block`}>
               {sidebarOpen ? <FaTimes size={16} /> : <FaBars size={16} />}
             </button>
-            <button onClick={() => setMobileSidebarOpen(false)} className="text-gray-400 hover:text-white lg:hidden">
+            <button onClick={() => setMobileSidebarOpen(false)} className={`${isDayMode ? 'text-slate-500 hover:text-slate-900' : 'text-gray-400 hover:text-white'} lg:hidden`}>
               <FaTimes size={20} />
             </button>
           </div>
 
           <div className="py-4 px-3">
-            <button className="w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all text-white bg-white/10">
+            <button className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all ${isDayMode ? 'text-slate-900 bg-slate-200' : 'text-white bg-white/10'}`}>
               <FaUtensils size={18} />
               {sidebarOpen && (
                 <div className="flex-1 text-left">
                   <p className="text-sm font-medium">Sipariş Yönetimi</p>
-                  <p className="text-[10px] text-gray-500">Gelen siparişler</p>
+                  <p className={`text-[10px] ${isDayMode ? 'text-slate-500' : 'text-gray-500'}`}>Gelen siparişler</p>
                 </div>
               )}
             </button>
 
-            <div className="border-t border-white/10 my-3"></div>
+            <div className={`border-t ${isDayMode ? 'border-slate-200' : 'border-white/10'} my-3`}></div>
 
             <button
               onClick={() => { fetchMalzemeler(); setShowMalzemeTalep(true); }}
-              className="w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all text-yellow-400 hover:text-yellow-300 hover:bg-yellow-500/10"
+              className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all ${isDayMode ? 'text-amber-700 hover:text-amber-800 hover:bg-amber-50' : 'text-yellow-400 hover:text-yellow-300 hover:bg-yellow-500/10'}`}
             >
               <FaExclamationTriangle size={18} />
               {sidebarOpen && <span className="text-sm">Eksik Malzeme Talebi</span>}
             </button>
-
-            <button
-              onClick={() => setShowPasswordModal(true)}
-              className="w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all text-gray-400 hover:text-white hover:bg-white/5"
-            >
-              <FaKey size={18} />
-              {sidebarOpen && <span className="text-sm">Şifre Değiştir</span>}
-            </button>
-
-            <button
-              onClick={handleLogout}
-              className="w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all text-red-400 hover:text-red-300 hover:bg-red-500/10 mt-2"
-            >
-              <FaSignOutAlt size={18} />
-              {sidebarOpen && <span className="text-sm">Çıkış Yap</span>}
-            </button>
           </div>
         </div>
 
-        <button onClick={() => setMobileSidebarOpen(true)} className="lg:hidden fixed top-4 left-4 z-40 p-2.5 bg-black/80 backdrop-blur-sm rounded-lg text-white">
+        <button onClick={() => setMobileSidebarOpen(true)} className={`lg:hidden fixed top-4 left-4 z-40 p-2.5 ${isDayMode ? 'bg-white/90 text-slate-800 border border-slate-200' : 'bg-black/80 text-white'} backdrop-blur-sm rounded-lg`}>
           <FaBars size={20} />
         </button>
 
@@ -625,16 +631,90 @@ const AsciPanel = () => {
         )}
 
         {/* Ana İçerik */}
-        <div className="flex-1">
-          <div className="bg-black/80 backdrop-blur-sm border-b border-white/10 sticky top-0 z-30">
+        <div className={`flex-1 ${isDayMode ? 'bg-slate-50 text-slate-900' : ''}`}>
+          <div className={`${isDayMode ? 'bg-white/85 border-slate-200/70' : 'bg-black/80 border-white/10'} backdrop-blur-sm border-b sticky top-0 z-30`}>
             <div className="max-w-7xl mx-auto px-4 py-3">
               <div className="flex items-center justify-end gap-4">
-                <button onClick={fetchOrders} className="text-gray-400 hover:text-white transition-colors relative" title="Yenile">
+                <button onClick={fetchOrders} className={`${isDayMode ? 'text-slate-500 hover:text-slate-900' : 'text-gray-400 hover:text-white'} transition-colors relative`} title="Yenile">
                   <FaSync size={18} className={loading ? 'animate-spin' : ''} />
                 </button>
-                <div className="text-right hidden sm:block">
-                  <p className="text-white text-sm font-medium">{userData.name}</p>
-                  <p className="text-gray-400 text-[10px]">{userData.email}</p>
+                <div ref={userMenuRef} className="relative text-right hidden sm:block">
+                  <button
+                    onClick={() => setIsUserMenuOpen((prev) => !prev)}
+                    title="Kullanıcı menüsü"
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${isDayMode ? 'hover:bg-slate-100' : 'hover:bg-white/10'}`}
+                  >
+                    <span className={`w-8 h-8 rounded-full flex items-center justify-center ${isDayMode ? 'bg-slate-200 text-slate-700' : 'bg-white/10 text-gray-200'}`}>
+                      <FaUser size={12} />
+                    </span>
+                    <span>
+                      <p className={`${isDayMode ? 'text-slate-900' : 'text-white'} text-sm font-medium`}>{userData.name}</p>
+                      <p className={`${isDayMode ? 'text-slate-500' : 'text-gray-400'} text-[10px]`}>{userData.email}</p>
+                    </span>
+                    <FaChevronDown
+                      size={11}
+                      className={`transition-transform duration-200 ${isUserMenuOpen ? 'rotate-180' : 'rotate-0'} ${isDayMode ? 'text-slate-500' : 'text-gray-400'}`}
+                    />
+                  </button>
+
+                  {isUserMenuOpen && (
+                    <div className={`absolute right-0 mt-2 w-[272px] rounded-2xl border shadow-xl z-50 overflow-hidden ${isDayMode ? 'bg-white border-slate-200' : 'bg-black/95 border-white/10'}`}>
+                      <button
+                        onClick={() => {
+                          setShowPasswordModal(true);
+                          setIsUserMenuOpen(false);
+                        }}
+                        className={`w-full flex items-center gap-2 px-4 py-3 text-sm transition-all ${isDayMode ? 'text-slate-700 hover:bg-slate-100' : 'text-gray-200 hover:bg-white/10'}`}
+                      >
+                        <FaKey size={13} />
+                        Şifre Değiştir
+                      </button>
+                      <button
+                        onClick={() => {
+                          setIsUserMenuOpen(false);
+                          handleLogout();
+                        }}
+                        className={`w-full flex items-center gap-2 px-4 py-3 text-sm transition-all ${isDayMode ? 'text-red-700 hover:bg-red-50' : 'text-red-300 hover:bg-red-500/15'}`}
+                      >
+                        <FaSignOutAlt size={13} />
+                        Çıkış Yap
+                      </button>
+                      <div className={`px-3 py-3 ${isDayMode ? 'bg-slate-50' : 'bg-black/20'}`}>
+                        <button
+                          type="button"
+                          onClick={() => setIsDayMode((prev) => !prev)}
+                          title={isDayMode ? 'Karanlık moda geç' : 'Aydınlık moda geç'}
+                          className="w-full"
+                        >
+                          <div
+                            className={`relative h-[96px] rounded-[22px] border overflow-hidden transition-all ${
+                              isDayMode
+                                ? 'bg-gradient-to-br from-amber-50 via-rose-50 to-sky-100 border-amber-100'
+                                : 'bg-slate-800 border-slate-700'
+                            }`}
+                          >
+                            <div
+                              className={`absolute top-1.5 left-1.5 w-[calc(50%-0.375rem)] h-[calc(100%-0.75rem)] rounded-[16px] transition-all duration-300 shadow-lg ${
+                                isDayMode
+                                  ? 'translate-x-full bg-white/90'
+                                  : 'translate-x-0 bg-slate-900'
+                              }`}
+                            />
+                            <div className="relative z-10 h-full grid grid-cols-2">
+                              <div className={`flex flex-col items-center justify-center gap-1 ${isDayMode ? 'text-slate-500' : 'text-white'}`}>
+                                <FaMoon size={14} />
+                                <span className="text-[9px] font-semibold tracking-[0.14em]">KARANLIK</span>
+                              </div>
+                              <div className={`flex flex-col items-center justify-center gap-1 ${isDayMode ? 'text-sky-900' : 'text-slate-300'}`}>
+                                <FaSun size={14} />
+                                <span className="text-[9px] font-semibold tracking-[0.14em]">AYDINLIK</span>
+                              </div>
+                            </div>
+                          </div>
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -713,9 +793,6 @@ const AsciPanel = () => {
           </div>
 
           <div className="border-t border-white/10 bg-black/30 backdrop-blur-sm">
-            <div className="max-w-7xl mx-auto px-4 py-3">
-              <p className="text-gray-400 text-[10px] text-center">© 2024 SekerRestoran Yönetim Sistemi | Aşçı Paneli</p>
-            </div>
           </div>
         </div>
       </div>
@@ -723,30 +800,30 @@ const AsciPanel = () => {
       {/* Şifre Değiştirme Modal */}
       {showPasswordModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <div className="bg-black/95 backdrop-blur-sm rounded-2xl border border-white/10 shadow-2xl max-w-md w-full p-6">
+          <div className={`${isDayMode ? 'bg-white border-slate-200' : 'bg-black/95 border-white/10'} backdrop-blur-sm rounded-2xl border shadow-2xl max-w-md w-full p-6`}>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-white font-bold text-lg">Şifre Değiştir</h2>
-              <button onClick={() => setShowPasswordModal(false)} className="text-gray-400 hover:text-white">
+              <h2 className={`${isDayMode ? 'text-slate-900' : 'text-white'} font-bold text-lg`}>Şifre Değiştir</h2>
+              <button onClick={() => setShowPasswordModal(false)} className={`${isDayMode ? 'text-slate-500 hover:text-slate-900' : 'text-gray-400 hover:text-white'}`}>
                 <FaTimes size={20} />
               </button>
             </div>
             <form onSubmit={handlePasswordChange} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1.5">Mevcut Şifre</label>
-                <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-gray-500 focus:ring-2 focus:ring-white/20 focus:border-transparent outline-none transition-all" placeholder="Mevcut şifreniz" disabled={passwordLoading} required />
+                <label className={`block text-sm font-medium ${isDayMode ? 'text-slate-700' : 'text-gray-300'} mb-1.5`}>Mevcut Şifre</label>
+                <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} className={`w-full px-4 py-2.5 rounded-lg outline-none transition-all ${isDayMode ? 'bg-white border border-slate-300 text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-slate-300' : 'bg-white/5 border border-white/10 text-white placeholder:text-gray-500 focus:ring-2 focus:ring-white/20 focus:border-transparent'}`} placeholder="Mevcut şifreniz" disabled={passwordLoading} required />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1.5">Yeni Şifre</label>
-                <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-gray-500 focus:ring-2 focus:ring-white/20 focus:border-transparent outline-none transition-all" placeholder="Yeni şifreniz (min 6 karakter)" disabled={passwordLoading} required minLength={6} />
+                <label className={`block text-sm font-medium ${isDayMode ? 'text-slate-700' : 'text-gray-300'} mb-1.5`}>Yeni Şifre</label>
+                <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className={`w-full px-4 py-2.5 rounded-lg outline-none transition-all ${isDayMode ? 'bg-white border border-slate-300 text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-slate-300' : 'bg-white/5 border border-white/10 text-white placeholder:text-gray-500 focus:ring-2 focus:ring-white/20 focus:border-transparent'}`} placeholder="Yeni şifreniz (min 6 karakter)" disabled={passwordLoading} required minLength={6} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1.5">Yeni Şifre Tekrar</label>
-                <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-gray-500 focus:ring-2 focus:ring-white/20 focus:border-transparent outline-none transition-all" placeholder="Yeni şifrenizi tekrar girin" disabled={passwordLoading} required />
+                <label className={`block text-sm font-medium ${isDayMode ? 'text-slate-700' : 'text-gray-300'} mb-1.5`}>Yeni Şifre Tekrar</label>
+                <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className={`w-full px-4 py-2.5 rounded-lg outline-none transition-all ${isDayMode ? 'bg-white border border-slate-300 text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-slate-300' : 'bg-white/5 border border-white/10 text-white placeholder:text-gray-500 focus:ring-2 focus:ring-white/20 focus:border-transparent'}`} placeholder="Yeni şifrenizi tekrar girin" disabled={passwordLoading} required />
               </div>
               <div className="flex gap-3">
-                <button type="button" onClick={() => setShowPasswordModal(false)} className="flex-1 px-4 py-2 bg-white/5 hover:bg-white/10 text-gray-300 rounded-lg transition-all text-sm">İptal</button>
-                <button type="submit" disabled={passwordLoading} className="flex-1 px-4 py-2 bg-white hover:bg-gray-200 text-black font-semibold rounded-lg transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
-                  {passwordLoading ? (<><div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin"></div> Değiştiriliyor...</>) : ('Şifreyi Değiştir')}
+                <button type="button" onClick={() => setShowPasswordModal(false)} className={`flex-1 px-4 py-2 rounded-lg transition-all text-sm ${isDayMode ? 'bg-slate-100 hover:bg-slate-200 text-slate-700' : 'bg-white/5 hover:bg-white/10 text-gray-300'}`}>İptal</button>
+                <button type="submit" disabled={passwordLoading} className={`flex-1 px-4 py-2 font-semibold rounded-lg transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${isDayMode ? 'bg-slate-900 hover:bg-slate-700 text-white' : 'bg-white hover:bg-gray-200 text-black'}`}>
+                  {passwordLoading ? (<><div className={`w-4 h-4 border-2 ${isDayMode ? 'border-white/30 border-t-white' : 'border-black/30 border-t-black'} rounded-full animate-spin`}></div> Değiştiriliyor...</>) : ('Şifreyi Değiştir')}
                 </button>
               </div>
             </form>
@@ -777,7 +854,9 @@ const AsciPanel = () => {
                 <select 
                   value={talepForm.malzemeId} 
                   onChange={(e) => handleMalzemeSec(e.target.value)} 
-                  className="w-full py-2.5 px-3 bg-white/5 border border-white/10 rounded-lg text-white focus:ring-2 focus:ring-white/20 outline-none" 
+                  className={`${isDayMode
+                    ? 'day-mode-select w-full py-2.5 px-3 bg-white border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-slate-300 outline-none'
+                    : 'w-full py-2.5 px-3 bg-white/5 border border-white/10 rounded-lg text-white focus:ring-2 focus:ring-white/20 outline-none'}`}
                   required
                 >
                   <option value="">Malzeme Seçin</option>
@@ -808,7 +887,9 @@ const AsciPanel = () => {
                 <select 
                   value={talepForm.birim} 
                   onChange={(e) => setTalepForm({ ...talepForm, birim: e.target.value })} 
-                  className="w-full py-2.5 px-3 bg-white/5 border border-white/10 rounded-lg text-white focus:ring-2 focus:ring-white/20 outline-none"
+                  className={`${isDayMode
+                    ? 'day-mode-select w-full py-2.5 px-3 bg-white border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-slate-300 outline-none'
+                    : 'w-full py-2.5 px-3 bg-white/5 border border-white/10 rounded-lg text-white focus:ring-2 focus:ring-white/20 outline-none'}`}
                 >
                   <option value="adet">Adet</option>
                   <option value="kg">Kg</option>

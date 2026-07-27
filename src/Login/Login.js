@@ -1,9 +1,11 @@
 // src/Login/Login.js
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaEnvelope, FaLock, FaSpinner, FaUtensils, FaEye, FaEyeSlash } from 'react-icons/fa';
+import { FaEnvelope, FaLock, FaSpinner, FaEye, FaEyeSlash } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import { authService } from '../api/api';
+
+const loginBackground = `${process.env.PUBLIC_URL}/login-bg.png`;
 
 const Login = () => {
   const navigate = useNavigate();
@@ -221,11 +223,11 @@ const Login = () => {
     <div
       className="min-h-screen flex items-center justify-center p-4 bg-cover bg-center relative"
       style={{
-        backgroundImage: 'url(https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80)',
+        backgroundImage: `url(${loginBackground})`,
       }}
     >
       {/* Sayfa arka planı - blurlu ve karartılmış */}
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
+      <div className="absolute inset-0 bg-black/45 backdrop-blur-md"></div>
 
       <div className="relative z-10 w-full max-w-4xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row">
 
@@ -233,22 +235,15 @@ const Login = () => {
         <div
           className="relative flex md:w-1/2 min-h-[220px] md:min-h-0 flex-col justify-between p-10 bg-cover bg-center"
           style={{
-            backgroundImage: 'url(https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80)',
+            backgroundImage: `url(${loginBackground})`,
           }}
         >
           <div className="absolute inset-0 bg-black/60"></div>
 
           <div className="relative z-10 text-center mt-10">
-            <FaUtensils className="text-white text-4xl mx-auto mb-4" />
-            <h1 className="text-white text-3xl font-bold tracking-wide">RESTORAN</h1>
-            <p className="text-gray-300 text-xs tracking-[0.2em] mt-1">OTOMASYON SİSTEMİ</p>
           </div>
 
           <div className="relative z-10 text-center mb-6">
-            <p className="text-white text-lg font-medium">Restoranınızı tek ekrandan yönetin.</p>
-            <p className="text-gray-300 text-sm mt-1">
-              Sipariş, masa, mutfak ve kasa operasyonlarınızı kesintisiz yürütün.
-            </p>
           </div>
         </div>
 
@@ -257,7 +252,7 @@ const Login = () => {
           <h2 className="text-2xl font-bold text-gray-900">HOŞ GELDİNİZ</h2>
           <p className="text-gray-500 mt-1">Giriş Yapın</p>
           <p className="text-gray-400 text-sm mt-1 mb-8">
-            Yönetim panelinize erişmek için bilgilerinizi girin.
+           Panelinize erişmek için bilgilerinizi girin.
           </p>
 
           <form onSubmit={handleLogin} className="space-y-5">

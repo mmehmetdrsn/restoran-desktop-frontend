@@ -1016,8 +1016,13 @@ const GarsonPanel = () => {
             className={`relative flex items-center justify-center p-4 border-b ${isDayMode ? "border-slate-200/60" : "border-white/10"}`}
           >
             {sidebarOpen ? (
-              <div className="text-center">
-                <div>
+              <div className="w-full flex items-center justify-center gap-3 pr-8">
+                <img
+                  src={`${process.env.PUBLIC_URL}/brand-logo.jpeg`}
+                  alt="SekerRestoran Logo"
+                  className="w-10 h-10 rounded-full object-cover"
+                />
+                <div className="text-left">
                   <h1
                     className={`${isDayMode ? "text-slate-900" : "text-white"} font-bold text-sm`}
                   >
