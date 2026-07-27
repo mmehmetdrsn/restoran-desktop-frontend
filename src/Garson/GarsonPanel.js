@@ -1109,7 +1109,7 @@ const GarsonPanel = () => {
 
         {/* İçerik */}
         <div
-          className={`flex-1 ${sidebarOpen ? "ml-64" : "ml-20"} ${isDayMode ? "bg-slate-50 text-slate-900" : ""
+          className={`flex-1 min-h-screen ${sidebarOpen ? "ml-64" : "ml-20"} ${isDayMode ? "bg-slate-50 text-slate-900" : ""
             } transition-all duration-300`}
         >
           {" "}
@@ -1539,6 +1539,7 @@ const GarsonPanel = () => {
         setMoveFromTable={setMoveFromTable}
         setMoveToTable={setMoveToTable}
         handleMoveTable={handleMoveTable}
+        isDayMode={isDayMode}
       />
 
       <IadeModal
@@ -1557,6 +1558,7 @@ const GarsonPanel = () => {
         onTableSelect={handleRefundSelect}
         toggleRefundItem={toggleRefundItem}
         processRefund={processRefund}
+        isDayMode={isDayMode}
       />
 
       <MasaDurumuModal
