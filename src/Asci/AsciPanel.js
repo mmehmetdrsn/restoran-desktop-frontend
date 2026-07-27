@@ -192,12 +192,22 @@ const AsciPanel = () => {
 
       const todayData = data.filter(s => isToday(s.siparisTarihi));
 
-      const aktifData = todayData.filter(s =>
-        s.siparisDurumu === "HAZIRLANIYOR"
+      const isOnlineOrder = (s) =>
+        s.siparisTuru
+          ? s.siparisTuru.toLowerCase() === 'online'
+          : !s.masaNo;
+
+      // 🔑 "Kurye Bekleyen" listesi SADECE online siparişler için.
+      const hazirData = todayData.filter(s =>
+        s.siparisDurumu === "HAZIR" && isOnlineOrder(s)
       );
 
-      const hazirData = todayData.filter(s =>
-        s.siparisDurumu === "HAZIR"
+      // 🔑 Hazırlanıyor + (varsa) eski/yanlışlıkla HAZIR kalmış salon siparişleri +
+      // (backend henüz güncellenmediyse) legacy BEKLEMEDE siparişleri de kaybolmasın diye burada gösteriyoruz.
+      const aktifData = todayData.filter(s =>
+        s.siparisDurumu === "HAZIRLANIYOR" ||
+        s.siparisDurumu === "BEKLEMEDE" ||
+        (s.siparisDurumu === "HAZIR" && !isOnlineOrder(s))
       );
 
       const aktifOrders = aktifData.map(s => ({
@@ -493,6 +503,14 @@ const AsciPanel = () => {
                 <span className="text-blue-400 text-xs flex items-center justify-center gap-2">
                   <FaUtensils size={12} />
                   Hazır olunca garson teslim edecek
+                </span>
+              </div>
+            )}
+            {order.status === 'ready' && !isOnline && (
+              <div className="flex-1 text-center py-2">
+                <span className="text-green-400 text-xs flex items-center justify-center gap-2">
+                  <FaCheck size={12} />
+                  Sipariş hazır - garson teslim edecek
                 </span>
               </div>
             )}
