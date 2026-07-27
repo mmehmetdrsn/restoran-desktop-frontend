@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { FaKey, FaTimes, FaLock, FaEye, FaEyeSlash } from 'react-icons/fa';
 import { toast } from 'react-toastify';
+import { authService } from '../../../api/api';
 
 const Sifre = ({ acik, kapat, onSuccess }) => {
   const [currentPassword, setCurrentPassword] = useState('');
@@ -30,7 +31,10 @@ const Sifre = ({ acik, kapat, onSuccess }) => {
     }
     setLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await authService.sifreDegistir({
+        eskiSifre: currentPassword,
+        yeniSifre: newPassword,
+      });
       toast.success('Şifreniz başarıyla değiştirildi! 🎉');
       setCurrentPassword('');
       setNewPassword('');
@@ -38,7 +42,12 @@ const Sifre = ({ acik, kapat, onSuccess }) => {
       kapat();
       if (onSuccess) onSuccess();
     } catch (error) {
-      toast.error('Şifre değiştirilemedi!');
+      const errorMsg =
+        error?.response?.data?.message ||
+        error?.response?.data?.Mesaj ||
+        error?.message ||
+        'Şifre değiştirilemedi!';
+      toast.error(`❌ ${errorMsg}`);
     } finally {
       setLoading(false);
     }

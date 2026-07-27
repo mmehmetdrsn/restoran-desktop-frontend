@@ -91,6 +91,26 @@ const AsciPanel = () => {
     }
   };
 
+  // ========== MALZEME SEÇİNCE BİRİMİ OTOMATİK DOLDUR ==========
+  const handleMalzemeSec = (malzemeId) => {
+    const secilenMalzeme = malzemeler.find(m => m.malzemeId === parseInt(malzemeId));
+    
+    if (secilenMalzeme) {
+      setTalepForm({
+        ...talepForm,
+        malzemeId: malzemeId,
+        birim: secilenMalzeme.birim || 'adet'
+      });
+      console.log(`📦 Seçilen malzeme: ${secilenMalzeme.malzemeAdi}, Birim: ${secilenMalzeme.birim}`);
+    } else {
+      setTalepForm({
+        ...talepForm,
+        malzemeId: malzemeId,
+        birim: 'adet'
+      });
+    }
+  };
+
   // ========== MALZEME TALEBİ GÖNDER ==========
   const handleMalzemeTalep = async (e) => {
     e.preventDefault();
@@ -192,12 +212,22 @@ const AsciPanel = () => {
 
       const todayData = data.filter(s => isToday(s.siparisTarihi));
 
-      const aktifData = todayData.filter(s =>
-        s.siparisDurumu === "HAZIRLANIYOR"
+      const isOnlineOrder = (s) =>
+        s.siparisTuru
+          ? s.siparisTuru.toLowerCase() === 'online'
+          : !s.masaNo;
+
+      // "Kurye Bekleyen" listesi SADECE online siparişler için.
+      const hazirData = todayData.filter(s =>
+        s.siparisDurumu === "HAZIR" && isOnlineOrder(s)
       );
 
-      const hazirData = todayData.filter(s =>
-        s.siparisDurumu === "HAZIR"
+      // Hazırlanıyor + (varsa) eski/yanlışlıkla HAZIR kalmış salon siparişleri +
+      // (backend henüz güncellenmediyse) legacy BEKLEMEDE siparişleri de kaybolmasın diye burada gösteriyoruz.
+      const aktifData = todayData.filter(s =>
+        s.siparisDurumu === "HAZIRLANIYOR" ||
+        s.siparisDurumu === "BEKLEMEDE" ||
+        (s.siparisDurumu === "HAZIR" && !isOnlineOrder(s))
       );
 
       const aktifOrders = aktifData.map(s => ({
@@ -496,6 +526,14 @@ const AsciPanel = () => {
                 </span>
               </div>
             )}
+            {order.status === 'ready' && !isOnline && (
+              <div className="flex-1 text-center py-2">
+                <span className="text-green-400 text-xs flex items-center justify-center gap-2">
+                  <FaCheck size={12} />
+                  Sipariş hazır - garson teslim edecek
+                </span>
+              </div>
+            )}
           </div>
         )}
 
@@ -736,7 +774,12 @@ const AsciPanel = () => {
             <form onSubmit={handleMalzemeTalep} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1.5">Malzeme *</label>
-                <select value={talepForm.malzemeId} onChange={(e) => setTalepForm({ ...talepForm, malzemeId: e.target.value })} className="w-full py-2.5 px-3 bg-white/5 border border-white/10 rounded-lg text-white focus:ring-2 focus:ring-white/20 outline-none" required>
+                <select 
+                  value={talepForm.malzemeId} 
+                  onChange={(e) => handleMalzemeSec(e.target.value)} 
+                  className="w-full py-2.5 px-3 bg-white/5 border border-white/10 rounded-lg text-white focus:ring-2 focus:ring-white/20 outline-none" 
+                  required
+                >
                   <option value="">Malzeme Seçin</option>
                   {malzemeler.map(m => (
                     <option key={m.malzemeId} value={m.malzemeId}>
@@ -748,23 +791,48 @@ const AsciPanel = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1.5">Miktar *</label>
-                <input type="number" value={talepForm.miktar} onChange={(e) => setTalepForm({ ...talepForm, miktar: e.target.value })} className="w-full py-2.5 px-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-gray-500 focus:ring-2 focus:ring-white/20 outline-none" placeholder="Kaç adet/kg?" required min="1" />
+                <input 
+                  type="number" 
+                  step="0.01"
+                  value={talepForm.miktar} 
+                  onChange={(e) => setTalepForm({ ...talepForm, miktar: e.target.value })} 
+                  className="w-full py-2.5 px-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-gray-500 focus:ring-2 focus:ring-white/20 outline-none" 
+                  placeholder="Kaç adet/kg?" 
+                  required 
+                  min="0.01" 
+                />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1.5">Birim</label>
-                <select value={talepForm.birim} onChange={(e) => setTalepForm({ ...talepForm, birim: e.target.value })} className="w-full py-2.5 px-3 bg-white/5 border border-white/10 rounded-lg text-white focus:ring-2 focus:ring-white/20 outline-none">
+                <select 
+                  value={talepForm.birim} 
+                  onChange={(e) => setTalepForm({ ...talepForm, birim: e.target.value })} 
+                  className="w-full py-2.5 px-3 bg-white/5 border border-white/10 rounded-lg text-white focus:ring-2 focus:ring-white/20 outline-none"
+                >
                   <option value="adet">Adet</option>
                   <option value="kg">Kg</option>
                   <option value="gr">Gr</option>
                   <option value="lt">Litre</option>
                   <option value="paket">Paket</option>
                 </select>
+                {/* 🔥 Seçilen malzemenin birimini göster */}
+                {talepForm.malzemeId && (
+                  <p className="text-xs text-green-400 mt-1">
+                    ✅ Otomatik birim: <span className="font-semibold">{talepForm.birim}</span>
+                  </p>
+                )}
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1.5">Açıklama</label>
-                <textarea value={talepForm.aciklama} onChange={(e) => setTalepForm({ ...talepForm, aciklama: e.target.value })} className="w-full py-2.5 px-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-gray-500 focus:ring-2 focus:ring-white/20 outline-none resize-none" placeholder="Neden ihtiyacınız var?" rows="2" />
+                <textarea 
+                  value={talepForm.aciklama} 
+                  onChange={(e) => setTalepForm({ ...talepForm, aciklama: e.target.value })} 
+                  className="w-full py-2.5 px-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-gray-500 focus:ring-2 focus:ring-white/20 outline-none resize-none" 
+                  placeholder="Neden ihtiyacınız var?" 
+                  rows="2" 
+                />
               </div>
 
               <div className="flex gap-3 pt-2">

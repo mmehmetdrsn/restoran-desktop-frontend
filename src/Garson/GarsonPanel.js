@@ -295,7 +295,10 @@ const GarsonPanel = () => {
 
     setPasswordLoading(true);
     try {
-      await authService.sifreDegistir(currentPassword, newPassword);
+      await authService.sifreDegistir({
+        eskiSifre: currentPassword,
+        yeniSifre: newPassword,
+      });
       toast.success("Şifreniz başarıyla değiştirildi! 🎉");
       setShowPasswordModal(false);
       setCurrentPassword("");
