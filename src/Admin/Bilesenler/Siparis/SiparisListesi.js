@@ -108,34 +108,6 @@ const SiparisListesi = ({
                 </div>
                 <div className="text-right">
                   <p className="text-white font-bold text-lg">₺{siparis.toplamTutar?.toFixed(2) || 0}</p>
-                  <div className="flex gap-2 mt-1 justify-end">
-                    {siparis.siparisDurumu !== 'TAMAMLANDI' && 
-                     siparis.siparisDurumu !== 'IPTAL' && 
-                     siparis.siparisDurumu !== 'ODENDI' &&
-                     siparis.siparisDurumu !== 'IADE' && (
-                      <button
-                        onClick={() => handleSiparisTamamla(siparis.siparisId)}
-                        className="px-3 py-1 bg-green-500 hover:bg-green-600 text-white text-xs rounded-lg transition-all"
-                      >
-                        ✅ Tamamla
-                      </button>
-                    )}
-                    {(siparis.siparisDurumu === 'TAMAMLANDI' || siparis.siparisDurumu === 'ODENDI') && (
-                      <span className="px-3 py-1 bg-green-500/20 text-green-400 text-xs rounded-lg">
-                        ✅ Tamamlandı
-                      </span>
-                    )}
-                    {siparis.siparisDurumu === 'IPTAL' && (
-                      <span className="px-3 py-1 bg-red-500/20 text-red-400 text-xs rounded-lg">
-                        ❌ İptal
-                      </span>
-                    )}
-                    {siparis.siparisDurumu === 'IADE' && (
-                      <span className="px-3 py-1 bg-orange-500/20 text-orange-400 text-xs rounded-lg">
-                        🔄 İade
-                      </span>
-                    )}
-                  </div>
                 </div>
               </div>
             </div>
