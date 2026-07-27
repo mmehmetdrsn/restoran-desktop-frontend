@@ -11,6 +11,7 @@ const YeniSiparisPage = ({
   onRemoveFromCart,
   onUpdateItemNote,
   onConfirmOrder,
+  submitting = false,
   selectedTable,
   onSelectTable,
   onCancelSelection,
@@ -41,8 +42,32 @@ const YeniSiparisPage = ({
     return price * quantity;
   };
 
+  // 🔑 Masada ZATEN var olan sipariş ürünleri (salt okunur - sepetle karışmaz).
+  // Bunlar sadece bilgi amaçlıdır; onaylandığında API'ye tekrar gönderilmez,
+  // yalnızca aşağıdaki "Sepet" (yeni eklenen ürünler) gönderilir.
+  const existingOrder = selectedTable?.order || null;
+  const existingOrderItemsRaw =
+    existingOrder?.siparisUrunleri ||
+    existingOrder?.items ||
+    existingOrder?.urunler ||
+    existingOrder?.siparisDetays ||
+    [];
+
+  const existingOrderItems = (Array.isArray(existingOrderItemsRaw) ? existingOrderItemsRaw : []).map((item, idx) => ({
+    key: item.siparisDetayId ?? item.id ?? idx,
+    name: item.urunAdi ?? item.name ?? item.ad ?? 'Ürün',
+    quantity: item.adet ?? item.quantity ?? 1,
+    price: item.birimFiyat ?? item.fiyat ?? item.price ?? 0,
+    note: item.detayNot ?? item.note ?? ''
+  }));
+
+  const existingOrderTotal =
+    typeof existingOrder?.toplam === 'number'
+      ? existingOrder.toplam
+      : existingOrderItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
   return (
-    <div className={`relative rounded-[32px] p-3 ${isDayMode ? 'yeni-siparis-day bg-slate-100/80 border border-slate-200/70 shadow-sm' : 'bg-white/[0.03] border border-white/10 shadow-2xl backdrop-blur-sm'}`}>
+    <div className={`relative rounded-[32px] p-3 ${isDayMode ? 'bg-slate-100/80 border border-slate-200/70 shadow-sm' : 'bg-white/[0.03] border border-white/10 shadow-2xl backdrop-blur-sm'}`}>
       <div className="absolute top-4 right-4 z-20">
         <button
           onClick={onCancelSelection}
@@ -60,7 +85,7 @@ const YeniSiparisPage = ({
           <select 
             value={selectedCategory} 
             onChange={(e) => onCategorySelect(e.target.value)} 
-            className={`${isDayMode ? 'day-mode-select ml-0 sm:ml-2 p-2 bg-white text-slate-900 rounded-xl border border-slate-200 shadow-sm' : 'ml-2 p-2 bg-white/5 rounded-lg text-white'}`}
+            className={`${isDayMode ? 'ml-0 sm:ml-2 p-2 bg-white text-slate-900 rounded-xl border border-slate-200 shadow-sm' : 'ml-2 p-2 bg-white/5 rounded-lg text-white'}`}
           >
             {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
           </select>
@@ -110,8 +135,39 @@ const YeniSiparisPage = ({
 
       {/* Sağ Taraf - Sepet */}
       <div className={`${isDayMode ? 'bg-slate-50 shadow-sm border border-slate-200/60 text-slate-900' : 'bg-black/60 border-white/10 text-white'} p-4 rounded-3xl relative`}>
+        {existingOrderItems.length > 0 && (
+          <div className={`mb-4 p-3 rounded-2xl border ${isDayMode ? 'bg-slate-100 border-slate-200' : 'bg-white/[0.03] border-white/10'}`}>
+            <p className={`${isDayMode ? 'text-slate-500' : 'text-gray-400'} text-xs font-semibold uppercase mb-2 flex items-center gap-1`}>
+              📋 Masada Mevcut Sipariş <span className="normal-case font-normal">(değiştirilemez)</span>
+            </p>
+            <div className="space-y-1.5 max-h-[160px] overflow-y-auto pr-1">
+              {existingOrderItems.map((item) => (
+                <div key={item.key} className="flex items-center justify-between gap-2 text-sm">
+                  <div className="flex-1 min-w-0">
+                    <span className={`${isDayMode ? 'text-slate-700' : 'text-gray-300'}`}>
+                      {item.quantity}x {item.name}
+                    </span>
+                    {item.note && (
+                      <span className={`${isDayMode ? 'text-slate-500' : 'text-yellow-400/80'} text-xs block truncate`}>
+                        📝 {item.note}
+                      </span>
+                    )}
+                  </div>
+                  <span className={`${isDayMode ? 'text-slate-600' : 'text-gray-400'} shrink-0`}>
+                    ₺{(item.quantity * item.price).toFixed(2)}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <div className={`flex justify-between items-center mt-2 pt-2 border-t ${isDayMode ? 'border-slate-200 text-slate-600' : 'border-white/10 text-gray-400'} text-xs`}>
+              <span>Mevcut Ara Toplam</span>
+              <span className="font-semibold">₺{existingOrderTotal.toFixed(2)}</span>
+            </div>
+          </div>
+        )}
+
         <p className={`${isDayMode ? 'text-slate-900' : 'text-white'} font-semibold mb-3 flex items-center gap-2`}>
-          🛒 Sepet
+          🛒 {existingOrderItems.length > 0 ? 'Yeni Eklenecek Ürünler' : 'Sepet'}
           {cart.length > 0 && (
             <span className={`text-xs ${isDayMode ? 'text-slate-500' : 'text-gray-400'}`}>
               ({cart.length} ürün)
@@ -121,7 +177,9 @@ const YeniSiparisPage = ({
 
         {cart.length === 0 && (
           <p className={`${isDayMode ? 'text-slate-600' : 'text-gray-400'} text-sm text-center py-8`}>
-            Sepet boş. Ürün eklemek için sol taraftaki menüyü kullanın.
+            {existingOrderItems.length > 0
+              ? 'Siparişe eklemek için sol taraftaki menüyü kullanın.'
+              : 'Sepet boş. Ürün eklemek için sol taraftaki menüyü kullanın.'}
           </p>
         )}
 
@@ -186,7 +244,7 @@ const YeniSiparisPage = ({
                 const table = tables.find(t => t.id === parseInt(e.target.value));
                 onSelectTable(table);
               }} 
-              className={`${isDayMode ? 'day-mode-select w-full p-2 bg-white rounded-xl text-slate-900 border border-slate-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-300' : 'w-full p-2 bg-white/5 rounded-lg text-white border border-white/10 focus:ring-2 focus:ring-white/20'} transition`}
+              className={`${isDayMode ? 'w-full p-2 bg-white rounded-xl text-slate-900 border border-slate-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-300' : 'w-full p-2 bg-white/5 rounded-lg text-white border border-white/10 focus:ring-2 focus:ring-white/20'} transition`}
             >
               <option value="">Seçiniz...</option>
               {tables.map(t => (
@@ -224,18 +282,20 @@ const YeniSiparisPage = ({
 
           <button 
             onClick={onConfirmOrder} 
-            disabled={cart.length === 0 || !selectedTable}
+            disabled={cart.length === 0 || !selectedTable || submitting}
             className={`w-full py-3 rounded-2xl font-semibold transition ${
-              cart.length > 0 && selectedTable
+              cart.length > 0 && selectedTable && !submitting
                 ? 'bg-rose-500 text-white hover:bg-rose-600'
                 : `${isDayMode ? 'bg-slate-200 text-slate-400' : 'bg-white/10 text-gray-500'} cursor-not-allowed`
             }`}
           >
-            {cart.length === 0 
-              ? 'Sepet Boş' 
-              : !selectedTable 
-                ? 'Masa Seçin' 
-                : '✅ Siparişi Onayla'
+            {submitting
+              ? '⏳ Gönderiliyor...'
+              : cart.length === 0 
+                ? (existingOrderItems.length > 0 ? 'Eklenecek Ürün Seçin' : 'Sepet Boş')
+                : !selectedTable 
+                  ? 'Masa Seçin' 
+                  : (existingOrderItems.length > 0 ? '✅ Siparişe Ekle' : '✅ Siparişi Onayla')
             }
           </button>
 
