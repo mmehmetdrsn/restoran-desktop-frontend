@@ -1,24 +1,23 @@
-// src/Admin/components/Stok/MalzemeGiris.js
 import React, { useState } from 'react';
 import { FaPlusCircle, FaTimes, FaBox, FaArrowUp, FaCheck } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import { materialService } from '../../../api/api';
 
 const MalzemeGiris = ({ acik, kapat, onSuccess, malzemeler }) => {
-  const [isYeniMalzeme, setIsYeniMalzeme] = useState(true); // true: yeni ekle, false: var olana ekle
+  const [isYeniMalzeme, setIsYeniMalzeme] = useState(true);
   const [selectedMalzemeId, setSelectedMalzemeId] = useState('');
   const [selectedMalzeme, setSelectedMalzeme] = useState(null);
   const [formData, setFormData] = useState({
     malzemeAdi: '',
     stokMiktari: '',
     birim: 'Adet',
-    birimMaliyeti: ''
+    birimMaliyeti: '',
+    aciklama: ''
   });
   const [loading, setLoading] = useState(false);
 
   if (!acik) return null;
 
-  // Malzeme seçildiğinde bilgilerini göster
   const handleMalzemeSec = (id) => {
     if (!id) {
       setSelectedMalzeme(null);
@@ -28,9 +27,15 @@ const MalzemeGiris = ({ acik, kapat, onSuccess, malzemeler }) => {
     const malzeme = malzemeler.find(m => m.malzemeId === parseInt(id));
     setSelectedMalzeme(malzeme);
     setSelectedMalzemeId(id);
+    // Seçilen malzemenin birimini otomatik doldur
+    if (malzeme) {
+      setFormData(prev => ({
+        ...prev,
+        birim: malzeme.birim || 'Adet'
+      }));
+    }
   };
 
-  // ✅ Mevcut malzemeye stok ekleme
   const handleStokEkle = async (e) => {
     e.preventDefault();
     
@@ -47,17 +52,16 @@ const MalzemeGiris = ({ acik, kapat, onSuccess, malzemeler }) => {
 
     setLoading(true);
     try {
-      // Mevcut malzemeyi güncelle
       const yeniStok = (selectedMalzeme?.stokMiktari || 0) + eklenecekMiktar;
       await materialService.update(parseInt(selectedMalzemeId), {
         malzemeAdi: selectedMalzeme?.malzemeAdi,
         stokMiktari: yeniStok,
-        birim: selectedMalzeme?.birim,
+        birim: formData.birim || selectedMalzeme?.birim,
         birimMaliyeti: selectedMalzeme?.birimMaliyeti
       });
       
-      toast.success(`✅ ${eklenecekMiktar} ${selectedMalzeme?.birim} stok eklendi!`);
-      setFormData({ ...formData, stokMiktari: '' });
+      toast.success(`✅ ${eklenecekMiktar} ${formData.birim || selectedMalzeme?.birim} stok eklendi!`);
+      setFormData({ ...formData, stokMiktari: '', aciklama: '' });
       setSelectedMalzemeId('');
       setSelectedMalzeme(null);
       kapat();
@@ -70,7 +74,6 @@ const MalzemeGiris = ({ acik, kapat, onSuccess, malzemeler }) => {
     }
   };
 
-  // ✅ Yeni malzeme ekleme
   const handleYeniMalzemeEkle = async (e) => {
     e.preventDefault();
     
@@ -99,7 +102,8 @@ const MalzemeGiris = ({ acik, kapat, onSuccess, malzemeler }) => {
         malzemeAdi: '',
         stokMiktari: '',
         birim: 'Adet',
-        birimMaliyeti: ''
+        birimMaliyeti: '',
+        aciklama: ''
       });
       kapat();
       if (onSuccess) onSuccess();
@@ -145,7 +149,6 @@ const MalzemeGiris = ({ acik, kapat, onSuccess, malzemeler }) => {
           </button>
         </div>
 
-        {/* ✅ İŞLEM TİPİ SEÇİMİ */}
         <div className="flex gap-2 mb-4 bg-white/5 rounded-xl p-1">
           <button
             type="button"
@@ -173,7 +176,6 @@ const MalzemeGiris = ({ acik, kapat, onSuccess, malzemeler }) => {
           </button>
         </div>
 
-        {/* ✅ YENİ MALZEME EKLEME FORMU */}
         {isYeniMalzeme ? (
           <form onSubmit={handleYeniMalzemeEkle} className="space-y-4">
             <div>
@@ -266,9 +268,7 @@ const MalzemeGiris = ({ acik, kapat, onSuccess, malzemeler }) => {
             </div>
           </form>
         ) : (
-          // ✅ MEVCUT MALZEMEYE STOK EKLEME FORMU
           <form onSubmit={handleStokEkle} className="space-y-4">
-            {/* Malzeme Seçimi - Dropdown */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-1.5">
                 Malzeme Seçin <span className="text-red-400">*</span>
@@ -289,7 +289,6 @@ const MalzemeGiris = ({ acik, kapat, onSuccess, malzemeler }) => {
               </select>
             </div>
 
-            {/* Seçilen Malzeme Bilgisi */}
             {selectedMalzeme && (
               <div className="bg-white/5 rounded-xl p-4 border border-blue-500/30">
                 <div className="flex items-center justify-between">
@@ -308,10 +307,21 @@ const MalzemeGiris = ({ acik, kapat, onSuccess, malzemeler }) => {
                     #{selectedMalzeme.malzemeId}
                   </span>
                 </div>
+                {/* Birim bilgisi*/}
+                <div className="mt-3 pt-3 border-t border-white/10">
+                  <label className="block text-sm font-medium text-gray-300 mb-1.5">
+                    Birim (Otomatik)
+                  </label>
+                  <div className="w-full py-2 px-3 bg-white/10 border border-white/10 rounded-lg text-white cursor-not-allowed opacity-80">
+                    {formData.birim || selectedMalzeme.birim || 'Adet'}
+                  </div>
+                  <p className="text-xs text-green-400 mt-1">
+                    ✅ Malzemenin kayıtlı birimi otomatik olarak seçildi
+                  </p>
+                </div>
               </div>
             )}
 
-            {/* Eklenecek Miktar */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-1.5">
                 Eklenecek Miktar <span className="text-red-400">*</span>
@@ -329,13 +339,12 @@ const MalzemeGiris = ({ acik, kapat, onSuccess, malzemeler }) => {
               {selectedMalzeme && (
                 <p className="text-gray-500 text-xs mt-1">
                   Yeni stok miktarı: <span className="text-white font-semibold">
-                    {(selectedMalzeme.stokMiktari + parseFloat(formData.stokMiktari || 0)).toFixed(2)} {selectedMalzeme.birim}
+                    {(selectedMalzeme.stokMiktari + parseFloat(formData.stokMiktari || 0)).toFixed(2)} {formData.birim || selectedMalzeme.birim}
                   </span>
                 </p>
               )}
             </div>
 
-            {/* Açıklama */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-1.5">
                 Açıklama
