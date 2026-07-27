@@ -571,28 +571,26 @@ const AsciPanel = () => {
       <div className="relative z-10 flex">
         {/* Sidebar */}
         <div className={`fixed lg:relative lg:flex lg:flex-col ${sidebarOpen ? 'w-64' : 'w-20'} ${isDayMode ? 'bg-white border-r border-slate-200' : 'bg-black/90 border-r border-white/10'} backdrop-blur-sm h-screen transition-all duration-300 overflow-y-auto ${mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} z-50 flex-shrink-0`}>
-          <div className={`flex items-center justify-between p-4 border-b ${isDayMode ? 'border-slate-200/80' : 'border-white/10'}`}>
+          <div className={`flex flex-col items-center justify-center gap-2 p-4 border-b ${isDayMode ? 'border-slate-200/80' : 'border-white/10'}`}>
             {sidebarOpen ? (
-              <div className="flex items-center gap-3">
+              <div className="w-full text-center">
                 <img
-                  src={`${process.env.PUBLIC_URL}/brand-logo.jpeg`}
+                  src={`${process.env.PUBLIC_URL}/new-logo.jpeg`}
                   alt="SekerRestoran Logo"
-                  className="w-10 h-10 rounded-full object-cover"
+                  className="w-12 h-12 rounded-full object-cover mx-auto mb-2"
                 />
-                <div>
-                  <h1 className={`${isDayMode ? 'text-slate-900' : 'text-white'} font-bold text-sm`}>SekerRestoran</h1>
-                  <p className={`${isDayMode ? 'text-slate-500' : 'text-gray-400'} text-[9px]`}>Aşçı Paneli</p>
-                </div>
+                <h1 className={`${isDayMode ? 'text-slate-900' : 'text-white'} font-bold text-sm`}>SekerRestoran</h1>
+                <p className={`${isDayMode ? 'text-slate-500' : 'text-gray-400'} text-[9px]`}>Aşçı Paneli</p>
               </div>
             ) : (
               <img
-                src={`${process.env.PUBLIC_URL}/brand-logo.jpeg`}
+                src={`${process.env.PUBLIC_URL}/new-logo.jpeg`}
                 alt="SekerRestoran Logo"
-                className="w-10 h-10 rounded-full object-cover mx-auto"
+                className="w-10 h-10 rounded-full object-cover"
               />
             )}
-            <button onClick={toggleSidebar} className={`${isDayMode ? 'text-slate-500 hover:text-slate-900' : 'text-gray-400 hover:text-white'} hidden lg:block`}>
-              {sidebarOpen ? <FaTimes size={16} /> : <FaBars size={16} />}
+            <button onClick={toggleSidebar} className={`${isDayMode ? 'text-slate-500 hover:text-slate-900' : 'text-gray-400 hover:text-white'} hidden lg:flex items-center justify-center`}>
+              <FaBars size={16} />
             </button>
             <button onClick={() => setMobileSidebarOpen(false)} className={`${isDayMode ? 'text-slate-500 hover:text-slate-900' : 'text-gray-400 hover:text-white'} lg:hidden`}>
               <FaTimes size={20} />

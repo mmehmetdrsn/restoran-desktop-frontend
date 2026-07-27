@@ -28,10 +28,22 @@ const Sidebar = ({
     `}>
       <div className={`flex flex-col items-center justify-center gap-2 p-4 border-b ${isDayMode ? 'border-slate-200/80' : 'border-white/10'}`}>
         {acik && (
-          <div className="text-center">
+          <div className="text-center w-full">
+            <img
+              src={`${process.env.PUBLIC_URL}/new-logo.jpeg`}
+              alt="SekerRestoran Logo"
+              className="w-12 h-12 rounded-full object-cover mx-auto mb-2"
+            />
             <h1 className={`${isDayMode ? 'text-slate-900' : 'text-white'} font-bold text-lg`}>SekerRestoran</h1>
             <p className={`${isDayMode ? 'text-slate-500' : 'text-gray-400'} text-[10px]`}>Admin Paneli</p>
           </div>
+        )}
+        {!acik && (
+          <img
+            src={`${process.env.PUBLIC_URL}/new-logo.jpeg`}
+            alt="SekerRestoran Logo"
+            className="w-10 h-10 rounded-full object-cover"
+          />
         )}
         <button 
           onClick={genisligiDegistir}

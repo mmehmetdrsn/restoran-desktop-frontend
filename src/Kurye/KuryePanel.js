@@ -658,16 +658,16 @@ const KuryePanel = () => {
       <div className="relative z-10">
         <div className={`${isDayMode ? 'bg-white/85 border-slate-200/70' : 'bg-black/80 border-white/10'} backdrop-blur-sm border-b sticky top-0 z-50`}>
           <div className="max-w-7xl mx-auto px-4">
-            <div className="flex items-center justify-between h-16">
+            <div className="flex items-center justify-between h-auto py-4">
               <div className="flex items-center gap-3 flex-shrink-0 min-w-[190px] pl-0">
-                <img
-                  src={`${process.env.PUBLIC_URL}/brand-logo.jpeg`}
-                  alt="SekerRestoran Logo"
-                  className="w-10 h-10 rounded-full object-cover"
-                />
-                <div>
-                  <h1 className={`${isDayMode ? 'text-slate-900' : 'text-white'} font-bold text-base`}>SekerRestoran</h1>
-                  <p className={`${isDayMode ? 'text-slate-500' : 'text-gray-400'} text-[10px]`}>Kurye Paneli</p>
+                <div className="text-center">
+                  <img
+                    src={`${process.env.PUBLIC_URL}/new-logo.jpeg`}
+                    alt="SekerRestoran Logo"
+                    className="w-12 h-12 rounded-full object-cover mx-auto mb-2"
+                  />
+                  <h1 className={`${isDayMode ? 'text-slate-900' : 'text-white'} font-bold text-sm`}>SekerRestoran</h1>
+                  <p className={`${isDayMode ? 'text-slate-500' : 'text-gray-400'} text-[9px]`}>Kurye Paneli</p>
                 </div>
               </div>
 

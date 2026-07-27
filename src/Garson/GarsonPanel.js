@@ -1013,32 +1013,36 @@ const GarsonPanel = () => {
   `}
         >
           <div
-            className={`relative flex items-center justify-center p-4 border-b ${isDayMode ? "border-slate-200/60" : "border-white/10"}`}
+            className={`relative flex flex-col items-center justify-center gap-2 p-4 border-b ${isDayMode ? "border-slate-200/60" : "border-white/10"}`}
           >
             {sidebarOpen ? (
-              <div className="w-full flex items-center justify-center gap-3 pr-8">
+              <div className="w-full text-center">
                 <img
-                  src={`${process.env.PUBLIC_URL}/brand-logo.jpeg`}
+                  src={`${process.env.PUBLIC_URL}/new-logo.jpeg`}
                   alt="SekerRestoran Logo"
-                  className="w-10 h-10 rounded-full object-cover"
+                  className="w-12 h-12 rounded-full object-cover mx-auto mb-2"
                 />
-                <div className="text-left">
-                  <h1
-                    className={`${isDayMode ? "text-slate-900" : "text-white"} font-bold text-sm`}
-                  >
-                    SekerRestoran
-                  </h1>
-                  <p
-                    className={`${isDayMode ? "text-slate-500" : "text-gray-400"} text-[9px]`}
-                  >
-                    Garson Paneli
-                  </p>
-                </div>
+                <h1
+                  className={`${isDayMode ? "text-slate-900" : "text-white"} font-bold text-sm`}
+                >
+                  SekerRestoran
+                </h1>
+                <p
+                  className={`${isDayMode ? "text-slate-500" : "text-gray-400"} text-[9px]`}
+                >
+                  Garson Paneli
+                </p>
               </div>
-            ) : null}
+            ) : (
+              <img
+                src={`${process.env.PUBLIC_URL}/new-logo.jpeg`}
+                alt="SekerRestoran Logo"
+                className="w-10 h-10 rounded-full object-cover"
+              />
+            )}
             <button
               onClick={toggleSidebar}
-              className={`${isDayMode ? "text-slate-700 hover:text-slate-900" : "text-gray-400 hover:text-white"} hidden lg:block ${sidebarOpen ? "absolute right-4" : "absolute left-1/2 -translate-x-1/2"}`}
+              className={`${isDayMode ? "text-slate-700 hover:text-slate-900" : "text-gray-400 hover:text-white"} hidden lg:flex items-center justify-center`}
             >
               <FaBars size={16} />
             </button>
