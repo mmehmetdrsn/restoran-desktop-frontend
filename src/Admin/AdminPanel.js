@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import ReceteEkle from './Bilesenler/Recete/ReceteEkle';  
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import {
@@ -105,6 +106,7 @@ const AdminPanel = () => {
   const userMenuRef = useRef(null);
   const [siparisGosterimModu, setSiparisGosterimModu] = useState('all');
   const [showSiparisDetay, setShowSiparisDetay] = useState(false);
+  const [showReceteEkle, setShowReceteEkle] = useState(false);
 
   // Veri State'leri
   const [orders, setOrders] = useState([]);
@@ -836,6 +838,7 @@ const AdminPanel = () => {
       setShowUrunSil={setShowUrunSil}
       setShowUrunDuzenle={setShowUrunDuzenle}
       handleUrunListele={handleUrunListele}
+       setShowReceteEkle={setShowReceteEkle}
     />;
   };
 
@@ -944,22 +947,23 @@ const AdminPanel = () => {
           }}
         />;
       case 'product_menu':
-        return (
-          <div className="space-y-6">
-            <UrunButonlari
-              setShowUrunEkle={setShowUrunEkle}
-              setShowUrunSil={setShowUrunSil}
-              setShowUrunDuzenle={setShowUrunDuzenle}
-              handleUrunListele={handleUrunListele}
-            />
-            <KategoriButonlari
-              setShowKategoriEkle={setShowKategoriEkle}
-              setShowKategoriSil={setShowKategoriSil}
-              setShowKategoriDuzenle={setShowKategoriDuzenle}
-              handleKategoriListele={handleKategoriListele}
-            />
-          </div>
-        );
+  return (
+    <div className="space-y-6">
+      <UrunButonlari
+        setShowUrunEkle={setShowUrunEkle}
+        setShowUrunSil={setShowUrunSil}
+        setShowUrunDuzenle={setShowUrunDuzenle}
+        handleUrunListele={handleUrunListele}
+        setShowReceteEkle={setShowReceteEkle}  // ✅ BUNU EKLE!
+      />
+      <KategoriButonlari
+        setShowKategoriEkle={setShowKategoriEkle}
+        setShowKategoriSil={setShowKategoriSil}
+        setShowKategoriDuzenle={setShowKategoriDuzenle}
+        handleKategoriListele={handleKategoriListele}
+      />
+    </div>
+  );
       case 'members':
         return <UyeButonlari
           setShowUyeEkle={setShowUyeEkle}
@@ -1231,6 +1235,20 @@ const AdminPanel = () => {
         kapat={() => setShowUrunListele(false)}
         urunler={urunListesi}
       />
+
+{/* Recete Modallari */}
+<ReceteEkle
+  acik={showReceteEkle}
+  kapat={() => {
+    setShowReceteEkle(false);
+    fetchAllData();
+  }}
+  onSuccess={() => {
+    toast.success('🎉 Reçete başarıyla eklendi!');
+    fetchAllData();
+  }}
+/>
+
 
       {/* Uye Modallari */}
       <UyeEkle
