@@ -11,48 +11,58 @@ const KategoriListele = ({ acik, kapat, kategoriler }) => {
   if (!acik) return null;
 
   // Kategoriye ait ürünleri getir
-  const kategoriUrunleriniGetir = async (kategoriId) => {
+const kategoriUrunleriniGetir = async (kategoriId) => {
     if (kategoriUrunleri[kategoriId]) {
-      // Zaten yüklendi, sadece aç/kapa
-      setGenisletilmisKategoriler(prev => ({
-        ...prev,
-        [kategoriId]: !prev[kategoriId]
-      }));
-      return;
+        setGenisletilmisKategoriler(prev => ({
+            ...prev,
+            [kategoriId]: !prev[kategoriId]
+        }));
+        return;
     }
 
     try {
-      setYukleniyor(prev => ({ ...prev, [kategoriId]: true }));
-      
-      const response = await productService.getAll();
-      const tumUrunler = response.data || [];
-      
-      const kategoriUrunleri = tumUrunler.filter(urun => {
-        const urunKategoriId = urun.kategoriId || urun.kategoriID || urun.KategoriId || urun.kategori_id;
+        setYukleniyor(prev => ({ ...prev, [kategoriId]: true }));
         
-        if (urunKategoriId && Number(urunKategoriId) === Number(kategoriId)) {
-          return true;
-        }
-        return false;
-      });
-      
-      setKategoriUrunleri(prev => ({
-        ...prev,
-        [kategoriId]: kategoriUrunleri
-      }));
-      
-      setGenisletilmisKategoriler(prev => ({
-        ...prev,
-        [kategoriId]: true
-      }));
-      
+        const response = await productService.getAll();
+        const tumUrunler = response.data || [];
+        
+        console.log('📦 Tüm ürünler:', tumUrunler);
+        console.log('📦 Aranan kategori ID:', kategoriId);
+        
+        // KategoriId ile filtrele
+        const kategoriUrunleri = tumUrunler.filter(urun => {
+            // Backend'den gelen KategoriId alanı
+            const urunKategoriId = urun.kategoriId || 
+                                   urun.KategoriId || 
+                                   urun.kategoriID || 
+                                   urun.KategoriID;
+            
+            // Debug için
+            console.log(`🔍 ${urun.urunAdi} - KategoriId: ${urunKategoriId} - Aranan: ${kategoriId}`);
+            
+            const eslesiyor = Number(urunKategoriId) === Number(kategoriId);
+            return eslesiyor;
+        });
+        
+        console.log(`📦 Kategori #${kategoriId} için ${kategoriUrunleri.length} ürün bulundu`);
+        
+        setKategoriUrunleri(prev => ({
+            ...prev,
+            [kategoriId]: kategoriUrunleri
+        }));
+        
+        setGenisletilmisKategoriler(prev => ({
+            ...prev,
+            [kategoriId]: true
+        }));
+        
     } catch (error) {
-      console.error('Ürünler yüklenirken hata:', error);
-      toast.error('Ürünler yüklenirken hata olustu!');
+        console.error('Ürünler yüklenirken hata:', error);
+        toast.error('Ürünler yüklenirken hata olustu!');
     } finally {
-      setYukleniyor(prev => ({ ...prev, [kategoriId]: false }));
+        setYukleniyor(prev => ({ ...prev, [kategoriId]: false }));
     }
-  };
+};
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
