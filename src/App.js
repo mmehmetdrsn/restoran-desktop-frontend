@@ -9,6 +9,7 @@ import GarsonPanel from './Garson/GarsonPanel';
 import AsciPanel from './Asci/AsciPanel';
 import KuryePanel from './Kurye/KuryePanel';
 import SiparisTakip from './components/SiparisTakip'; // 👈 1. SignalR Bileşeni Eklendi
+import { AppDialogProvider } from './components/dialog/AppDialogProvider';
 
 // ============ PROTECTED ROUTE ============
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -34,58 +35,60 @@ function App() {
 
   return (
     <BrowserRouter>
-      {/* 🚀 3. Giriş yapılmışsa arka planda SignalR Canlı Bildirim Dinleyicisi Çalışır */}
-      {activeUyeId && <SiparisTakip uyeId={activeUyeId} />}
+      <AppDialogProvider>
+        {/* 🚀 3. Giriş yapılmışsa arka planda SignalR Canlı Bildirim Dinleyicisi Çalışır */}
+        {activeUyeId && <SiparisTakip uyeId={activeUyeId} />}
 
-      <ToastContainer 
-        position="top-right"
-        autoClose={4000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="dark"
-      />
-      
-      <Routes>
-        {/* Login Sayfası */}
-        <Route path="/" element={<Login />} />
-        <Route path="/login" element={<Login />} />
+        <ToastContainer 
+          position="top-right"
+          autoClose={4000}
+          hideProgressBar={false}
+          newestOnTop={false}
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+          theme="dark"
+        />
         
-        {/* Admin Paneli */}
-        <Route path="/admin" element={
-          <ProtectedRoute allowedRoles={['admin']}>
-            <AdminPanel />
-          </ProtectedRoute>
-        } />
-        
-        {/* Garson Paneli */}
-        <Route path="/garson" element={
-          <ProtectedRoute allowedRoles={['garson']}>
-            <GarsonPanel />
-          </ProtectedRoute>
-        } />
-        
-        {/* Aşçı Paneli */}
-        <Route path="/asci" element={
-          <ProtectedRoute allowedRoles={['asci']}>
-            <AsciPanel />
-          </ProtectedRoute>
-        } />
-        
-        {/* Kurye Paneli */}
-        <Route path="/kurye" element={
-          <ProtectedRoute allowedRoles={['kurye']}>
-            <KuryePanel />
-          </ProtectedRoute>
-        } />
-        
-        {/* Tanımsız route'lar login'e yönlendir */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+        <Routes>
+          {/* Login Sayfası */}
+          <Route path="/" element={<Login />} />
+          <Route path="/login" element={<Login />} />
+          
+          {/* Admin Paneli */}
+          <Route path="/admin" element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <AdminPanel />
+            </ProtectedRoute>
+          } />
+          
+          {/* Garson Paneli */}
+          <Route path="/garson" element={
+            <ProtectedRoute allowedRoles={['garson']}>
+              <GarsonPanel />
+            </ProtectedRoute>
+          } />
+          
+          {/* Aşçı Paneli */}
+          <Route path="/asci" element={
+            <ProtectedRoute allowedRoles={['asci']}>
+              <AsciPanel />
+            </ProtectedRoute>
+          } />
+          
+          {/* Kurye Paneli */}
+          <Route path="/kurye" element={
+            <ProtectedRoute allowedRoles={['kurye']}>
+              <KuryePanel />
+            </ProtectedRoute>
+          } />
+          
+          {/* Tanımsız route'lar login'e yönlendir */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </AppDialogProvider>
     </BrowserRouter>
   );
 }

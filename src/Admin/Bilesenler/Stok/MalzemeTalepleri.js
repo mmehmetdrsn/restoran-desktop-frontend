@@ -3,8 +3,10 @@ import React, { useState, useEffect } from 'react';
 import { FaTimes, FaCheck, FaSpinner } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import { malzemeTalepAPI } from '../../../api/api';
+import { useAppDialog } from '../../../components/dialog/AppDialogProvider';
 
 const MalzemeTalepleri = ({ acik, kapat, onSuccess }) => {
+  const { confirm } = useAppDialog();
   const [talepler, setTalepler] = useState([]);
   const [loading, setLoading] = useState(false);
   const [islemYapilanId, setIslemYapilanId] = useState(null);
@@ -31,7 +33,13 @@ const MalzemeTalepleri = ({ acik, kapat, onSuccess }) => {
   };
 
   const handleOnayla = async (talepId) => {
-    if (!window.confirm('Bu talebi onaylamak istediğinize emin misiniz?')) return;
+    const onay = await confirm({
+      title: 'Talebi Onayla',
+      message: 'Bu talebi onaylamak istediginize emin misiniz?',
+      confirmText: 'Onayla',
+      cancelText: 'Iptal'
+    });
+    if (!onay) return;
     
     setIslemYapilanId(talepId);
     try {
@@ -48,7 +56,14 @@ const MalzemeTalepleri = ({ acik, kapat, onSuccess }) => {
   };
 
   const handleReddet = async (talepId) => {
-    if (!window.confirm('Bu talebi reddetmek istediğinize emin misiniz?')) return;
+    const onay = await confirm({
+      title: 'Talebi Reddet',
+      message: 'Bu talebi reddetmek istediginize emin misiniz?',
+      confirmText: 'Reddet',
+      cancelText: 'Iptal',
+      danger: true
+    });
+    if (!onay) return;
     
     setIslemYapilanId(talepId);
     try {

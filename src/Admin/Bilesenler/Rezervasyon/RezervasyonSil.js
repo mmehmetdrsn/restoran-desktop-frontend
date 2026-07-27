@@ -3,8 +3,10 @@ import React, { useState } from 'react';
 import { FaTrash, FaTimes } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import { reservationService } from '../../../api/api';
+import { useAppDialog } from '../../../components/dialog/AppDialogProvider';
 
 const RezervasyonSil = ({ acik, kapat, onSuccess }) => {
+  const { confirm } = useAppDialog();
   const [rezervasyonId, setRezervasyonId] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -17,7 +19,14 @@ const RezervasyonSil = ({ acik, kapat, onSuccess }) => {
       return;
     }
     
-    if (!window.confirm(`Rezervasyon #${rezervasyonId} silmek istediğinizden emin misiniz?`)) {
+    const onay = await confirm({
+      title: 'Rezervasyonu Sil',
+      message: `Rezervasyon #${rezervasyonId} silmek istediginizden emin misiniz?`,
+      confirmText: 'Sil',
+      cancelText: 'Iptal',
+      danger: true
+    });
+    if (!onay) {
       return;
     }
     

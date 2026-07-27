@@ -3,8 +3,10 @@ import React, { useState } from 'react';
 import { FaTrash, FaTimes } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import { tableService } from '../../../api/api';
+import { useAppDialog } from '../../../components/dialog/AppDialogProvider';
 
 const MasaSil = ({ acik, kapat, onSuccess }) => {
+  const { confirm } = useAppDialog();
   const [masaId, setMasaId] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -16,7 +18,14 @@ const MasaSil = ({ acik, kapat, onSuccess }) => {
       toast.warning('Lütfen masa ID girin!');
       return;
     }
-    if (!window.confirm('Bu masayı silmek istediğinizden emin misiniz?')) return;
+    const onay = await confirm({
+      title: 'Masayi Sil',
+      message: 'Bu masayi silmek istediginizden emin misiniz?',
+      confirmText: 'Sil',
+      cancelText: 'Iptal',
+      danger: true
+    });
+    if (!onay) return;
     try {
       setLoading(true);
       await tableService.delete(parseInt(masaId));

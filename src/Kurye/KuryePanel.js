@@ -9,10 +9,12 @@ import {
 } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import { kuryeAPI, authService } from '../api/api';
+import { useAppDialog } from '../components/dialog/AppDialogProvider';
 
 const backgroundImage = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80';
 
 const KuryePanel = () => {
+  const { confirm, prompt } = useAppDialog();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('deliveries');
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -200,29 +202,35 @@ const KuryePanel = () => {
   };
 
   // ========== TESLİMAT ADIMLARI ==========
-  const handleTeslimAl = (order) => {
+  const handleTeslimAl = async (order) => {
     if (!order) return;
     
-    const confirm = window.confirm(
-      `📦 Sipariş #${order.id}\nMüşteri: ${order.customer}\nAdres: ${order.address}\n\nSiparişi teslim aldığınızı onaylıyor musunuz?`
-    );
+    const onay = await confirm({
+      title: 'Teslim Al Onayi',
+      message: `Siparis #${order.id}\nMusteri: ${order.customer}\nAdres: ${order.address}\n\nSiparisi teslim aldiginizi onayliyor musunuz?`,
+      confirmText: 'Teslim Al',
+      cancelText: 'Iptal'
+    });
     
-    if (!confirm) {
+    if (!onay) {
       toast.info('Teslim alma iptal edildi.');
       return;
     }
-    
+
     updateOrderStatus(order.id, 'KURYEDE', 'teslim alındı');
   };
 
-  const handleYolaCik = (order) => {
+  const handleYolaCik = async (order) => {
     if (!order) return;
     
-    const confirm = window.confirm(
-      `🚚 Sipariş #${order.id}\nMüşteri: ${order.customer}\nAdres: ${order.address}\n\nYola çıktığınızı onaylıyor musunuz?`
-    );
+    const onay = await confirm({
+      title: 'Yola Cikis Onayi',
+      message: `Siparis #${order.id}\nMusteri: ${order.customer}\nAdres: ${order.address}\n\nYola ciktiginizi onayliyor musunuz?`,
+      confirmText: 'Yola Cik',
+      cancelText: 'Iptal'
+    });
     
-    if (!confirm) {
+    if (!onay) {
       toast.info('Yola çıkma iptal edildi.');
       return;
     }
@@ -234,18 +242,21 @@ const KuryePanel = () => {
     }, 1000);
   };
 
-  const handleTeslimEt = (order) => {
+  const handleTeslimEt = async (order) => {
     if (!order) return;
     
-    const confirm = window.confirm(
-      `✅ Sipariş #${order.id}\nMüşteri: ${order.customer}\nAdres: ${order.address}\nTutar: ₺${order.amount}\n\nTeslimatı onaylıyor musunuz?`
-    );
+    const onay = await confirm({
+      title: 'Teslimat Onayi',
+      message: `Siparis #${order.id}\nMusteri: ${order.customer}\nAdres: ${order.address}\nTutar: ₺${order.amount}\n\nTeslimati onayliyor musunuz?`,
+      confirmText: 'Teslim Et',
+      cancelText: 'Iptal'
+    });
     
-    if (!confirm) {
+    if (!onay) {
       toast.info('Teslimat onayı iptal edildi.');
       return;
     }
-    
+
     updateOrderStatus(order.id, 'TESLIM EDILDI', 'teslim edildi');
     
     setTimeout(() => {
@@ -262,14 +273,20 @@ const KuryePanel = () => {
   };
 
   // ========== MÜŞTERİ ARA ==========
-  const handleCallCustomer = (order) => {
+  const handleCallCustomer = async (order) => {
     if (!order) return;
     
     if (order?.phone) {
       toast.info(`📞 ${order.phone} aranıyor...`);
       window.location.href = `tel:${order.phone}`;
     } else {
-      const phone = prompt('📞 Müşteri telefon numarasını girin:');
+      const phone = await prompt({
+        title: 'Musteri Telefonu',
+        message: 'Musteri telefon numarasini girin:',
+        placeholder: '05xxxxxxxxx',
+        confirmText: 'Ara',
+        cancelText: 'Iptal'
+      });
       if (phone?.trim()) {
         toast.success(`📞 ${phone} aranıyor...`);
         window.location.href = `tel:${phone}`;

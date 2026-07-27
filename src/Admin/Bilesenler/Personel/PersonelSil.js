@@ -3,8 +3,10 @@ import React, { useState } from 'react';
 import { FaTrash, FaTimes, FaSearch, FaUser, FaSpinner, FaCheck } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import { personnelService } from '../../../api/api';
+import { useAppDialog } from '../../../components/dialog/AppDialogProvider';
 
 const PersonelSil = ({ acik, kapat, onSuccess }) => {
+  const { confirm } = useAppDialog();
   const [personelId, setPersonelId] = useState('');
   const [loading, setLoading] = useState(false);
   const [arananPersonel, setArananPersonel] = useState(null);
@@ -55,9 +57,14 @@ const PersonelSil = ({ acik, kapat, onSuccess }) => {
       return;
     }
 
-    if (!window.confirm(
-      `${arananPersonel.adi} ${arananPersonel.soyadi} personelini pasif yapmak istediğinize emin misiniz?\n\nBu işlem geri alınabilir.`
-    )) return;
+    const onay = await confirm({
+      title: 'Personeli Pasife Al',
+      message: `${arananPersonel.adi} ${arananPersonel.soyadi} personelini pasif yapmak istediginize emin misiniz?\n\nBu islem geri alinabilir.`,
+      confirmText: 'Pasife Al',
+      cancelText: 'Iptal',
+      danger: true
+    });
+    if (!onay) return;
 
     setLoading(true);
     try {

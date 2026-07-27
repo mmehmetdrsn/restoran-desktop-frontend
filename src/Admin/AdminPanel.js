@@ -88,10 +88,12 @@ import SiparisYonetimi from './Bilesenler/Siparis/SiparisYonetimi';
 import SiparisDetay from './Bilesenler/Siparis/SiparisDetay';
 
 import Rapor from './Bilesenler/Raporlar/Rapor';
+import { useAppDialog } from '../components/dialog/AppDialogProvider';
 
 const backgroundImage = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80';
 
 const AdminPanel = () => {
+  const { confirm } = useAppDialog();
   const navigate = useNavigate();
   const [selectedMenu, setSelectedMenu] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -611,7 +613,14 @@ const AdminPanel = () => {
       toast.warning('Lutfen uye ID girin!');
       return;
     }
-    if (!window.confirm('Bu uyeyi silmek istediginizden emin misiniz?')) return;
+    const onay = await confirm({
+      title: 'Uyeyi Sil',
+      message: 'Bu uyeyi silmek istediginizden emin misiniz?',
+      confirmText: 'Sil',
+      cancelText: 'Iptal',
+      danger: true
+    });
+    if (!onay) return;
 
     try {
       setUyeLoading(true);
@@ -758,7 +767,14 @@ const AdminPanel = () => {
 
   // Siparis Tamamla
   const handleSiparisTamamla = async (siparisId) => {
-    if (!window.confirm('Siparisi tamamlamak istediginize emin misiniz?\n\nBu islem stoklari otomatik dusecektir!')) {
+    const onay = await confirm({
+      title: 'Siparisi Tamamla',
+      message: 'Siparisi tamamlamak istediginize emin misiniz?\n\nBu islem stoklari otomatik dusecektir!',
+      confirmText: 'Tamamla',
+      cancelText: 'Iptal',
+      danger: true
+    });
+    if (!onay) {
       return;
     }
     try {

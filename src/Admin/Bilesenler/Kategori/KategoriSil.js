@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { FaTrash, FaTimes, FaSearch, FaExclamationTriangle, FaInfoCircle } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import { categoryService, productService } from '../../../api/api';
+import { useAppDialog } from '../../../components/dialog/AppDialogProvider';
 
 const KategoriSil = ({ acik, kapat, onSuccess }) => {
+  const { confirm } = useAppDialog();
   const [kategoriId, setKategoriId] = useState('');
   const [kategoriBilgisi, setKategoriBilgisi] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -112,7 +114,14 @@ const KategoriSil = ({ acik, kapat, onSuccess }) => {
       return;
     }
 
-    if (!window.confirm(`"${kategoriBilgisi.adi}" kategorisini silmek istediginize emin misiniz?`)) {
+    const onay = await confirm({
+      title: 'Kategoriyi Sil',
+      message: `"${kategoriBilgisi.adi}" kategorisini silmek istediginize emin misiniz?`,
+      confirmText: 'Sil',
+      cancelText: 'Iptal',
+      danger: true
+    });
+    if (!onay) {
       return;
     }
 

@@ -83,6 +83,10 @@ const GarsonPanel = () => {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [selectedStatusTable, setSelectedStatusTable] = useState(null);
+  const [showNoteModal, setShowNoteModal] = useState(false);
+  const [noteModalType, setNoteModalType] = useState("add");
+  const [noteModalItem, setNoteModalItem] = useState(null);
+  const [noteText, setNoteText] = useState("");
   const [activeTab, setActiveTab] = useState("masa");
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const userMenuRef = useRef(null);
@@ -545,21 +549,19 @@ const GarsonPanel = () => {
     });
 
   // Sepet İşlemleri
+  const closeNoteModal = () => {
+    setShowNoteModal(false);
+    setNoteModalItem(null);
+    setNoteText("");
+    setNoteModalType("add");
+  };
+
   const addToCart = (item) => {
-    const note = prompt(`📝 ${item.name} için özel not (isteğe bağlı):`, "");
     const existing = cart.find((c) => c.id === item.id);
-    if (existing) {
-      setCart(
-        cart.map((c) =>
-          c.id === item.id
-            ? { ...c, quantity: c.quantity + 1, note: note || c.note }
-            : c,
-        ),
-      );
-    } else {
-      setCart([...cart, { ...item, quantity: 1, note: note || "" }]);
-    }
-    toast.success(`${item.name} sepete eklendi`);
+    setNoteModalType("add");
+    setNoteModalItem(item);
+    setNoteText(existing?.note || "");
+    setShowNoteModal(true);
   };
 
   const removeFromCart = (itemId) => {
@@ -578,16 +580,46 @@ const GarsonPanel = () => {
   const updateItemNote = (itemId) => {
     const item = cart.find((c) => c.id === itemId);
     if (item) {
-      const newNote = prompt(
-        `📝 ${item.name} için not güncelle:`,
-        item.note || "",
+      setNoteModalType("edit");
+      setNoteModalItem(item);
+      setNoteText(item.note || "");
+      setShowNoteModal(true);
+    }
+  };
+
+  const handleNoteModalSubmit = (e) => {
+    e.preventDefault();
+    if (!noteModalItem) return;
+
+    if (noteModalType === "edit") {
+      setCart((prev) =>
+        prev.map((c) =>
+          c.id === noteModalItem.id ? { ...c, note: noteText } : c,
+        ),
       );
-      if (newNote !== null) {
-        setCart(
-          cart.map((c) => (c.id === itemId ? { ...c, note: newNote } : c)),
+      toast.success("Not güncellendi");
+      closeNoteModal();
+      return;
+    }
+
+    setCart((prev) => {
+      const existing = prev.find((c) => c.id === noteModalItem.id);
+      if (existing) {
+        return prev.map((c) =>
+          c.id === noteModalItem.id
+            ? {
+              ...c,
+              quantity: c.quantity + 1,
+              note: noteText || c.note,
+            }
+            : c,
         );
       }
-    }
+      return [...prev, { ...noteModalItem, quantity: 1, note: noteText || "" }];
+    });
+
+    toast.success(`${noteModalItem.name} sepete eklendi`);
+    closeNoteModal();
   };
 
   const confirmOrder = async () => {
@@ -1608,6 +1640,56 @@ const GarsonPanel = () => {
         handlePasswordChange={handlePasswordChange}
         passwordLoading={passwordLoading}
       />
+
+      {showNoteModal && noteModalItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div
+            className={`${isDayMode ? "bg-white text-slate-900 border-slate-200" : "bg-black/95 text-white border-white/10"} backdrop-blur-sm rounded-2xl border shadow-2xl max-w-xl w-full p-6`}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h2 className={`${isDayMode ? "text-slate-900" : "text-white"} font-bold text-lg`}>
+                {noteModalType === "edit" ? "Not Güncelle" : "Ürün Notu"}
+              </h2>
+              <button
+                onClick={closeNoteModal}
+                className={`${isDayMode ? "text-slate-500 hover:text-slate-900" : "text-gray-400 hover:text-white"}`}
+              >
+                <FaTimes size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleNoteModalSubmit} className="space-y-4">
+              <p className={`${isDayMode ? "text-slate-600" : "text-gray-300"} text-sm`}>
+                📝 <span className="font-semibold">{noteModalItem.name}</span> için özel not (isteğe bağlı)
+              </p>
+              <input
+                type="text"
+                value={noteText}
+                onChange={(e) => setNoteText(e.target.value)}
+                className={`w-full px-4 py-2.5 rounded-xl outline-none transition-all ${isDayMode ? "bg-white border border-slate-300 text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-slate-300" : "bg-white/5 border border-white/10 text-white placeholder:text-gray-500 focus:ring-2 focus:ring-white/20"}`}
+                placeholder="Örnek: Acısız, az tuzlu, ekstra sıcak"
+                autoFocus
+              />
+
+              <div className="flex justify-end gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={closeNoteModal}
+                  className={`px-5 py-2.5 rounded-xl transition-all ${isDayMode ? "bg-slate-100 hover:bg-slate-200 text-slate-700" : "bg-white/5 hover:bg-white/10 text-gray-300"}`}
+                >
+                  İptal
+                </button>
+                <button
+                  type="submit"
+                  className={`${isDayMode ? "bg-slate-900 hover:bg-slate-700 text-white" : "bg-indigo-300 hover:bg-indigo-200 text-black"} px-5 py-2.5 rounded-xl font-semibold transition-all`}
+                >
+                  Tamam
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

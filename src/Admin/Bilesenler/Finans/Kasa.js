@@ -6,8 +6,10 @@ import {
 } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import { cashService } from '../../../api/api';
+import { useAppDialog } from '../../../components/dialog/AppDialogProvider';
 
 const Kasa = ({ acik, kapat, kasaHareketleri, loading, onSuccess }) => {
+  const { confirm } = useAppDialog();
   const [kasaAcLoading, setKasaAcLoading] = useState(false);
   const [acilisBakiyesi, setAcilisBakiyesi] = useState('');
   const [personelId, setPersonelId] = useState('');
@@ -89,11 +91,17 @@ const Kasa = ({ acik, kapat, kasaHareketleri, loading, onSuccess }) => {
       return;
     }
 
-    if (!window.confirm(
-      `Kasa #${acikKasa.kasaId} kapatmak istediğinize emin misiniz?\n\n` +
-      `Açılış Bakiyesi: ₺${acikKasa.acilisBakiyesi?.toFixed(2) || 0}\n` +
-      `Kapanış Bakiyesi: ₺${kapanis.toFixed(2)}`
-    )) {
+    const onay = await confirm({
+      title: 'Kasayi Kapat',
+      message:
+        `Kasa #${acikKasa.kasaId} kapatmak istediginize emin misiniz?\n\n` +
+        `Acilis Bakiyesi: ₺${acikKasa.acilisBakiyesi?.toFixed(2) || 0}\n` +
+        `Kapanis Bakiyesi: ₺${kapanis.toFixed(2)}`,
+      confirmText: 'Kasayi Kapat',
+      cancelText: 'Iptal',
+      danger: true
+    });
+    if (!onay) {
       return;
     }
 

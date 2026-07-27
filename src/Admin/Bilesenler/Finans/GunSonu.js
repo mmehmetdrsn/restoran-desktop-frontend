@@ -3,8 +3,10 @@ import React, { useState } from 'react';
 import { FaTimes, FaCheckDouble, FaMoneyBillWave, FaCalculator, FaPrint, FaFileAlt, FaSpinner } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import { cashService, orderService } from '../../../api/api';
+import { useAppDialog } from '../../../components/dialog/AppDialogProvider';
 
 const GunSonu = ({ acik, kapat }) => {
+  const { confirm } = useAppDialog();
   const [tarih, setTarih] = useState(new Date().toISOString().split('T')[0]);
   const [loading, setLoading] = useState(false);
   const [rapor, setRapor] = useState(null);
@@ -84,12 +86,18 @@ const GunSonu = ({ acik, kapat }) => {
       return;
     }
 
-    if (!window.confirm(
-      `Gün sonu işlemini başlatmak istediğinize emin misiniz?\n\n` +
-      `Kasa: #${seciliKasa.kasaId}\n` +
-      `Açılış Bakiyesi: ₺${seciliKasa.acilisBakiyesi?.toFixed(2) || 0}\n` +
-      `Tarih: ${tarih}`
-    )) {
+    const onay = await confirm({
+      title: 'Gun Sonu Islemi',
+      message:
+        `Gun sonu islemini baslatmak istediginize emin misiniz?\n\n` +
+        `Kasa: #${seciliKasa.kasaId}\n` +
+        `Acilis Bakiyesi: ₺${seciliKasa.acilisBakiyesi?.toFixed(2) || 0}\n` +
+        `Tarih: ${tarih}`,
+      confirmText: 'Gun Sonu Yap',
+      cancelText: 'Iptal',
+      danger: true
+    });
+    if (!onay) {
       return;
     }
 
