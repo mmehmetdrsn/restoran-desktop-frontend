@@ -114,8 +114,6 @@ const GarsonPanel = () => {
 
   // Sepet
   const [cart, setCart] = useState([]);
-  // 🔑 Çift tıklama/çift dokunma sonucu aynı siparişin iki kez gönderilmesini
-  // (ve aynı ürünün iki ayrı satır olarak eklenmesini) önlemek için kilit.
   const [orderSubmitting, setOrderSubmitting] = useState(false);
   const [currentOrder, setCurrentOrder] = useState({
     tableId: null,
@@ -491,20 +489,12 @@ const GarsonPanel = () => {
   };
 
   const handleEditOrderFromDetail = () => {
-    // 🔑 ÖNEMLİ: Sepeti mevcut sipariş ürünleriyle DOLDURMUYORUZ.
-    // Backend, gönderilen her ürünü siparişe YENİ SATIR olarak ekliyor
-    // (var olanı güncellemiyor). Sepete eski ürünleri de koyup onaylarsak,
-    // onlar da tekrar tekrar eklenip sipariş satırlarını çoğaltıyor.
-    // Bu ekran sadece siparişe "yeni ürün eklemek" için kullanılmalı;
-    // mevcut ürünler zaten sipariş detay modalında (ve artık sepet ekranında
-    // salt okunur olarak) görünüyor.
     setCart([]);
     setSelectedTable(selectedOrderTable);
     setShowOrderModal(true);
     setShowOrderDetailModal(false);
   };
 
-  // 🔑 Sipariş detayından "Ödeme Al" butonuna basılınca çalışan fonksiyon
   const handlePaymentFromDetail = () => {
     if (!selectedOrderTable) return;
     setSelectedTable({
@@ -532,7 +522,6 @@ const GarsonPanel = () => {
     return table.status === filter;
   });
 
-  // ✅ DOLU MASALARI SİPARİŞLERLE EŞLEŞTİR
   const occupiedTables = tables
     .filter((t) => t.status === "occupied")
     .map((t) => {
@@ -626,7 +615,7 @@ const GarsonPanel = () => {
   };
 
   const confirmOrder = async () => {
-    if (orderSubmitting) return; // 🔒 Zaten gönderim yapılıyorsa ikinci tıklamayı yok say
+    if (orderSubmitting) return;
     if (cart.length === 0) {
       toast.warning("Sepet boş!");
       return;
@@ -638,138 +627,122 @@ const GarsonPanel = () => {
 
     setOrderSubmitting(true);
 
-      // Sepetteki ürünleri kontrol et
-  const cartItems = cart.map((item) => ({
-    urunId: item.id,
-    adet: item.quantity,
-    detayNot: item.note || "",
-  }));
+    const cartItems = cart.map((item) => ({
+      urunId: item.id,
+      adet: item.quantity,
+      detayNot: item.note || "",
+    }));
 
-  // Sepet özetini göster
-  const cartSummary = cart
-    .map((item) => `${item.quantity}x ${item.name}`)
-    .join(", ");
-  console.log(`🛒 Sepet: ${cartSummary}`);
+    const cartSummary = cart
+      .map((item) => `${item.quantity}x ${item.name}`)
+      .join(", ");
+    console.log(`🛒 Sepet: ${cartSummary}`);
 
-  try {
-    // 🔑 Masada zaten aktif bir sipariş varsa ID'sini gönder ki backend
-    // yeni sipariş açmak yerine ona eklesin (backend ayrıca MasaId üzerinden
-    // de bir güvenlik kontrolü yapıyor, ama bunu göndermek en doğrusu).
-    const activeOrderId = selectedTable.order?.siparisId || selectedTable.order?.id;
+    try {
+      const activeOrderId = selectedTable.order?.siparisId || selectedTable.order?.id;
 
-    const siparisData = {
-      siparisId: activeOrderId || null,
-      masaId: selectedTable.id,
-      siparisTipi: "SALON",
-      personelId: 1,
-      detaylar: cartItems,
-    };
-
-    console.log("📦 Sipariş verisi gönderiliyor:", siparisData);
-
-    const createdOrderResponse = await orderService.create(siparisData);
-    const responseData = createdOrderResponse?.data || createdOrderResponse;
-
-    console.log("✅ Sipariş yanıtı:", responseData);
-
-    toast.success("✅ Sipariş başarıyla mutfağa iletildi! 🍳");
-
-    const createdOrder = responseData?.Siparis || responseData;
-
-    if (createdOrder) {
-      const updatedTable = {
-        ...selectedTable,
-        status: "occupied",
-        order: {
-          siparisId: createdOrder.siparisId || responseData?.SiparisId,
-          toplam:
-            createdOrder.toplamTutar ||
-            responseData?.HesaplananToplamTutar ||
-            cart.reduce(
-              (sum, item) => sum + (item.price || 0) * (item.quantity || 1),
-              0
-            ),
-          siparisDurumu: createdOrder.siparisDurumu || "HAZIRLANIYOR",
-          siparisTarihi: createdOrder.siparisTarihi || new Date().toISOString(),
-          siparisUrunleri:
-            createdOrder.siparisUrunleri ||
-            cart.map((item) => ({
-              urunId: item.id,
-              urunAdi: item.name,
-              adet: item.quantity,
-              fiyat: item.price || 0,
-              detayNot: item.note || "",
-              satirToplami: (item.price || 0) * (item.quantity || 1),
-            })),
-        },
-        time: createdOrder.siparisTarihi || new Date().toISOString(),
+      const siparisData = {
+        siparisId: activeOrderId || null,
+        masaId: selectedTable.id,
+        siparisTipi: "SALON",
+        personelId: 1,
+        detaylar: cartItems,
       };
 
-      setSelectedTable(updatedTable);
-      setTables((prev) =>
-        prev.map((t) => (t.id === updatedTable.id ? updatedTable : t))
-      );
-    }
+      console.log("📦 Sipariş verisi gönderiliyor:", siparisData);
 
-    await verileriYukle();
-    setActiveTab("masa");
-    setShowOrderModal(false);
-    setCart([]);
-    toast.success("✅ Sipariş başarıyla oluşturuldu!");
-  } catch (error) {
-    console.error("❌ Sipariş hatası:", error);
+      const createdOrderResponse = await orderService.create(siparisData);
+      const responseData = createdOrderResponse?.data || createdOrderResponse;
 
-    const errorData = error?.response?.data;
-    console.log("📦 Hata detayı:", errorData);
+      console.log("✅ Sipariş yanıtı:", responseData);
 
-    //  STOK HATASINI YAKALA
-    if ((errorData?.HataKodu || errorData?.hataKodu) === "STOK_YETERSIZ") {
-      // Stok hata mesajlarını göster
-      const hataMesajlari = errorData?.Hatalar || errorData?.hatalar || [];
+      toast.success("✅ Sipariş başarıyla mutfağa iletildi! 🍳");
 
-      if (hataMesajlari.length > 0) {
-        // İlk hatayı ana mesaj olarak göster
-        toast.error(`❌ ${hataMesajlari[0]}`);
+      const createdOrder = responseData?.Siparis || responseData;
 
-        // Diğer hataları detaylı göster
-        if (hataMesajlari.length > 1) {
-          setTimeout(() => {
-            hataMesajlari.slice(1).forEach((msg, index) => {
-              setTimeout(() => {
-                toast.warning(`⚠️ ${msg}`);
-              }, index * 1000);
-            });
-          }, 500);
+      if (createdOrder) {
+        const updatedTable = {
+          ...selectedTable,
+          status: "occupied",
+          order: {
+            siparisId: createdOrder.siparisId || responseData?.SiparisId,
+            toplam:
+              createdOrder.toplamTutar ||
+              responseData?.HesaplananToplamTutar ||
+              cart.reduce(
+                (sum, item) => sum + (item.price || 0) * (item.quantity || 1),
+                0
+              ),
+            siparisDurumu: createdOrder.siparisDurumu || "HAZIRLANIYOR",
+            siparisTarihi: createdOrder.siparisTarihi || new Date().toISOString(),
+            siparisUrunleri:
+              createdOrder.siparisUrunleri ||
+              cart.map((item) => ({
+                urunId: item.id,
+                urunAdi: item.name,
+                adet: item.quantity,
+                fiyat: item.price || 0,
+                detayNot: item.note || "",
+                satirToplami: (item.price || 0) * (item.quantity || 1),
+              })),
+          },
+          time: createdOrder.siparisTarihi || new Date().toISOString(),
+        };
+
+        setSelectedTable(updatedTable);
+        setTables((prev) =>
+          prev.map((t) => (t.id === updatedTable.id ? updatedTable : t))
+        );
+      }
+
+      await verileriYukle();
+      setActiveTab("masa");
+      setShowOrderModal(false);
+      setCart([]);
+      toast.success("✅ Sipariş başarıyla oluşturuldu!");
+    } catch (error) {
+      console.error("❌ Sipariş hatası:", error);
+
+      const errorData = error?.response?.data;
+      console.log("📦 Hata detayı:", errorData);
+
+      if ((errorData?.HataKodu || errorData?.hataKodu) === "STOK_YETERSIZ") {
+        const hataMesajlari = errorData?.Hatalar || errorData?.hatalar || [];
+
+        if (hataMesajlari.length > 0) {
+          toast.error(`❌ ${hataMesajlari[0]}`);
+          if (hataMesajlari.length > 1) {
+            setTimeout(() => {
+              hataMesajlari.slice(1).forEach((msg, index) => {
+                setTimeout(() => {
+                  toast.warning(`⚠️ ${msg}`);
+                }, index * 1000);
+              });
+            }, 500);
+          }
+        } else {
+          toast.error(" Stok yetersiz! Sipariş oluşturulamadı.");
         }
+
+        if (errorData?.Detaylar || errorData?.detaylar) {
+          console.table(errorData.Detaylar || errorData.detaylar);
+        }
+      } else if (errorData?.Mesaj) {
+        toast.error(`❌ ${errorData.Mesaj}`);
       } else {
-        toast.error(" Stok yetersiz! Sipariş oluşturulamadı.");
+        toast.error(
+          error.response?.data?.Mesaj ||
+            error.message ||
+            "Sipariş oluşturulamadı!"
+        );
       }
 
-      // Detayları konsola yaz
-      if (errorData?.Detaylar || errorData?.detaylar) {
-        console.table(errorData.Detaylar || errorData.detaylar);
-      }
-    } else if (errorData?.Mesaj) {
-      toast.error(`❌ ${errorData.Mesaj}`);
-    } else {
-      toast.error(
-        error.response?.data?.Mesaj ||
-          error.message ||
-          "Sipariş oluşturulamadı!"
-      );
+      await verileriYukle();
+    } finally {
+      setOrderSubmitting(false);
     }
-
-    // 🔑 Sipariş oluşturma başarısız olsa bile (stok yetersiz vb.), masa/sipariş
-    // verisini backend'den tazele. Böylece garson ekranındaki masa durumu her
-    // zaman admin panelindeki (yani veritabanındaki) gerçek durumla birebir
-    // eşleşir; başarısız denemeden sonra ekranda "sanki eklenmiş gibi" bir iz kalmaz.
-    await verileriYukle();
-  } finally {
-    setOrderSubmitting(false);
-  }
   };
 
-  //  ÖDEME İŞLEMİ (masaOdeme ve processPayment çakışması çözüldü)
   const processPayment = async (tableId, method) => {
     if (paymentProcessing) return;
     setPaymentProcessing(true);
@@ -932,18 +905,31 @@ const GarsonPanel = () => {
     }
 
     try {
+      const siparisDetaylari = await orderService.getById(refundTable.order.siparisId);
+      const detaylar = siparisDetaylari?.data?.siparisUrunleri ||
+        siparisDetaylari?.data?.detaylar ||
+        siparisDetaylari?.data?.SiparisDetays || [];
+
       const iadeIstekleri = selectedRefundItems.map((index) => {
         const item = refundItems[index];
+
+        const detay = detaylar.find(d =>
+          d.urunId === item.id ||
+          d.siparisDetayId === item.id ||
+          d.id === item.id
+        );
+
         const birimFiyat = item?.price || 0;
         const adet = item?.quantity || 1;
         const toplamTutar = birimFiyat * adet;
 
         return paymentService.processRefund({
+          siparisId: refundTable.order.siparisId,
           iadeSebebi: refundReason,
-          iadeDurumu: "BEKLEMEDE",
+          iadeDurumu: "ONAYLANDI",
           iadeTutari: toplamTutar,
-          siparisDetayId: item?.id || null,
-          urunId: item?.id || null,
+          siparisDetayId: detay?.siparisDetayId || item?.siparisDetayId || null,
+          urunId: detay?.urunId || item?.urunId || item?.id || null,
           personelId: 1,
         });
       });
@@ -1112,56 +1098,50 @@ const GarsonPanel = () => {
 
             <div className="mt-2 space-y-2">
               <div className="px-3"></div>
-             <button
-  onClick={() => setShowMoveTableModal(true)}
-  className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all mt-2 ${
-    isDayMode
-      ? "text-slate-700 bg-slate-100 hover:text-slate-900 hover:bg-slate-200"
-      : "text-gray-400 bg-white/10 hover:text-white hover:bg-white/15"
-  }`}
->
-  <FaTruck size={18} />
-
-  {sidebarOpen && (
-    <div className="flex-1 text-left">
-      <p
-        className={`${
-          isDayMode
-            ? "text-slate-900"
-            : "text-sm font-medium text-white"
-        }`}
-      >
-        Masa Taşı
-      </p>
-    </div>
-  )}
-</button>
+              <button
+                onClick={() => setShowMoveTableModal(true)}
+                className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all mt-2 ${isDayMode
+                    ? "text-slate-700 bg-slate-100 hover:text-slate-900 hover:bg-slate-200"
+                    : "text-gray-400 bg-white/10 hover:text-white hover:bg-white/15"
+                  }`}
+              >
+                <FaTruck size={18} />
+                {sidebarOpen && (
+                  <div className="flex-1 text-left">
+                    <p
+                      className={`${isDayMode
+                          ? "text-slate-900"
+                          : "text-sm font-medium text-white"
+                        }`}
+                    >
+                      Masa Taşı
+                    </p>
+                  </div>
+                )}
+              </button>
             </div>
 
-           <button
-  onClick={() => setShowRefundModal(true)}
-  className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all mt-2 ${
-    isDayMode
-      ? "text-slate-700 bg-slate-100 hover:text-slate-900 hover:bg-slate-200"
-      : "text-gray-400 bg-white/10 hover:text-white hover:bg-white/15"
-  }`}
->
-  <FaArrowLeft size={18} />
-
-  {sidebarOpen && (
-    <div className="flex-1 text-left">
-      <p
-        className={`${
-          isDayMode
-            ? "text-slate-900"
-            : "text-sm font-medium text-white"
-        }`}
-      >
-        İade / İptal
-      </p>
-    </div>
-  )}
-</button>
+            <button
+              onClick={() => setShowRefundModal(true)}
+              className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all mt-2 ${isDayMode
+                  ? "text-slate-700 bg-slate-100 hover:text-slate-900 hover:bg-slate-200"
+                  : "text-gray-400 bg-white/10 hover:text-white hover:bg-white/15"
+                }`}
+            >
+              <FaArrowLeft size={18} />
+              {sidebarOpen && (
+                <div className="flex-1 text-left">
+                  <p
+                    className={`${isDayMode
+                        ? "text-slate-900"
+                        : "text-sm font-medium text-white"
+                      }`}
+                  >
+                    İade / İptal
+                  </p>
+                </div>
+              )}
+            </button>
           </div>
         </div>
 
@@ -1169,7 +1149,6 @@ const GarsonPanel = () => {
         <div
           className={`flex-1 min-h-screen overflow-y-auto transition-all duration-300 ${sidebarOpen ? "lg:pl-64" : "lg:pl-20"} ${isDayMode ? "bg-slate-100/90 text-slate-900" : ""}`}
         >
-          {" "}
           <div
             className={`${isDayMode ? "bg-slate-100/90 text-slate-900 border-slate-200/30" : "bg-black/80 text-white"} backdrop-blur-sm border-b sticky top-0 z-30`}
           >
@@ -1179,16 +1158,14 @@ const GarsonPanel = () => {
                   <button
                     onClick={() => setIsUserMenuOpen((prev) => !prev)}
                     title="Kullanıcı menüsü"
-                    className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${
-                      isDayMode
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${isDayMode
                         ? "hover:bg-slate-100"
                         : "hover:bg-white/10"
-                    }`}
+                      }`}
                   >
                     <span
-                      className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                        isDayMode ? "bg-slate-200 text-slate-700" : "bg-white/10 text-gray-200"
-                      }`}
+                      className={`w-8 h-8 rounded-full flex items-center justify-center ${isDayMode ? "bg-slate-200 text-slate-700" : "bg-white/10 text-gray-200"
+                        }`}
                     >
                       <FaUser size={12} />
                     </span>
@@ -1206,30 +1183,27 @@ const GarsonPanel = () => {
                     </span>
                     <FaChevronDown
                       size={11}
-                      className={`transition-transform duration-200 ${
-                        isUserMenuOpen ? "rotate-180" : "rotate-0"
-                      } ${isDayMode ? "text-slate-500" : "text-gray-400"}`}
+                      className={`transition-transform duration-200 ${isUserMenuOpen ? "rotate-180" : "rotate-0"
+                        } ${isDayMode ? "text-slate-500" : "text-gray-400"}`}
                     />
                   </button>
 
                   {isUserMenuOpen && (
                     <div
-                      className={`absolute right-0 mt-2 min-w-[190px] rounded-xl border shadow-xl z-50 overflow-hidden ${
-                        isDayMode
+                      className={`absolute right-0 mt-2 min-w-[190px] rounded-xl border shadow-xl z-50 overflow-hidden ${isDayMode
                           ? "bg-white border-slate-200"
                           : "bg-black/95 border-white/10"
-                      }`}
+                        }`}
                     >
                       <button
                         onClick={() => {
                           setShowPasswordModal(true);
                           setIsUserMenuOpen(false);
                         }}
-                        className={`w-full flex items-center gap-2 px-4 py-3 text-sm transition-all ${
-                          isDayMode
+                        className={`w-full flex items-center gap-2 px-4 py-3 text-sm transition-all ${isDayMode
                             ? "text-slate-700 hover:bg-slate-100"
                             : "text-gray-200 hover:bg-white/10"
-                        }`}
+                          }`}
                       >
                         <FaKey size={13} />
                         Şifre Değiştir
@@ -1239,11 +1213,10 @@ const GarsonPanel = () => {
                           setIsUserMenuOpen(false);
                           handleLogout();
                         }}
-                        className={`w-full flex items-center gap-2 px-4 py-3 text-sm transition-all ${
-                          isDayMode
+                        className={`w-full flex items-center gap-2 px-4 py-3 text-sm transition-all ${isDayMode
                             ? "text-red-700 hover:bg-red-50"
                             : "text-red-300 hover:bg-red-500/15"
-                        }`}
+                          }`}
                       >
                         <FaSignOutAlt size={13} />
                         Çıkış
@@ -1259,18 +1232,16 @@ const GarsonPanel = () => {
                           className="w-full"
                         >
                           <div
-                            className={`relative h-20 rounded-[18px] border overflow-hidden transition-all ${
-                              isDayMode
+                            className={`relative h-20 rounded-[18px] border overflow-hidden transition-all ${isDayMode
                                 ? "bg-gradient-to-br from-amber-50 via-rose-50 to-sky-100 border-amber-100"
                                 : "bg-slate-800 border-slate-700"
-                            }`}
+                              }`}
                           >
                             <div
-                              className={`absolute top-1 left-1 w-[calc(50%-0.25rem)] h-[calc(100%-0.5rem)] rounded-[14px] transition-all duration-300 shadow-lg ${
-                                isDayMode
+                              className={`absolute top-1 left-1 w-[calc(50%-0.25rem)] h-[calc(100%-0.5rem)] rounded-[14px] transition-all duration-300 shadow-lg ${isDayMode
                                   ? "translate-x-full bg-white/90"
                                   : "translate-x-0 bg-slate-900"
-                              }`}
+                                }`}
                             />
                             <div className="relative z-10 h-full grid grid-cols-2">
                               <div className={`flex flex-col items-center justify-center gap-1 ${isDayMode ? "text-slate-500" : "text-white"}`}>
@@ -1496,41 +1467,44 @@ const GarsonPanel = () => {
                     </div>
 
                     {items.map((item, index) => {
-                      const normalized = normalizeOrderItem(item);
-                      const subtotal = normalized.quantity * normalized.price;
-                      return (
-                        <div
-                          key={index}
-                          className={`${isDayMode ? "bg-slate-50 border-slate-200" : "bg-white/5 border-white/10"} border rounded-2xl p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3`}
-                        >
-                          <div className="flex-1">
-                            <p
-                              className={`${isDayMode ? "text-slate-900" : "text-white"} font-semibold`}
-                            >
-                              {normalized.name}
-                            </p>
-                            <p
-                              className={`${isDayMode ? "text-slate-500" : "text-gray-400"} text-sm`}
-                            >
-                              {normalized.quantity} x ₺
-                              {normalized.price.toFixed(2)}
-                              {normalized.note && (
-                                <span
-                                  className={`${isDayMode ? "text-slate-600" : "text-yellow-400"} text-xs ml-2`}
-                                >
-                                  📝 {normalized.note}
-                                </span>
-                              )}
-                            </p>
-                          </div>
-                          <div
-                            className={`${isDayMode ? "text-slate-900" : "text-white"} font-semibold`}
-                          >
-                            ₺{subtotal.toFixed(2)}
-                          </div>
-                        </div>
-                      );
-                    })}
+    const normalized = normalizeOrderItem(item);
+    const subtotal = normalized.quantity * normalized.price;
+    
+    // ✅ Doğru kontrol: item üzerinden IadeEdildi'yi al
+    const isIadeEdildi = item.iadeEdildi === true || item.IadeEdildi === true;
+    
+    // ✅ Konsola yaz (hata ayıklama için)
+    console.log(`Ürün: ${normalized.name}, IadeEdildi:`, isIadeEdildi, item);
+
+    return (
+        <div
+            key={index}
+            className={`${isDayMode ? "bg-slate-50 border-slate-200" : "bg-white/5 border-white/10"} border rounded-2xl p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3 ${isIadeEdildi ? (isDayMode ? "bg-red-50 border-red-200" : "bg-red-950/30 border-red-800/50") : ""}`}
+        >
+            <div className="flex-1">
+                <p className={`${isDayMode ? "text-slate-900" : "text-white"} font-semibold ${isIadeEdildi ? (isDayMode ? "text-red-700 line-through" : "text-red-400 line-through") : ""}`}>
+                    {normalized.name}
+                    {isIadeEdildi && (
+                        <span className="ml-2 text-xs text-red-500 font-bold">
+                            🔴 İADE EDİLDİ
+                        </span>
+                    )}
+                </p>
+                <p className={`${isDayMode ? "text-slate-500" : "text-gray-400"} text-sm ${isIadeEdildi ? "line-through" : ""}`}>
+                    {normalized.quantity} x ₺{normalized.price.toFixed(2)}
+                    {normalized.note && (
+                        <span className={`${isDayMode ? "text-slate-600" : "text-yellow-400"} text-xs ml-2`}>
+                            📝 {normalized.note}
+                        </span>
+                    )}
+                </p>
+            </div>
+            <div className={`${isDayMode ? "text-slate-900" : "text-white"} font-semibold ${isIadeEdildi ? (isDayMode ? "text-red-700" : "text-red-400") : ""}`}>
+                {isIadeEdildi ? 'İADE EDİLDİ' : `₺${subtotal.toFixed(2)}`}
+            </div>
+        </div>
+    );
+})}                
                   </div>
                 );
               })()}
