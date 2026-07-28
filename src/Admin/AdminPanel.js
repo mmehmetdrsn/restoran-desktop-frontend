@@ -101,7 +101,7 @@ const AdminPanel = () => {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
-  const [isDayMode, setIsDayMode] = useState(false);
+  const [isDayMode, setIsDayMode] = useState(true);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const userMenuRef = useRef(null);
   const [siparisGosterimModu, setSiparisGosterimModu] = useState('all');
@@ -1023,7 +1023,7 @@ const AdminPanel = () => {
     >
       <div className={`absolute inset-0 ${isDayMode ? 'bg-white/30' : 'bg-black/40'} backdrop-blur-xl`}></div>
 
-      <div className="relative z-10 flex">
+      <div className="relative z-10 flex min-h-screen overflow-hidden">
         <Sidebar
           acik={sidebarOpen}
           mobilAcik={mobileSidebarOpen}
@@ -1053,7 +1053,7 @@ const AdminPanel = () => {
           />
         )}
 
-        <div className={`flex-1 ${isDayMode ? 'bg-slate-50 text-slate-900' : ''}`}>
+        <div className={`flex-1 min-h-screen overflow-y-auto transition-all duration-300 ${sidebarOpen ? 'lg:pl-72' : 'lg:pl-20'} ${isDayMode ? 'bg-slate-50 text-slate-900' : ''}`}>
           <div className={`${isDayMode ? 'bg-white/85 border-slate-200/70' : 'bg-black/80 border-white/10'} backdrop-blur-sm border-b sticky top-0 z-30`}>
             <div className="max-w-7xl mx-auto px-4 py-3">
               <div className="flex items-center justify-end gap-4">

@@ -93,7 +93,7 @@ const HesapIslemleri = ({
             <div 
               key={table.id} 
               className={`
-                ${isDayMode ? 'bg-slate-100 border border-slate-200/50 text-slate-900' : 'bg-white/5 border border-white/10 text-white'} 
+                ${isDayMode ? 'bg-slate-200/80 border border-slate-300/60 text-slate-900' : 'bg-white/10 border border-white/10 text-white'} 
                 p-4 rounded-xl flex items-center justify-between gap-4
                 ${loading ? 'opacity-50 pointer-events-none' : ''}
               `}

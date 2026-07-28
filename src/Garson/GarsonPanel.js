@@ -70,7 +70,7 @@ const GarsonPanel = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [selectedTable, setSelectedTable] = useState(null);
-  const [isDayMode, setIsDayMode] = useState(false);
+  const [isDayMode, setIsDayMode] = useState(true);
 
   // Modallar
   const [showOrderModal, setShowOrderModal] = useState(false);
@@ -992,17 +992,17 @@ const GarsonPanel = () => {
       }}
     >
       <div
-        className={`absolute inset-0 ${isDayMode ? "bg-white/30" : "bg-black/40"} backdrop-blur-xl`}
+        className={`absolute inset-0 ${isDayMode ? "bg-slate-950/45" : "bg-black/55"} backdrop-blur-xl`}
       ></div>
 
-      <div className="relative z-10 flex">
+      <div className="relative z-10 flex min-h-screen overflow-hidden">
         {/* Sidebar */}
         <div
           className={`
     fixed left-0 top-0
     ${sidebarOpen ? "w-64" : "w-20"}
     ${isDayMode
-              ? "bg-slate-50/95 text-slate-900 border-slate-200/50"
+              ? "bg-slate-100/95 text-slate-900 border-slate-200/50"
               : "bg-black/90 text-white border-white/10"
             }
     backdrop-blur-sm
@@ -1010,6 +1010,7 @@ const GarsonPanel = () => {
     transition-all duration-300
     overflow-y-auto
     z-50
+    flex-shrink-0
   `}
         >
           <div
@@ -1166,12 +1167,11 @@ const GarsonPanel = () => {
 
         {/* İçerik */}
         <div
-          className={`flex-1 ${sidebarOpen ? "ml-64" : "ml-20"} ${isDayMode ? "bg-slate-50 text-slate-900" : ""
-            } transition-all duration-300`}
+          className={`flex-1 min-h-screen overflow-y-auto transition-all duration-300 ${sidebarOpen ? "lg:pl-64" : "lg:pl-20"} ${isDayMode ? "bg-slate-100/90 text-slate-900" : ""}`}
         >
           {" "}
           <div
-            className={`${isDayMode ? "bg-white/80 text-slate-900 border-slate-200/30" : "bg-black/80 text-white"} backdrop-blur-sm border-b sticky top-0 z-30`}
+            className={`${isDayMode ? "bg-slate-100/90 text-slate-900 border-slate-200/30" : "bg-black/80 text-white"} backdrop-blur-sm border-b sticky top-0 z-30`}
           >
             <div className="max-w-7xl mx-auto px-4 py-3">
               <div className="flex items-center justify-end gap-4">

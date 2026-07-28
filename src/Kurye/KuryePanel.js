@@ -24,7 +24,7 @@ const KuryePanel = () => {
   const [activeOrders, setActiveOrders] = useState([]);
   const [historyOrders, setHistoryOrders] = useState([]);
   const [updatingOrderId, setUpdatingOrderId] = useState(null);
-  const [isDayMode, setIsDayMode] = useState(false);
+  const [isDayMode, setIsDayMode] = useState(true);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');

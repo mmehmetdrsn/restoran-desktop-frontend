@@ -19,7 +19,7 @@ const AsciPanel = () => {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const [isDayMode, setIsDayMode] = useState(false);
+  const [isDayMode, setIsDayMode] = useState(true);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const userMenuRef = useRef(null);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -568,9 +568,9 @@ const AsciPanel = () => {
     <div className={`min-h-screen relative ${isDayMode ? 'asci-day' : ''}`} style={{ backgroundImage: `url(${backgroundImage})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }}>
       <div className={`absolute inset-0 ${isDayMode ? 'bg-white/30' : 'bg-black/40'} backdrop-blur-xl`}></div>
 
-      <div className="relative z-10 flex">
+      <div className="relative z-10 flex min-h-screen overflow-hidden">
         {/* Sidebar */}
-        <div className={`fixed lg:relative lg:flex lg:flex-col ${sidebarOpen ? 'w-64' : 'w-20'} ${isDayMode ? 'bg-white border-r border-slate-200' : 'bg-black/90 border-r border-white/10'} backdrop-blur-sm h-screen transition-all duration-300 overflow-y-auto ${mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} z-50 flex-shrink-0`}>
+        <div className={`fixed left-0 top-0 ${sidebarOpen ? 'w-64' : 'w-20'} ${isDayMode ? 'bg-white border-r border-slate-200' : 'bg-black/90 border-r border-white/10'} backdrop-blur-sm h-screen transition-all duration-300 overflow-y-auto ${mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} z-50 flex-shrink-0`}>
           <div className={`flex flex-col items-center justify-center gap-2 p-4 border-b ${isDayMode ? 'border-slate-200/80' : 'border-white/10'}`}>
             {sidebarOpen ? (
               <div className="w-full text-center">
@@ -629,7 +629,7 @@ const AsciPanel = () => {
         )}
 
         {/* Ana İçerik */}
-        <div className={`flex-1 ${isDayMode ? 'bg-slate-50 text-slate-900' : ''}`}>
+        <div className={`flex-1 min-h-screen overflow-y-auto transition-all duration-300 ${sidebarOpen ? 'lg:pl-64' : 'lg:pl-20'} ${isDayMode ? 'bg-slate-50 text-slate-900' : ''}`}>
           <div className={`${isDayMode ? 'bg-white/85 border-slate-200/70' : 'bg-black/80 border-white/10'} backdrop-blur-sm border-b sticky top-0 z-30`}>
             <div className="max-w-7xl mx-auto px-4 py-3">
               <div className="flex items-center justify-end gap-4">

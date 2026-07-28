@@ -18,7 +18,7 @@ const Sidebar = ({
 }) => {
   return (
     <div className={`
-      fixed lg:relative lg:flex lg:flex-col
+      fixed left-0 top-0
       ${acik ? 'w-72' : 'w-20'}
       ${isDayMode ? 'bg-slate-50/95 border-r border-slate-200/70 text-slate-900' : 'bg-black/90 border-r border-white/10 text-white'}
       backdrop-blur-sm

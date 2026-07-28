@@ -67,7 +67,7 @@ const YeniSiparisPage = ({
       : existingOrderItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
   return (
-    <div className={`relative rounded-[32px] p-3 ${isDayMode ? 'yeni-siparis-day bg-slate-100/80 border border-slate-200/70 shadow-sm' : 'bg-white/[0.03] border border-white/10 shadow-2xl backdrop-blur-sm'}`}>
+    <div className={`relative rounded-[32px] p-3 ${isDayMode ? 'yeni-siparis-day bg-slate-200/80 border border-slate-300/70 shadow-sm' : 'bg-white/[0.03] border border-white/10 shadow-2xl backdrop-blur-sm'}`}>
       <div className="absolute top-4 right-4 z-20">
         <button
           onClick={onCancelSelection}
@@ -79,7 +79,7 @@ const YeniSiparisPage = ({
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* Sol Taraf - Menü */}
-      <div className={`${isDayMode ? 'bg-slate-50 shadow-sm border border-slate-200/60 text-slate-900' : 'bg-black/60 border-white/10'} p-4 rounded-3xl`}>
+      <div className={`${isDayMode ? 'bg-slate-100/90 shadow-sm border border-slate-200/60 text-slate-900' : 'bg-black/60 border-white/10'} p-4 rounded-3xl`}>
         <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center">
           <p className={`${isDayMode ? 'text-slate-900' : 'text-white'} font-semibold`}>Kategoriler:</p>
           <select 
@@ -134,7 +134,7 @@ const YeniSiparisPage = ({
       </div>
 
       {/* Sağ Taraf - Sepet */}
-      <div className={`${isDayMode ? 'bg-slate-50 shadow-sm border border-slate-200/60 text-slate-900' : 'bg-black/60 border-white/10 text-white'} p-4 rounded-3xl relative`}>
+      <div className={`${isDayMode ? 'bg-slate-100/90 shadow-sm border border-slate-200/60 text-slate-900' : 'bg-black/60 border-white/10 text-white'} p-4 rounded-3xl relative`}>
         {existingOrderItems.length > 0 && (
           <div className={`mb-4 p-3 rounded-2xl border ${isDayMode ? 'bg-slate-100 border-slate-200' : 'bg-white/[0.03] border-white/10'}`}>
             <p className={`${isDayMode ? 'text-slate-500' : 'text-gray-400'} text-xs font-semibold uppercase mb-2 flex items-center gap-1`}>
