@@ -1598,6 +1598,7 @@ const GarsonPanel = () => {
         setMoveFromTable={setMoveFromTable}
         setMoveToTable={setMoveToTable}
         handleMoveTable={handleMoveTable}
+        isDayMode={isDayMode}
       />
 
       <IadeModal
@@ -1616,6 +1617,7 @@ const GarsonPanel = () => {
         onTableSelect={handleRefundSelect}
         toggleRefundItem={toggleRefundItem}
         processRefund={processRefund}
+        isDayMode={isDayMode}
       />
 
       <MasaDurumuModal

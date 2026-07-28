@@ -67,7 +67,7 @@ const YeniSiparisPage = ({
       : existingOrderItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
   return (
-    <div className={`relative rounded-[32px] p-3 ${isDayMode ? 'bg-slate-100/80 border border-slate-200/70 shadow-sm' : 'bg-white/[0.03] border border-white/10 shadow-2xl backdrop-blur-sm'}`}>
+    <div className={`relative rounded-[32px] p-3 ${isDayMode ? 'yeni-siparis-day bg-slate-100/80 border border-slate-200/70 shadow-sm' : 'bg-white/[0.03] border border-white/10 shadow-2xl backdrop-blur-sm'}`}>
       <div className="absolute top-4 right-4 z-20">
         <button
           onClick={onCancelSelection}
@@ -85,7 +85,7 @@ const YeniSiparisPage = ({
           <select 
             value={selectedCategory} 
             onChange={(e) => onCategorySelect(e.target.value)} 
-            className={`${isDayMode ? 'ml-0 sm:ml-2 p-2 bg-white text-slate-900 rounded-xl border border-slate-200 shadow-sm' : 'ml-2 p-2 bg-white/5 rounded-lg text-white'}`}
+            className={`${isDayMode ? 'day-mode-select ml-0 sm:ml-2 p-2 bg-white text-slate-900 rounded-xl border border-slate-200 shadow-sm' : 'ml-2 p-2 bg-white/5 rounded-lg text-white'}`}
           >
             {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
           </select>
@@ -244,7 +244,7 @@ const YeniSiparisPage = ({
                 const table = tables.find(t => t.id === parseInt(e.target.value));
                 onSelectTable(table);
               }} 
-              className={`${isDayMode ? 'w-full p-2 bg-white rounded-xl text-slate-900 border border-slate-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-300' : 'w-full p-2 bg-white/5 rounded-lg text-white border border-white/10 focus:ring-2 focus:ring-white/20'} transition`}
+              className={`${isDayMode ? 'day-mode-select w-full p-2 bg-white rounded-xl text-slate-900 border border-slate-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-300' : 'w-full p-2 bg-white/5 rounded-lg text-white border border-white/10 focus:ring-2 focus:ring-white/20'} transition`}
             >
               <option value="">Seçiniz...</option>
               {tables.map(t => (
