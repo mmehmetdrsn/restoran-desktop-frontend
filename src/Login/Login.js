@@ -229,16 +229,16 @@ const Login = () => {
       {/* Sayfa arka planı - blurlu ve karartılmış */}
       <div className="absolute inset-0 bg-black/45 backdrop-blur-md"></div>
 
-      <div className="relative z-10 w-full max-w-4xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row">
+      <div className="relative z-10 w-full max-w-6xl min-h-[680px] bg-white/10 rounded-[28px] shadow-[0_18px_50px_rgba(15,23,42,0.12)] overflow-hidden flex flex-col md:flex-row backdrop-blur-xl border border-white/15">
 
         {/* SOL PANEL - Görsel */}
         <div
-          className="relative flex md:w-1/2 min-h-[220px] md:min-h-0 flex-col justify-between p-10 bg-cover bg-center"
+          className="relative flex md:w-1/2 min-h-[280px] md:min-h-full flex-col justify-between p-12 bg-cover bg-center"
           style={{
             backgroundImage: `url(${loginBackground})`,
           }}
         >
-          <div className="absolute inset-0 bg-black/60"></div>
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px]"></div>
 
           <div className="relative z-10 text-center mt-10">
           </div>
@@ -248,25 +248,25 @@ const Login = () => {
         </div>
 
         {/* SAĞ PANEL - Form */}
-        <div className="relative z-10 w-full md:w-1/2 bg-white p-8 sm:p-12 flex flex-col justify-center">
-          <h2 className="text-2xl font-bold text-gray-900">HOŞ GELDİNİZ</h2>
-          <p className="text-gray-500 mt-1">Giriş Yapın</p>
-          <p className="text-gray-400 text-sm mt-1 mb-8">
+        <div className="relative z-10 w-full md:w-1/2 bg-slate-100/40 backdrop-blur-md p-10 sm:p-14 flex flex-col justify-center min-h-[400px]">
+          <h2 className="text-2xl font-extrabold tracking-tight text-slate-950 drop-shadow-sm">HOŞ GELDİNİZ</h2>
+          <p className="text-slate-700 mt-1 font-medium">Giriş Yapın</p>
+          <p className="text-slate-600 text-sm mt-1 mb-8 leading-6">
            Panelinize erişmek için bilgilerinizi girin.
           </p>
 
-          <form onSubmit={handleLogin} className="space-y-5">
+          <form onSubmit={handleLogin} className="space-y-6">
             <div>
-              <label className="block text-gray-700 text-sm font-semibold mb-2">
+              <label className="block text-slate-800 text-sm font-semibold mb-2">
                 Kullanıcı Adı
               </label>
               <div className="relative">
-                <FaEnvelope className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <FaEnvelope className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
                 <input
                   type="text"
                   value={kullaniciAdi}
                   onChange={(e) => setKullaniciAdi(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-gray-800/20 focus:border-gray-800 outline-none transition-all"
+                  className="w-full pl-10 pr-4 py-3 bg-white/65 border border-white/40 rounded-xl text-slate-900 placeholder-slate-500 focus:ring-2 focus:ring-slate-500/20 focus:border-slate-400 outline-none transition-all shadow-sm backdrop-blur-sm"
                   placeholder="kullanıcı adınız"
                   disabled={loading}
                   required
@@ -275,16 +275,16 @@ const Login = () => {
             </div>
 
             <div>
-              <label className="block text-gray-700 text-sm font-semibold mb-2">
+              <label className="block text-slate-800 text-sm font-semibold mb-2">
                 Şifre
               </label>
               <div className="relative">
-                <FaLock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <FaLock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={sifre}
                   onChange={(e) => setSifre(e.target.value)}
-                  className="w-full pl-10 pr-12 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-gray-800/20 focus:border-gray-800 outline-none transition-all"
+                  className="w-full pl-10 pr-12 py-3 bg-white/65 border border-white/40 rounded-xl text-slate-900 placeholder-slate-500 focus:ring-2 focus:ring-slate-500/20 focus:border-slate-400 outline-none transition-all shadow-sm backdrop-blur-sm"
                   placeholder="••••••••"
                   disabled={loading}
                   required
@@ -292,7 +292,7 @@ const Login = () => {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-800 transition-colors"
                   tabIndex={-1}
                 >
                   {showPassword ? <FaEyeSlash /> : <FaEye />}
@@ -301,18 +301,18 @@ const Login = () => {
             </div>
 
             <div className="flex items-center justify-between text-sm">
-              <label className="flex items-center gap-2 text-gray-600 cursor-pointer select-none">
+              <label className="flex items-center gap-2 text-slate-700 cursor-pointer select-none font-medium">
                 <input
                   type="checkbox"
                   checked={beniHatirla}
                   onChange={(e) => setBeniHatirla(e.target.checked)}
-                  className="rounded border-gray-300 text-gray-800 focus:ring-gray-800/30"
+                  className="rounded border-slate-300 text-slate-700 focus:ring-slate-500/30"
                 />
                 Beni hatırla
               </label>
               <button
                 type="button"
-                className="text-gray-600 hover:text-gray-900 font-medium transition-colors"
+                className="text-slate-700 hover:text-slate-950 font-semibold transition-colors"
               >
                 Şifremi unuttum
               </button>
