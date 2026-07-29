@@ -10,6 +10,11 @@ const YeniSiparisPage = ({
   onAddToCart,
   onRemoveFromCart,
   onUpdateItemNote,
+  noteEditorItemId,
+  noteDraft,
+  onNoteDraftChange,
+  onSaveItemNote,
+  onCloseNoteEditor,
   onConfirmOrder,
   submitting = false,
   selectedTable,
@@ -205,6 +210,37 @@ const YeniSiparisPage = ({
                     <p className={`${isDayMode ? 'text-slate-600' : 'text-yellow-400'} text-xs mt-1`}>
                       📝 {it.note}
                     </p>
+                  )}
+                  {noteEditorItemId === it.id && (
+                    <div className={`${isDayMode ? 'bg-slate-50 border-slate-200' : 'bg-white/5 border-white/10'} mt-2 rounded-2xl border p-3`}>
+                      <label className={`${isDayMode ? 'text-slate-500' : 'text-gray-400'} text-xs font-semibold uppercase tracking-wide block mb-2`}>
+                        Ürün notu
+                      </label>
+                      <input
+                        type="text"
+                        value={noteDraft}
+                        onChange={(e) => onNoteDraftChange(e.target.value)}
+                        placeholder="Örnek: Acısız, az tuzlu, ekstra sıcak"
+                        className={`w-full px-3 py-2 rounded-xl outline-none transition-all ${isDayMode ? 'bg-white border border-slate-300 text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-slate-300' : 'bg-black/30 border border-white/10 text-white placeholder:text-gray-500 focus:ring-2 focus:ring-white/20'}`}
+                        autoFocus
+                      />
+                      <div className="flex justify-end gap-2 mt-3">
+                        <button
+                          type="button"
+                          onClick={onCloseNoteEditor}
+                          className={`px-3 py-2 rounded-lg text-sm transition ${isDayMode ? 'bg-slate-200 hover:bg-slate-300 text-slate-700' : 'bg-white/5 hover:bg-white/10 text-gray-300'}`}
+                        >
+                          İptal
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onSaveItemNote(it.id)}
+                          className={`${isDayMode ? 'bg-slate-900 hover:bg-slate-700 text-white' : 'bg-indigo-300 hover:bg-indigo-200 text-black'} px-3 py-2 rounded-lg text-sm font-semibold transition`}
+                        >
+                          Kaydet
+                        </button>
+                      </div>
+                    </div>
                   )}
                 </div>
                 <div className="flex items-center gap-1 ml-2">
