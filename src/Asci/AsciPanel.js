@@ -831,24 +831,24 @@ const AsciPanel = () => {
 
       {/* EKSİK MALZEME TALEBİ MODALI */}
       {showMalzemeTalep && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <div className="bg-black/95 backdrop-blur-sm rounded-2xl border border-white/10 shadow-2xl max-w-md w-full p-6">
+        <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${isDayMode ? 'bg-slate-900/35 backdrop-blur-[2px]' : 'bg-black/70 backdrop-blur-sm'}`}>
+          <div className={`${isDayMode ? 'bg-white border-slate-200 text-slate-900 shadow-[0_22px_60px_rgba(15,23,42,0.16)]' : 'bg-black/95 border-white/10 text-white'} backdrop-blur-sm rounded-2xl border shadow-2xl max-w-md w-full p-6`}>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div className="text-2xl text-yellow-400">📦</div>
                 <div>
-                  <h2 className="text-white font-bold text-lg">Eksik Malzeme Talebi</h2>
-                  <p className="text-gray-400 text-xs">Eksik malzemeleri admin'e bildirin</p>
+                  <h2 className={`${isDayMode ? 'text-slate-900' : 'text-white'} font-bold text-lg`}>Eksik Malzeme Talebi</h2>
+                  <p className={`${isDayMode ? 'text-slate-500' : 'text-gray-400'} text-xs`}>Eksik malzemeleri admin'e bildirin</p>
                 </div>
               </div>
-              <button onClick={() => setShowMalzemeTalep(false)} className="text-gray-400 hover:text-white">
+              <button onClick={() => setShowMalzemeTalep(false)} className={`${isDayMode ? 'text-slate-500 hover:text-slate-900' : 'text-gray-400 hover:text-white'}`}>
                 <FaTimes size={20} />
               </button>
             </div>
 
             <form onSubmit={handleMalzemeTalep} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1.5">Malzeme *</label>
+                <label className={`block text-sm font-medium ${isDayMode ? 'text-slate-700' : 'text-gray-300'} mb-1.5`}>Malzeme *</label>
                 <select 
                   value={talepForm.malzemeId} 
                   onChange={(e) => handleMalzemeSec(e.target.value)} 
@@ -867,13 +867,13 @@ const AsciPanel = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1.5">Miktar *</label>
+                <label className={`block text-sm font-medium ${isDayMode ? 'text-slate-700' : 'text-gray-300'} mb-1.5`}>Miktar *</label>
                 <input 
                   type="number" 
                   step="0.01"
                   value={talepForm.miktar} 
                   onChange={(e) => setTalepForm({ ...talepForm, miktar: e.target.value })} 
-                  className="w-full py-2.5 px-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-gray-500 focus:ring-2 focus:ring-white/20 outline-none" 
+                  className={`w-full py-2.5 px-3 rounded-lg outline-none transition-all ${isDayMode ? 'bg-white border border-slate-300 text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-slate-300' : 'bg-white/5 border border-white/10 text-white placeholder:text-gray-500 focus:ring-2 focus:ring-white/20'}`}
                   placeholder="Kaç adet/kg?" 
                   required 
                   min="0.01" 
@@ -881,7 +881,7 @@ const AsciPanel = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1.5">Birim</label>
+                <label className={`block text-sm font-medium ${isDayMode ? 'text-slate-700' : 'text-gray-300'} mb-1.5`}>Birim</label>
                 <select 
                   value={talepForm.birim} 
                   onChange={(e) => setTalepForm({ ...talepForm, birim: e.target.value })} 
@@ -904,19 +904,19 @@ const AsciPanel = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1.5">Açıklama</label>
+                <label className={`block text-sm font-medium ${isDayMode ? 'text-slate-700' : 'text-gray-300'} mb-1.5`}>Açıklama</label>
                 <textarea 
                   value={talepForm.aciklama} 
                   onChange={(e) => setTalepForm({ ...talepForm, aciklama: e.target.value })} 
-                  className="w-full py-2.5 px-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-gray-500 focus:ring-2 focus:ring-white/20 outline-none resize-none" 
+                  className={`w-full py-2.5 px-3 rounded-lg outline-none resize-none transition-all ${isDayMode ? 'bg-white border border-slate-300 text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-slate-300' : 'bg-white/5 border border-white/10 text-white placeholder:text-gray-500 focus:ring-2 focus:ring-white/20'}`}
                   placeholder="Neden ihtiyacınız var?" 
                   rows="2" 
                 />
               </div>
 
               <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setShowMalzemeTalep(false)} className="flex-1 px-4 py-2 bg-white/5 hover:bg-white/10 text-gray-300 rounded-lg" disabled={talepLoading}>İptal</button>
-                <button type="submit" disabled={talepLoading} className="flex-1 px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-black font-semibold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                <button type="button" onClick={() => setShowMalzemeTalep(false)} className={`flex-1 px-4 py-2 rounded-lg transition-all ${isDayMode ? 'bg-slate-100 hover:bg-slate-200 text-slate-700' : 'bg-white/5 hover:bg-white/10 text-gray-300'}`} disabled={talepLoading}>İptal</button>
+                <button type="submit" disabled={talepLoading} className={`flex-1 px-4 py-2 font-semibold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${isDayMode ? 'bg-amber-500 hover:bg-amber-600 text-white' : 'bg-yellow-500 hover:bg-yellow-600 text-black'}`}>
                   {talepLoading ? (<><div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin"></div> Gönderiliyor...</>) : ('Talebi Gönder')}
                 </button>
               </div>

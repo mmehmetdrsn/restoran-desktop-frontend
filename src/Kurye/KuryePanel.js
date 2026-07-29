@@ -380,18 +380,18 @@ const KuryePanel = () => {
     const isUpdating = updatingOrderId === order.id;
     
     return (
-      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div className="bg-black/90 rounded-2xl border border-white/10 max-w-2xl w-full">
-          <div className="p-6 border-b border-white/10 flex items-center justify-between">
-            <h3 className="text-white text-xl font-bold">📋 Sipariş #{order.id}</h3>
-            <button onClick={onClose} className="text-gray-400 hover:text-white cursor-pointer"><FaTimes /></button>
+      <div className={`fixed inset-0 ${isDayMode ? 'bg-slate-900/35 backdrop-blur-[2px]' : 'bg-black/80 backdrop-blur-sm'} z-50 flex items-center justify-center p-4`}>
+        <div className={`${isDayMode ? 'bg-white border-slate-200 text-slate-900 shadow-[0_22px_60px_rgba(15,23,42,0.16)]' : 'bg-black/90 border-white/10 text-white'} rounded-2xl border max-w-2xl w-full`}>
+          <div className={`p-6 border-b ${isDayMode ? 'border-slate-200' : 'border-white/10'} flex items-center justify-between`}>
+            <h3 className={`${isDayMode ? 'text-slate-900' : 'text-white'} text-xl font-bold`}>📋 Sipariş #{order.id}</h3>
+            <button onClick={onClose} className={`${isDayMode ? 'text-slate-500 hover:text-slate-900' : 'text-gray-400 hover:text-white'} cursor-pointer`}><FaTimes /></button>
           </div>
           <div className="p-6 space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              <div><p className="text-gray-400 text-xs">Müşteri</p><p className="text-white font-medium">{order.customer}</p></div>
-              <div><p className="text-gray-400 text-xs">Tutar</p><p className="text-yellow-400 font-bold">₺{order.amount}</p></div>
-              <div className="col-span-2"><p className="text-gray-400 text-xs">Adres</p><p className="text-gray-300">{order.address}</p></div>
-              <div className="col-span-2"><p className="text-gray-400 text-xs">Durum</p>
+              <div><p className={`${isDayMode ? 'text-slate-500' : 'text-gray-400'} text-xs`}>Müşteri</p><p className={`${isDayMode ? 'text-slate-900' : 'text-white'} font-medium`}>{order.customer}</p></div>
+              <div><p className={`${isDayMode ? 'text-slate-500' : 'text-gray-400'} text-xs`}>Tutar</p><p className="text-yellow-400 font-bold">₺{order.amount}</p></div>
+              <div className="col-span-2"><p className={`${isDayMode ? 'text-slate-500' : 'text-gray-400'} text-xs`}>Adres</p><p className={`${isDayMode ? 'text-slate-700' : 'text-gray-300'}`}>{order.address}</p></div>
+              <div className="col-span-2"><p className={`${isDayMode ? 'text-slate-500' : 'text-gray-400'} text-xs`}>Durum</p>
                 <span className={`px-3 py-1 rounded-full text-sm ${statusInfo.color}`}>
                   {statusInfo.icon} {statusInfo.label}
                 </span>

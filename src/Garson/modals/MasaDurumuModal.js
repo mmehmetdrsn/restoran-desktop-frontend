@@ -12,7 +12,8 @@ const MasaDurumuModal = ({
   verileriYukle,
   onOpenOrderModal,
   onOpenMoveModal,
-  onOpenPaymentModal
+  onOpenPaymentModal,
+  isDayMode = false
 }) => {
   const [resSaat, setResSaat] = useState('19:00');
   const [showResInput, setShowResInput] = useState(false);
@@ -70,21 +71,21 @@ const MasaDurumuModal = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-      <div className="bg-black/95 backdrop-blur-sm rounded-2xl border border-white/10 shadow-2xl max-w-md w-full p-6">
+    <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${isDayMode ? 'bg-slate-900/35 backdrop-blur-[2px]' : 'bg-black/70 backdrop-blur-sm'}`}>
+      <div className={`${isDayMode ? 'bg-white border border-slate-200 text-slate-900 shadow-[0_22px_60px_rgba(15,23,42,0.16)]' : 'bg-black/95 border border-white/10 text-white shadow-2xl'} backdrop-blur-sm rounded-2xl max-w-md w-full p-6`}>
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-white font-bold text-lg">📊 Masa Durumu Yönetimi</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-white">
+          <h2 className={`${isDayMode ? 'text-slate-900' : 'text-white'} font-bold text-lg`}>📊 Masa Durumu Yönetimi</h2>
+          <button onClick={onClose} className={`${isDayMode ? 'text-slate-500 hover:text-slate-900' : 'text-gray-400 hover:text-white'}`}>
             <FaTimes size={20} />
           </button>
         </div>
 
         {/* Masa Özeti */}
-        <div className="mb-6 p-4 bg-white/5 rounded-xl border border-white/10">
-          <p className="text-gray-300 text-sm mb-1">Seçili Masa:</p>
-          <p className="text-white font-bold text-lg">{selectedTable.name}</p>
-          <p className="text-gray-400 text-sm mt-1">
-            Mevcut Durum: <span className="text-yellow-400 font-semibold uppercase">
+        <div className={`mb-6 p-4 rounded-xl border ${isDayMode ? 'bg-slate-50 border-slate-200' : 'bg-white/5 border-white/10'}`}>
+          <p className={`${isDayMode ? 'text-slate-600' : 'text-gray-300'} text-sm mb-1`}>Seçili Masa:</p>
+          <p className={`${isDayMode ? 'text-slate-900' : 'text-white'} font-bold text-lg`}>{selectedTable.name}</p>
+          <p className={`${isDayMode ? 'text-slate-600' : 'text-gray-400'} text-sm mt-1`}>
+            Mevcut Durum: <span className={`${isDayMode ? 'text-amber-600' : 'text-yellow-400'} font-semibold uppercase`}>
               {isOccupied ? '🔴 DOLU' :
                isReserved ? '🟡 REZERVE' :
                isKullanimDisi ? '🚫 KULLANIM DIŞI' :

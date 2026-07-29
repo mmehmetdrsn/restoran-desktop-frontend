@@ -1327,16 +1327,16 @@ const GarsonPanel = () => {
 
       {/* Modallar */}
       {showOrderModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <div className="bg-black/95 backdrop-blur-sm rounded-2xl border border-white/10 shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6">
+        <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${isDayMode ? "bg-slate-900/35 backdrop-blur-[2px]" : "bg-black/70 backdrop-blur-sm"}`}>
+          <div className={`${isDayMode ? "bg-white border border-slate-200 text-slate-900 shadow-[0_22px_60px_rgba(15,23,42,0.16)]" : "bg-black/95 border border-white/10 text-white shadow-2xl"} backdrop-blur-sm rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6`}>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-white font-bold text-lg">Yeni Sipariş</h2>
+              <h2 className={`${isDayMode ? "text-slate-900" : "text-white"} font-bold text-lg`}>Yeni Sipariş</h2>
               <button
                 onClick={() => {
                   setShowOrderModal(false);
                   setCart([]);
                 }}
-                className="text-gray-400 hover:text-white"
+                className={`${isDayMode ? "text-slate-500 hover:text-slate-900" : "text-gray-400 hover:text-white"}`}
               >
                 <FaTimes size={20} />
               </button>
@@ -1362,16 +1362,16 @@ const GarsonPanel = () => {
       )}
 
       {showPaymentModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <div className="bg-black/95 backdrop-blur-sm rounded-2xl border border-white/10 shadow-2xl max-w-xl w-full p-6">
+        <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${isDayMode ? "bg-slate-900/35 backdrop-blur-[2px]" : "bg-black/70 backdrop-blur-sm"}`}>
+          <div className={`${isDayMode ? "bg-white border border-slate-200 text-slate-900 shadow-[0_22px_60px_rgba(15,23,42,0.16)]" : "bg-black/95 border border-white/10 text-white shadow-2xl"} backdrop-blur-sm rounded-2xl max-w-xl w-full p-6`}>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-white font-bold text-lg">💰 Ödeme Al</h2>
+              <h2 className={`${isDayMode ? "text-slate-900" : "text-white"} font-bold text-lg`}>💰 Ödeme Al</h2>
               <button
                 onClick={() => {
                   setShowPaymentModal(false);
                   setSelectedTable(null);
                 }}
-                className="text-gray-400 hover:text-white"
+                className={`${isDayMode ? "text-slate-500 hover:text-slate-900" : "text-gray-400 hover:text-white"}`}
               >
                 <FaTimes size={20} />
               </button>
@@ -1614,6 +1614,7 @@ const GarsonPanel = () => {
           setSelectedOrderTable(tbl);
           setShowPaymentModal(true);
         }}
+        isDayMode={isDayMode}
       />
 
       <SifreModal
@@ -1627,6 +1628,7 @@ const GarsonPanel = () => {
         setConfirmPassword={setConfirmPassword}
         handlePasswordChange={handlePasswordChange}
         passwordLoading={passwordLoading}
+        isDayMode={isDayMode}
       />
 
       {showNoteModal && noteModalItem && (
