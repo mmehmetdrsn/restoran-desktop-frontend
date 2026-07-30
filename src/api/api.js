@@ -75,6 +75,27 @@ export const apiRequest = async (endpoint, method = 'GET', body = null) => {
 };
 
 // ============================================================
+// ✅ LİSTE VERİSİNİ NORMALİZE ETME YARDIMCISI
+// Backend farklı endpoint'lerde farklı sarmalarla dönebiliyor:
+// - Doğrudan dizi: [ ... ]
+// - { data: [ ... ] }
+// - { value: [ ... ] }
+// - { Masalar: [ ... ] } gibi PascalCase/camelCase özel anahtarlar
+// Bu fonksiyon, verilen payload içinden ilk bulduğu diziyi döndürür.
+// ============================================================
+export const extractListData = (payload) => {
+    if (Array.isArray(payload)) return payload;
+    if (!payload || typeof payload !== 'object') return [];
+
+    if (Array.isArray(payload.data)) return payload.data;
+    if (Array.isArray(payload.value)) return payload.value;
+    if (Array.isArray(payload.items)) return payload.items;
+
+    const firstArrayValue = Object.values(payload).find((v) => Array.isArray(v));
+    return firstArrayValue || [];
+};
+
+// ============================================================
 // ✅ AUTH SERVİSİ
 // ============================================================
 export const authService = {
@@ -556,6 +577,7 @@ const api = {
     asciAPI,
     notificationService,
     malzemeTalepAPI,
+    extractListData,
     getKategoriler,
     kategoriEkle,
     kategoriSil,

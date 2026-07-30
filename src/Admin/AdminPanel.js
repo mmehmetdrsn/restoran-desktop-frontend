@@ -16,6 +16,7 @@ import {
   FaUser, FaChevronDown, FaMoon, FaSun
 } from 'react-icons/fa';
 import axios from 'axios';
+import * as signalR from '@microsoft/signalr';
 
 // API Servisleri
 import {
@@ -332,55 +333,63 @@ const AdminPanel = () => {
     try {
       console.log('Veriler yükleniyor...');
 
-      const productsRes = await productService.getAll().catch(err => {
-        console.warn('Urunler yüklenemedi:', err);
-        return { data: [] };
-      });
-
-      const categoriesRes = await categoryService.getAll().catch(err => {
-        console.warn('Kategoriler yüklenemedi:', err);
-        return { data: [] };
-      });
-
-      const materialsRes = await materialService.getAll().catch(err => {
-        console.warn('Malzemeler yüklenemedi:', err);
-        return { data: [] };
-      });
-
-      const tablesRes = await tableService.getAll().catch(err => {
-        console.warn('Masalar yüklenemedi:', err);
-        return { data: [] };
-      });
-
-      const reservationsRes = await reservationService.getAll().catch(err => {
-        console.warn('Rezervasyonlar yüklenemedi:', err);
-        return { data: [] };
-      });
-
-      const personnelRes = await personnelService.getAll().catch(err => {
-        console.warn('Personeller yüklenemedi:', err);
-        return { data: [] };
-      });
-
-      const usersRes = await userService.getAll().catch(err => {
-        console.warn('Uyeler yüklenemedi:', err);
-        return { data: [] };
-      });
-
-      const paymentsRes = await paymentService.getAll().catch(err => {
-        console.warn('Odemeler yüklenemedi:', err);
-        return { data: [] };
-      });
-
-      const cashRes = await cashService.getAll().catch(err => {
-        console.warn('Kasa hareketleri yüklenemedi:', err);
-        return { data: [] };
-      });
-
-      const ordersRes = await orderService.getAll().catch(err => {
-        console.warn('Siparisler yüklenemedi:', err)
-        return { data: [] };
-      });
+      // 🚀 Tüm istekler paralel gidiyor (Promise.all) — artık birbirini beklemiyorlar.
+      // Eskiden 10 istek sırayla (await await await...) gidiyordu; her biri ağ gecikmesi
+      // yüzünden yavaş SQL sunucusunu bekliyordu, bu da toplamda birkaç saniyeye
+      // kadar çıkan bir gecikmeye ve "değişiklik geç görünüyor" hissine yol açıyordu.
+      const [
+        productsRes,
+        categoriesRes,
+        materialsRes,
+        tablesRes,
+        reservationsRes,
+        personnelRes,
+        usersRes,
+        paymentsRes,
+        cashRes,
+        ordersRes
+      ] = await Promise.all([
+        productService.getAll().catch(err => {
+          console.warn('Urunler yüklenemedi:', err);
+          return { data: [] };
+        }),
+        categoryService.getAll().catch(err => {
+          console.warn('Kategoriler yüklenemedi:', err);
+          return { data: [] };
+        }),
+        materialService.getAll().catch(err => {
+          console.warn('Malzemeler yüklenemedi:', err);
+          return { data: [] };
+        }),
+        tableService.getAll().catch(err => {
+          console.warn('Masalar yüklenemedi:', err);
+          return { data: [] };
+        }),
+        reservationService.getAll().catch(err => {
+          console.warn('Rezervasyonlar yüklenemedi:', err);
+          return { data: [] };
+        }),
+        personnelService.getAll().catch(err => {
+          console.warn('Personeller yüklenemedi:', err);
+          return { data: [] };
+        }),
+        userService.getAll().catch(err => {
+          console.warn('Uyeler yüklenemedi:', err);
+          return { data: [] };
+        }),
+        paymentService.getAll().catch(err => {
+          console.warn('Odemeler yüklenemedi:', err);
+          return { data: [] };
+        }),
+        cashService.getAll().catch(err => {
+          console.warn('Kasa hareketleri yüklenemedi:', err);
+          return { data: [] };
+        }),
+        orderService.getAll().catch(err => {
+          console.warn('Siparisler yüklenemedi:', err);
+          return { data: [] };
+        })
+      ]);
 
       console.log('Urunler:', productsRes);
       console.log('Kategoriler:', categoriesRes);
@@ -475,6 +484,54 @@ const AdminPanel = () => {
 
     document.addEventListener('mousedown', onClickOutside);
     return () => document.removeEventListener('mousedown', onClickOutside);
+  }, []);
+
+  // 🔔 Gerçek zamanlı otomatik yenileme: backend, masa/sipariş/vs. üzerinde bir
+  // değişiklik olduğunda tüm bağlı istemcilere "VeriGuncellendi" eventini
+  // yayınlıyor (bkz. MasaController). Bu eventi burada dinleyip fetchAllData()'yı
+  // tekrar çağırıyoruz — böylece kim, hangi pencereden (Admin, Garson, başka bir
+  // Electron penceresi) değişiklik yaparsa yapsın, sayfa yenilemeye gerek kalmadan
+  // ekran güncel veriyi gösterir.
+  useEffect(() => {
+    let isActive = true;
+    let debounceTimer = null;
+
+    const connection = new signalR.HubConnectionBuilder()
+      .withUrl('http://localhost:5141/Hubs/SiparisHub')
+      .withAutomaticReconnect()
+      .build();
+
+    // Kısa aralıklarla birden fazla event gelirse (örn. bir işlem hem masa hem
+    // sipariş güncellemesi tetikliyorsa) fetchAllData'yı tek seferde çalıştırmak
+    // için debounce uyguluyoruz; her 10 endpoint'i art arda defalarca çekmeyelim.
+    const veriGuncellendiHandler = () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        if (isActive) fetchAllData();
+      }, 400);
+    };
+
+    connection.on('VeriGuncellendi', veriGuncellendiHandler);
+
+    connection.start()
+      .then(() => {
+        if (!isActive) {
+          connection.stop();
+          return;
+        }
+        console.log('🟢 Admin panel gerçek zamanlı güncellemelere bağlandı.');
+      })
+      .catch(err => {
+        if (isActive) {
+          console.error('🔴 Admin panel SignalR bağlantı hatası:', err);
+        }
+      });
+
+    return () => {
+      isActive = false;
+      if (debounceTimer) clearTimeout(debounceTimer);
+      connection.stop();
+    };
   }, []);
 
   // Cikis
