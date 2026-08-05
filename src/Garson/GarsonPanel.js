@@ -41,6 +41,7 @@ import {
   FaSun,
   FaMoon,
   FaChevronDown,
+  FaCalendarCheck,
 } from "react-icons/fa";
 import { toast } from "react-toastify";
 import * as signalR from "@microsoft/signalr";
@@ -54,11 +55,13 @@ import {
   authService,
   logout,
   extractListData,
+  reservationService,
 } from "../api/api";
 
 import MasaYonetimi from "./pages/MasaYonetimi";
 import YeniSiparisPage from "./pages/YeniSiparisPage";
 import HesapIslemleri from "./pages/HesapIslemleri";
+import RezervasyonlarPage from "./pages/RezervasyonlarPage";
 import MasaTasiModal from "./modals/MasaTasiModal";
 import IadeModal from "./modals/IadeModal";
 import SifreModal from "./modals/SifreModal";
@@ -110,6 +113,11 @@ const GarsonPanel = () => {
   const [tables, setTables] = useState([]);
   const [menuItems, setMenuItems] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Rezervasyonlar (mobilden gelen masasız talepler dahil)
+  const [reservations, setReservations] = useState([]);
+  const [reservationTableChoice, setReservationTableChoice] = useState({});
+  const [reservationActionId, setReservationActionId] = useState(null);
 
   // Filtreleme
   const [filter, setFilter] = useState("all");
@@ -284,11 +292,64 @@ const GarsonPanel = () => {
         }));
         setMenuItems(formatliUrunler);
       }
+
+      const rezervasyonRes = await reservationService.getAll();
+      const rezervasyonData = extractListData(
+        rezervasyonRes?.data ?? rezervasyonRes,
+      );
+      if (Array.isArray(rezervasyonData)) {
+        setReservations(rezervasyonData);
+      }
     } catch (error) {
       toast.error("Veriler yüklenirken hata oluştu!");
       console.error(error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // 🍽️ Bekleyen bir rezervasyona (mobilden gelen, masasız) uygun masayı ata
+  const handleReservationAssignTable = async (reservationId) => {
+    const tableId = reservationTableChoice[reservationId];
+    if (!tableId) {
+      toast.warning("Lütfen önce bir masa seçin.");
+      return;
+    }
+
+    setReservationActionId(reservationId);
+    try {
+      await reservationService.update(reservationId, {
+        masaId: Number(tableId),
+        durum: "ONAYLANDI",
+      });
+      toast.success("Masa rezervasyona atandı! 🎉");
+      await verileriYukle();
+    } catch (err) {
+      const msg =
+        err?.response?.data?.Mesaj ||
+        err?.message ||
+        "Masa atanırken bir hata oluştu.";
+      toast.error(msg);
+    } finally {
+      setReservationActionId(null);
+    }
+  };
+
+  // ❌ Rezervasyon talebini reddet
+  const handleReservationReject = async (reservationId) => {
+    setReservationActionId(reservationId);
+    try {
+      await reservationService.updateStatus(reservationId, "REDDEDILDI");
+      toast.success("Rezervasyon talebi reddedildi.");
+      await verileriYukle();
+    } catch (err) {
+      const msg =
+        err?.response?.data?.Mesaj ||
+        err?.message ||
+        "Rezervasyon reddedilirken bir hata oluştu.";
+      toast.error(msg);
+    } finally {
+      setReservationActionId(null);
     }
   };
 
@@ -1139,6 +1200,35 @@ const GarsonPanel = () => {
               )}
             </button>
 
+            <button
+              onClick={() => {
+                setActiveTab("rezervasyon");
+                setShowOrderModal(false);
+                setShowPaymentModal(false);
+              }}
+              className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all mt-2 ${activeTab === "rezervasyon" ? (isDayMode ? "bg-slate-300 text-slate-900 shadow-sm" : "bg-white/20 text-white") : isDayMode ? "text-slate-700 bg-slate-100 hover:text-slate-900 hover:bg-slate-200" : "text-gray-400 bg-white/10 hover:text-white hover:bg-white/15"}`}
+            >
+              <FaCalendarCheck size={18} />
+              {sidebarOpen && (
+                <div className="flex-1 flex items-center justify-between text-left">
+                  <p
+                    className={`text-sm font-medium ${isDayMode ? (activeTab === "rezervasyon" ? "text-white" : "text-slate-900") : "text-white"}`}
+                  >
+                    Rezervasyonlar
+                  </p>
+                  {reservations.filter((r) => r.durum === "BEKLEMEDE").length >
+                    0 && (
+                    <span className="bg-orange-500 text-white text-[11px] font-bold px-2 py-0.5 rounded-full">
+                      {
+                        reservations.filter((r) => r.durum === "BEKLEMEDE")
+                          .length
+                      }
+                    </span>
+                  )}
+                </div>
+              )}
+            </button>
+
             <div className="mt-2 space-y-2">
               <div className="px-3"></div>
               <button
@@ -1360,6 +1450,19 @@ const GarsonPanel = () => {
                       console.log(`✅ Masa ${masaId} ödemesi başarılı!`);
                       verileriYukle();
                     }}
+                  />
+                )}
+
+                {activeTab === "rezervasyon" && (
+                  <RezervasyonlarPage
+                    reservations={reservations}
+                    tables={tables}
+                    reservationTableChoice={reservationTableChoice}
+                    setReservationTableChoice={setReservationTableChoice}
+                    reservationActionId={reservationActionId}
+                    onAssignTable={handleReservationAssignTable}
+                    onReject={handleReservationReject}
+                    isDayMode={isDayMode}
                   />
                 )}
               </>
