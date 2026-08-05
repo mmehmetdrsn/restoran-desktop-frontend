@@ -1,5 +1,7 @@
+// src/Admin/AdminPanel.js
 import React, { useState, useEffect, useRef } from 'react';
 import ReceteEkle from './Bilesenler/Recete/ReceteEkle';  
+import QrKodu from './Bilesenler/Masa/QrKodu';  // ✅ EKLENDİ
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import {
@@ -108,6 +110,7 @@ const AdminPanel = () => {
   const [siparisGosterimModu, setSiparisGosterimModu] = useState('all');
   const [showSiparisDetay, setShowSiparisDetay] = useState(false);
   const [showReceteEkle, setShowReceteEkle] = useState(false);
+  const [showQrKodu, setShowQrKodu] = useState(false);  // ✅ EKLENDİ
 
   // Veri State'leri
   const [orders, setOrders] = useState([]);
@@ -333,10 +336,6 @@ const AdminPanel = () => {
     try {
       console.log('Veriler yükleniyor...');
 
-      // 🚀 Tüm istekler paralel gidiyor (Promise.all) — artık birbirini beklemiyorlar.
-      // Eskiden 10 istek sırayla (await await await...) gidiyordu; her biri ağ gecikmesi
-      // yüzünden yavaş SQL sunucusunu bekliyordu, bu da toplamda birkaç saniyeye
-      // kadar çıkan bir gecikmeye ve "değişiklik geç görünüyor" hissine yol açıyordu.
       const [
         productsRes,
         categoriesRes,
@@ -486,12 +485,7 @@ const AdminPanel = () => {
     return () => document.removeEventListener('mousedown', onClickOutside);
   }, []);
 
-  // 🔔 Gerçek zamanlı otomatik yenileme: backend, masa/sipariş/vs. üzerinde bir
-  // değişiklik olduğunda tüm bağlı istemcilere "VeriGuncellendi" eventini
-  // yayınlıyor (bkz. MasaController). Bu eventi burada dinleyip fetchAllData()'yı
-  // tekrar çağırıyoruz — böylece kim, hangi pencereden (Admin, Garson, başka bir
-  // Electron penceresi) değişiklik yaparsa yapsın, sayfa yenilemeye gerek kalmadan
-  // ekran güncel veriyi gösterir.
+  // 🔔 Gerçek zamanlı otomatik yenileme
   useEffect(() => {
     let isActive = true;
     let debounceTimer = null;
@@ -501,9 +495,6 @@ const AdminPanel = () => {
       .withAutomaticReconnect()
       .build();
 
-    // Kısa aralıklarla birden fazla event gelirse (örn. bir işlem hem masa hem
-    // sipariş güncellemesi tetikliyorsa) fetchAllData'yı tek seferde çalıştırmak
-    // için debounce uyguluyoruz; her 10 endpoint'i art arda defalarca çekmeyelim.
     const veriGuncellendiHandler = () => {
       if (debounceTimer) clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => {
@@ -895,7 +886,7 @@ const AdminPanel = () => {
       setShowUrunSil={setShowUrunSil}
       setShowUrunDuzenle={setShowUrunDuzenle}
       handleUrunListele={handleUrunListele}
-       setShowReceteEkle={setShowReceteEkle}
+      setShowReceteEkle={setShowReceteEkle}
     />;
   };
 
@@ -938,6 +929,7 @@ const AdminPanel = () => {
       setShowMasaEkle={setShowMasaEkle}
       setShowMasaSil={setShowMasaSil}
       setShowMasaDuzenle={setShowMasaDuzenle}
+      setShowQrKodu={setShowQrKodu}  // ✅ EKLENDİ
     />;
   };
 
@@ -960,6 +952,7 @@ const AdminPanel = () => {
           setShowMasaEkle={setShowMasaEkle}
           setShowMasaSil={setShowMasaSil}
           setShowMasaDuzenle={setShowMasaDuzenle}
+          setShowQrKodu={setShowQrKodu}  // ✅ EKLENDİ
         />
         <RezervasyonButonlari
           setShowRezervasyonEkle={setShowRezervasyonEkle}
@@ -1004,23 +997,23 @@ const AdminPanel = () => {
           }}
         />;
       case 'product_menu':
-  return (
-    <div className="space-y-6">
-      <UrunButonlari
-        setShowUrunEkle={setShowUrunEkle}
-        setShowUrunSil={setShowUrunSil}
-        setShowUrunDuzenle={setShowUrunDuzenle}
-        handleUrunListele={handleUrunListele}
-        setShowReceteEkle={setShowReceteEkle}  // ✅ BUNU EKLE!
-      />
-      <KategoriButonlari
-        setShowKategoriEkle={setShowKategoriEkle}
-        setShowKategoriSil={setShowKategoriSil}
-        setShowKategoriDuzenle={setShowKategoriDuzenle}
-        handleKategoriListele={handleKategoriListele}
-      />
-    </div>
-  );
+        return (
+          <div className="space-y-6">
+            <UrunButonlari
+              setShowUrunEkle={setShowUrunEkle}
+              setShowUrunSil={setShowUrunSil}
+              setShowUrunDuzenle={setShowUrunDuzenle}
+              handleUrunListele={handleUrunListele}
+              setShowReceteEkle={setShowReceteEkle}
+            />
+            <KategoriButonlari
+              setShowKategoriEkle={setShowKategoriEkle}
+              setShowKategoriSil={setShowKategoriSil}
+              setShowKategoriDuzenle={setShowKategoriDuzenle}
+              handleKategoriListele={handleKategoriListele}
+            />
+          </div>
+        );
       case 'members':
         return <UyeButonlari
           setShowUyeEkle={setShowUyeEkle}
@@ -1293,19 +1286,18 @@ const AdminPanel = () => {
         urunler={urunListesi}
       />
 
-{/* Recete Modallari */}
-<ReceteEkle
-  acik={showReceteEkle}
-  kapat={() => {
-    setShowReceteEkle(false);
-    fetchAllData();
-  }}
-  onSuccess={() => {
-    toast.success('🎉 Reçete başarıyla eklendi!');
-    fetchAllData();
-  }}
-/>
-
+      {/* Recete Modallari */}
+      <ReceteEkle
+        acik={showReceteEkle}
+        kapat={() => {
+          setShowReceteEkle(false);
+          fetchAllData();
+        }}
+        onSuccess={() => {
+          toast.success('🎉 Reçete başarıyla eklendi!');
+          fetchAllData();
+        }}
+      />
 
       {/* Uye Modallari */}
       <UyeEkle
@@ -1381,6 +1373,12 @@ const AdminPanel = () => {
         acik={showMasaDuzenle}
         kapat={() => setShowMasaDuzenle(false)}
         onSuccess={fetchAllData}
+      />
+
+      {/* QR Kod Modali */}
+      <QrKodu
+        acik={showQrKodu}
+        kapat={() => setShowQrKodu(false)}
       />
 
       {/* Rezervasyon Modallari */}
@@ -1469,6 +1467,6 @@ const AdminPanel = () => {
       />
     </div>
   );
-};  
+};
 
 export default AdminPanel;

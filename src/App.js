@@ -8,19 +8,19 @@ import AdminPanel from './Admin/AdminPanel';
 import GarsonPanel from './Garson/GarsonPanel';
 import AsciPanel from './Asci/AsciPanel';
 import KuryePanel from './Kurye/KuryePanel';
-import SiparisTakip from './components/SiparisTakip'; // 👈 1. SignalR Bileşeni Eklendi
+import SiparisTakip from './components/SiparisTakip';
+import QrRedirect from './pages/QrRedirect';  
+import QrMenuScreen from './pages/QrMenuScreen';  
+import QrSepetScreen from './pages/QrSepetScreen';
 import { AppDialogProvider } from './components/dialog/AppDialogProvider';
 
-// ============ PROTECTED ROUTE ============
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   
-  // Kullanıcı giriş yapmamışsa login'e yönlendir
   if (!user.role) {
     return <Navigate to="/" replace />;
   }
   
-  // Rol yetkisi kontrolü
   if (allowedRoles && !allowedRoles.includes(user.role)) {
     return <Navigate to="/" replace />;
   }
@@ -29,14 +29,12 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 };
 
 function App() {
-  // 👈 2. Giriş yapan kullanıcının ID'sini çekiyoruz
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   const activeUyeId = user.uyeId || user.id || user.userId;
 
   return (
     <BrowserRouter>
       <AppDialogProvider>
-        {/* 🚀 3. Giriş yapılmışsa arka planda SignalR Canlı Bildirim Dinleyicisi Çalışır */}
         {activeUyeId && <SiparisTakip uyeId={activeUyeId} />}
 
         <ToastContainer 
@@ -53,39 +51,38 @@ function App() {
         />
         
         <Routes>
-          {/* Login Sayfası */}
           <Route path="/" element={<Login />} />
           <Route path="/login" element={<Login />} />
           
-          {/* Admin Paneli */}
+          {/* ✅ QR Redirect Route - EKLENDİ */}
+          <Route path="/qr/masa/:masaId" element={<QrRedirect />} />
+          <Route path="/qr/menu" element={<QrMenuScreen />} />
+          <Route path="/qr/sepet" element={<QrSepetScreen />} />
+          
           <Route path="/admin" element={
             <ProtectedRoute allowedRoles={['admin']}>
               <AdminPanel />
             </ProtectedRoute>
           } />
           
-          {/* Garson Paneli */}
           <Route path="/garson" element={
             <ProtectedRoute allowedRoles={['garson']}>
               <GarsonPanel />
             </ProtectedRoute>
           } />
           
-          {/* Aşçı Paneli */}
           <Route path="/asci" element={
             <ProtectedRoute allowedRoles={['asci']}>
               <AsciPanel />
             </ProtectedRoute>
           } />
           
-          {/* Kurye Paneli */}
           <Route path="/kurye" element={
             <ProtectedRoute allowedRoles={['kurye']}>
               <KuryePanel />
             </ProtectedRoute>
           } />
           
-          {/* Tanımsız route'lar login'e yönlendir */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AppDialogProvider>

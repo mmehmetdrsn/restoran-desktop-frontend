@@ -15,7 +15,7 @@ const SiparisTakip = ({ uyeId }) => {
         let isActive = true;
 
         const connection = new signalR.HubConnectionBuilder()
-            .withUrl("http://localhost:5141/Hubs/SiparisHub")
+            .withUrl("http://localhost:5000/Hubs/SiparisHub")
             .withAutomaticReconnect()
             .build();
 
@@ -41,7 +41,7 @@ const SiparisTakip = ({ uyeId }) => {
             // alert yerine doğrudan projedeki ToastContainer'a bildirim fırlatır
             toast.info(`📦 Sipariş #${data.siparisId}: ${data.mesaj}`, {
                 position: "top-right",
-                autoClose: 5141,
+                autoClose: 5000,
             });
         });
 
