@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { FaShoppingCart, FaUser, FaHome } from 'react-icons/fa';
 import { productService, tableService } from '../api/api';
+import { getProductImage } from '../utils/imageHelper';
 
 const QrMenuScreen = () => {
   const navigate = useNavigate();
@@ -27,7 +28,7 @@ const QrMenuScreen = () => {
       // QR ile gelmediyse ana sayfaya yönlendir
       navigate('/');
     }
-    
+
     fetchProducts();
   }, []);
 
@@ -48,11 +49,11 @@ const QrMenuScreen = () => {
       setLoading(true);
       const response = await productService.getAll();
       const data = response.data || [];
-      
+
       // Kategorileri çıkar
       const uniqueCategories = ['Tümü', ...new Set(data.map(p => p.kategoriAdi || 'Genel'))];
       setCategories(uniqueCategories);
-      
+
       // Ürünleri filtrele (aktif olanlar)
       const activeProducts = data.filter(p => p.isActive !== false);
       setProducts(activeProducts);
@@ -63,17 +64,17 @@ const QrMenuScreen = () => {
     }
   };
 
-  const filteredProducts = selectedCategory === 'Tümü' 
-    ? products 
+  const filteredProducts = selectedCategory === 'Tümü'
+    ? products
     : products.filter(p => (p.kategoriAdi || 'Genel') === selectedCategory);
 
   const addToCart = (product) => {
     setCart(prev => {
       const existing = prev.find(p => p.urunId === product.urunId);
       if (existing) {
-        return prev.map(p => 
-          p.urunId === product.urunId 
-            ? { ...p, adet: p.adet + 1 } 
+        return prev.map(p =>
+          p.urunId === product.urunId
+            ? { ...p, adet: p.adet + 1 }
             : p
         );
       }
@@ -88,9 +89,9 @@ const QrMenuScreen = () => {
       const existing = prev.find(p => p.urunId === productId);
       if (existing) {
         if (existing.adet > 1) {
-          return prev.map(p => 
-            p.urunId === productId 
-              ? { ...p, adet: p.adet - 1 } 
+          return prev.map(p =>
+            p.urunId === productId
+              ? { ...p, adet: p.adet - 1 }
               : p
           );
         }
@@ -110,6 +111,15 @@ const QrMenuScreen = () => {
     localStorage.setItem('qrCart', JSON.stringify(cart));
     localStorage.setItem('qrMasaId', masaId);
     navigate('/qr/sepet');
+  };
+
+  const handleImageError = (e) => {
+    e.target.onerror = null;
+    e.target.style.display = 'none';
+    const fallback = e.target.nextElementSibling;
+    if (fallback) {
+      fallback.style.display = 'flex';
+    }
   };
 
   return (
@@ -184,8 +194,14 @@ const QrMenuScreen = () => {
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {filteredProducts.map(product => (
               <div key={product.urunId} className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition">
-                <div className="h-32 bg-gradient-to-r from-green-100 to-green-50 flex items-center justify-center">
-                  <span className="text-4xl">🍽️</span>
+                <div className="h-32 bg-gradient-to-r from-green-100 to-green-50 flex items-center justify-center relative overflow-hidden">
+                  <img
+                    src={getProductImage(product.urunAdi)}
+                    alt={product.urunAdi}
+                    className="w-full h-full object-cover"
+                    onError={handleImageError}
+                  />
+                  <span className="text-4xl absolute" style={{ display: 'none' }}>🍽️</span>
                 </div>
                 <div className="p-3">
                   <h3 className="font-semibold text-gray-800 text-sm truncate">
